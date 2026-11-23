@@ -43,6 +43,7 @@ maths; "today" is always a parameter, errors are codes) and a thin UI `src/ui/`.
 | `README.md`                                                             | Short description (German), license section                                                    |
 | `FEATURES_REQUIRED.md`                                                  | Critical user paths the audit validates                                                        |
 | `docs/data-model.html`                                                  | Self-contained data-model reference (`tests/docs.test.ts` ties codes and numbers to it)        |
+| `docs/uebergabe.md`                                                     | Handover for a new chat: state, decisions, open points in order                                |
 | `manual_tests/`                                                         | Human-tester instructions (German)                                                             |
 | `src/logic/model.ts`                                                    | Types (`Mandate`, `RiskGroup`, `LegalForm`, status unions), `Reason` codes, `Result`           |
 | `src/logic/config.ts`                                                   | All numbers and tables as data: intervals, dunning steps, retention, thresholds, legal forms   |
