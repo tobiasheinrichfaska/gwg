@@ -1,0 +1,33 @@
+# Dependencies & build output
+node_modules/
+dist/
+coverage/
+
+# Project-bound scratch area (workspace rule: never use global temp)
+.tmp/
+
+# Real data never belongs here: client lists, backups, exports, reports, register extracts
+*.gwg.json
+*.pdf
+*.xml
+!docs/**/*.xml
+*.xlsx
+*.csv
+*.db
+*.sqlite*
+*.log
+
+# Private companion repo gwg-privat, copied 1:1 over this checkout
+docs/privat/
+
+# Local environment / editor
+.env
+.env.*
+.vscode/
+.idea/
+*.wsb
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

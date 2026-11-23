@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GwG-Pflege – Datenmodell</title>
+    <style>
+      :root { color-scheme: light dark; --bg:#fff; --fg:#1b1f23; --mut:#57606a; --line:#d0d7de; --acc:#0b5cad; --box:#f6f8fa; }
+      @media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --fg:#e6edf3; --mut:#9da7b3; --line:#30363d; --acc:#58a6ff; --box:#161b22; } }
+      body { background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,sans-serif; margin:0 auto; max-width:60rem; padding:1rem 1rem 4rem; }
+      h1,h2,h3 { line-height:1.25; } h2 { margin-top:2.2rem; border-bottom:1px solid var(--line); padding-bottom:.2rem; }
+      table { border-collapse:collapse; width:100%; margin:.6rem 0 1.2rem; font-size:.92rem; }
+      th,td { border:1px solid var(--line); padding:.3rem .5rem; text-align:left; vertical-align:top; }
+      th { background:var(--box); } code { background:var(--box); padding:0 .25rem; border-radius:3px; }
+      .note { color:var(--mut); } svg { max-width:100%; height:auto; }
+      svg text { fill:var(--fg); font:13px system-ui,sans-serif; } svg rect.e { fill:var(--box); stroke:var(--acc); stroke-width:1.5; }
+      svg line,svg path { stroke:var(--acc); stroke-width:1.5; fill:none; } svg .lab { fill:var(--mut); font-size:11px; }
+    </style>
+  </head>
+  <body>
+    <h1>GwG-Pflege – Datenmodell</h1>
+    <p class="note">
+      Quelle: <code>src/logic/</code> (Stand 2026-11-23). Bei jeder Änderung des Modells in derselben Sitzung
+      neu abgleichen; <code>tests/docs.test.ts</code> prüft, dass jeder Fehlercode und jede Zahl der
+      Konfiguration hier steht. Die Datei ist eigenständig (kein Netz, kein Build).
+    </p>
+
+    <h2>1 Gespeicherte Form (Wurzel)</h2>
+    <p>
+      Noch nicht festgelegt: Die Speicherung (Browser-Speicher und Sicherungsdatei, ohne Verschlüsselung durch
+      eine Tresor-Bibliothek) ist offen und kommt mit den Bildschirmen. Bis dahin besteht das Modell aus der
+      Mandantenliste (<code>Mandate[]</code>) und der Konfiguration (Abschnitt 3), die als Daten in
+      <code>src/logic/config.ts</code> liegt.
+    </p>
+
+    <h2>2 Entitäten</h2>
+    <h3>Mandate (ein Mandant)</h3>
+    <p class="note">Daten stammen aus den Stammdaten der Kanzleisoftware; Datumsfelder sind Kalendertage <code>JJJJ-MM-TT</code> ohne Zeitzone.</p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
+      <tr><td>id</td><td>Text</td><td>ja</td><td>Mandantennummer; nicht leer</td></tr>
+      <tr><td>name</td><td>Text</td><td>ja</td><td>Name oder Firma; nicht leer</td></tr>
+      <tr><td>legalForm</td><td>Schlüssel von LegalForm</td><td>ja</td><td>Rechtsform; bestimmt den Prüftyp A, B oder C</td></tr>
+      <tr><td>active</td><td>Wahrheitswert</td><td>ja</td><td>Aktiv in der Kanzleisoftware</td></tr>
+      <tr><td>idStatus</td><td>IdStatus</td><td>ja</td><td>leer, unvollstaendig, vollstaendig, eskalation, gekuendigt; „vollstaendig“ verlangt <code>lastCheckOn</code></td></tr>
+      <tr><td>riskGroupId</td><td>Schlüssel von RiskGroup oder null</td><td>ja</td><td>null = nicht eingestuft (ein Fund im Jahresaudit)</td></tr>
+      <tr><td>riskReason</td><td>Text, höchstens 500 Zeichen</td><td>ja (leer erlaubt)</td><td>Begründung der Einstufung; eine Zeile, keine Steuerzeichen</td></tr>
+      <tr><td>isPep</td><td>Wahrheitswert</td><td>ja</td><td>Politisch exponierte Person; zwingend Risikoklasse hoch</td></tr>
+      <tr><td>firstRequestOn</td><td>Datum oder null</td><td>ja</td><td>Erste Anforderung der Unterlagen; startet die Mahnleiter</td></tr>
+      <tr><td>lastCheckOn</td><td>Datum oder null</td><td>ja</td><td>Letzte abgeschlossene Prüfung; Grundlage des nächsten Termins</td></tr>
+      <tr><td>endedOn</td><td>Datum oder null</td><td>ja</td><td>Ende des Mandats; nur bei inaktiven Mandaten; startet die Aufbewahrungsfrist</td></tr>
+    </table>
+    <h3>RiskGroup (Risikogruppe)</h3>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
+      <tr><td>id</td><td>Text, z. B. N-01</td><td>ja</td><td>Schlüssel</td></tr>
+      <tr><td>name</td><td>Text</td><td>ja</td><td>Bezeichnung</td></tr>
+      <tr><td>riskClass</td><td>niedrig | normal | hoch</td><td>ja</td><td>Jede Gruppe gehört zu genau einer Klasse</td></tr>
+    </table>
+    <h3>LegalForm (Rechtsform)</h3>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
+      <tr><td>key</td><td>Text</td><td>ja</td><td>Schlüssel</td></tr>
+      <tr><td>label</td><td>Text</td><td>ja</td><td>Anzeigename</td></tr>
+      <tr><td>checkType</td><td>A | B | C</td><td>ja</td><td>A natürliche Person / nicht eingetragenes Einzelunternehmen; B eingetragener Kaufmann; C Gesellschaften, Vereine, Stiftungen</td></tr>
+    </table>
+
+    <h2>3 Konfiguration (Daten statt Verzweigungen)</h2>
+    <p class="note">
+      Die Struktur (drei Risikoklassen, risikobasierte Prüfung) folgt dem Gesetz. Die <strong>Zahlen sind ein
+      Startvorschlag, kein Gesetz</strong>: Das GwG nennt keine Monatszahlen, Mahntage oder Ähnlichkeitsschwellen.
+      Jede Kanzlei legt sie in ihrer eigenen Risikoanalyse fest.
+    </p>
+    <table>
+      <tr><th>Name</th><th>Wert</th><th>Bedeutung</th></tr>
+      <tr><td>REVIEW_INTERVAL_MONTHS.niedrig</td><td>36</td><td>Monate bis zur nächsten Prüfung</td></tr>
+      <tr><td>REVIEW_INTERVAL_MONTHS.normal</td><td>24</td><td>Monate bis zur nächsten Prüfung</td></tr>
+      <tr><td>REVIEW_INTERVAL_MONTHS.hoch</td><td>12</td><td>Monate bis zur nächsten Prüfung</td></tr>
+      <tr><td>DUNNING_STEPS.erinnerung</td><td>14</td><td>Tage nach der ersten Anforderung</td></tr>
+      <tr><td>DUNNING_STEPS.androhung</td><td>28</td><td>Tage; Schreiben mit Hinweis auf die Beendigung der Geschäftsbeziehung</td></tr>
+      <tr><td>DUNNING_STEPS.eskalation</td><td>42</td><td>Tage; Entscheidung der Leitung nötig</td></tr>
+      <tr><td>RETENTION_YEARS</td><td>5</td><td>Jahre nach dem Ende des Kalenderjahres der Beendigung</td></tr>
+      <tr><td>DISCREPANCY_RECHECK_DAYS</td><td>60</td><td>Tage bis zur Wiedervorlage nach einer Unstimmigkeitsmeldung</td></tr>
+      <tr><td>SANCTION_THRESHOLDS.possible</td><td>0.85</td><td>Namensähnlichkeit ab der ein möglicher Treffer vorliegt</td></tr>
+      <tr><td>SANCTION_THRESHOLDS.strong</td><td>0.9</td><td>Namensähnlichkeit für „rot“ bei genau gleichem Geburtsdatum</td></tr>
+    </table>
+
+    <h2>4 Methoden (reine Logik, ohne Oberfläche)</h2>
+    <table>
+      <tr><th>Funktion</th><th>Signatur</th><th>Zweck</th></tr>
+      <tr><td>checkTypeOf</td><td>(legalForm: string) =&gt; CheckType | null</td><td>Prüftyp einer Rechtsform</td></tr>
+      <tr><td>effectiveRiskClass</td><td>(m, groups?) =&gt; RiskClass | null</td><td>Klasse der Gruppe; PEP immer hoch</td></tr>
+      <tr><td>nextReviewDate</td><td>(m, groups?) =&gt; DateKey | null</td><td>Letzte Prüfung plus Intervall der Klasse (Monatsende wird begrenzt)</td></tr>
+      <tr><td>dunningStage</td><td>(firstRequestOn, today) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>
+      <tr><td>retentionDueFrom</td><td>(endedOn) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
+      <tr><td>checkMandate</td><td>(m, groups?) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
+      <tr><td>auditExceptions</td><td>(mandates, today, groups?) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified, unidentified, stalled, overdue</td></tr>
+      <tr><td>auditIsClean</td><td>(e) =&gt; boolean</td><td>Alle vier Listen leer</td></tr>
+      <tr><td>normalizeName</td><td>(name) =&gt; string</td><td>Kleinschreibung, Umlaute und ß aufgelöst, Satzzeichen entfernt</td></tr>
+      <tr><td>nameSimilarity</td><td>(a, b) =&gt; number</td><td>0 bis 1, Wortreihenfolge egal (Levenshtein)</td></tr>
+      <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
+      <tr><td>addDays, addMonths, daysBetween, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
+    </table>
+
+    <h3>Fehlercodes</h3>
+    <table>
+      <tr><th>Code</th><th>Bedeutung</th></tr>
+      <tr><td>bad-date</td><td>Datum ungültig</td></tr>
+      <tr><td>bad-id</td><td>Nummer oder Name leer</td></tr>
+      <tr><td>unknown-legal-form</td><td>Rechtsform nicht in der Tabelle</td></tr>
+      <tr><td>unknown-risk-group</td><td>Risikogruppe nicht vorhanden</td></tr>
+      <tr><td>bad-risk-reason</td><td>Begründung zu lang oder mit Steuerzeichen</td></tr>
+      <tr><td>bad-status</td><td>„vollstaendig“ ohne Datum der letzten Prüfung</td></tr>
+      <tr><td>bad-end</td><td>Ende eingetragen, aber Mandat noch aktiv</td></tr>
+    </table>
+
+    <h2>5 Beziehungen</h2>
+    <svg viewBox="0 0 560 120" role="img" aria-label="Beziehungen">
+      <rect class="e" x="10" y="35" width="130" height="40" rx="4" /><text x="40" y="60">Mandate</text>
+      <rect class="e" x="240" y="5" width="130" height="40" rx="4" /><text x="262" y="30">RiskGroup</text>
+      <rect class="e" x="240" y="70" width="130" height="40" rx="4" /><text x="262" y="95">LegalForm</text>
+      <line x1="140" y1="48" x2="240" y2="25" /><text class="lab" x="150" y="30">riskGroupId</text>
+      <line x1="140" y1="62" x2="240" y2="90" /><text class="lab" x="150" y="95">legalForm</text>
+    </svg>
+    <table>
+      <tr><th>Von</th><th>Feld</th><th>Nach</th><th>Kardinalität</th></tr>
+      <tr><td>Mandate</td><td>riskGroupId</td><td>RiskGroup</td><td>n : 0..1</td></tr>
+      <tr><td>Mandate</td><td>legalForm</td><td>LegalForm</td><td>n : 1</td></tr>
+    </table>
+
+    <h2>6 Werkseinstellungen</h2>
+    <p>
+      Fest einkompiliert und je Kanzlei später einstellbar: <code>LEGAL_FORMS</code> (13 Rechtsformen) und
+      <code>DEFAULT_RISK_GROUPS</code> (10 Startgruppen N-01 bis N-03, M-01, M-02, H-01 bis H-05) sowie die Zahlen
+      aus Abschnitt 3. Es gibt keine Beispieldaten und keine echten Mandanten im Repository. Das Bearbeiten und
+      Zurücksetzen der Gruppen ist noch nicht gebaut.
+    </p>
+  </body>
+</html>
