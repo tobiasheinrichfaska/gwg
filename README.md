@@ -5,6 +5,10 @@ Hilfsmittel für die Pflichten nach dem Geldwäschegesetz in einer Steuerberatun
 Unterlagen, Abgleich mit Sanktionslisten, Jahresaudit und Löschfristen. Eine einzige HTML-Datei, die auf dem
 eigenen Gerät läuft und nichts ins Netz sendet.
 
+> **Nicht von einem Menschen sicherheitsgeprüft, nur Fundament – nicht für echte Mandantendaten
+> verwenden.** Das Werkzeug entscheidet nichts rechtlich; die Zahlen sind Startvorschläge, kein Gesetz.
+> Meldungen: [SECURITY.md](SECURITY.md).
+
 **Stand: Fundament.** Die Logik (Rechtsform-Typen, Risikoklasse, Prüftermin, Mahnleiter, Löschfrist,
 Ausnahmelisten, Sanktions-Ampel) ist getestet; Bildschirme, Speicher und Import fehlen noch.
 
