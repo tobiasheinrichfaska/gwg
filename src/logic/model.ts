@@ -13,6 +13,8 @@ export interface LegalForm {
   key: string;
   label: string;
   checkType: CheckType;
+  /** The register lookup (commercial/transparency register) belongs to the review. */
+  registerLookup: boolean;
 }
 
 export interface RiskGroup {

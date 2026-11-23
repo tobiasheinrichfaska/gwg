@@ -62,6 +62,7 @@
       <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
       <tr><td>key</td><td>Text</td><td>ja</td><td>Schlüssel</td></tr>
       <tr><td>label</td><td>Text</td><td>ja</td><td>Anzeigename</td></tr>
+      <tr><td>registerLookup</td><td>Wahrheitswert</td><td>ja</td><td>Registerabruf gehört zur Prüfung; die nicht eingetragene GbR ist Typ C, hat aber keinen Registerabruf (Annahme, mit der Kammer zu bestätigen)</td></tr>
       <tr><td>checkType</td><td>A | B | C</td><td>ja</td><td>A natürliche Person / nicht eingetragenes Einzelunternehmen; B eingetragener Kaufmann; C Gesellschaften, Vereine, Stiftungen</td></tr>
     </table>
 
@@ -89,6 +90,7 @@
     <table>
       <tr><th>Funktion</th><th>Signatur</th><th>Zweck</th></tr>
       <tr><td>checkTypeOf</td><td>(legalForm: string) =&gt; CheckType | null</td><td>Prüftyp einer Rechtsform</td></tr>
+      <tr><td>needsRegisterLookup</td><td>(legalForm: string) =&gt; boolean</td><td>Gehört ein Registerabruf zur Prüfung dieser Rechtsform</td></tr>
       <tr><td>effectiveRiskClass</td><td>(m, groups?) =&gt; RiskClass | null</td><td>Klasse der Gruppe; PEP immer hoch</td></tr>
       <tr><td>nextReviewDate</td><td>(m, groups?) =&gt; DateKey | null</td><td>Letzte Prüfung plus Intervall der Klasse (Monatsende wird begrenzt)</td></tr>
       <tr><td>dunningStage</td><td>(firstRequestOn, today) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>

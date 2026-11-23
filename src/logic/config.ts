@@ -33,21 +33,26 @@ export const DISCREPANCY_RECHECK_DAYS = 60;
 /** Name similarity thresholds of the sanctions screening (0..1). */
 export const SANCTION_THRESHOLDS = { possible: 0.85, strong: 0.9 } as const;
 
-/** Legal forms and the review type each one gets. A plain GbR is treated like a company (open question). */
+/** Legal forms and the review type each one gets. A plain GbR is a company (type C: representatives and beneficial owners are identified) but has no register entry, so no register lookup (Tobias 2026-11-23, to be confirmed with the chamber). */
 export const LEGAL_FORMS: readonly LegalForm[] = [
-  { key: 'natuerliche-person', label: 'Natürliche Person', checkType: 'A' },
-  { key: 'einzelunternehmen', label: 'Einzelunternehmen (nicht eingetragen)', checkType: 'A' },
-  { key: 'ek', label: 'Eingetragener Kaufmann (e. K.)', checkType: 'B' },
-  { key: 'gmbh', label: 'GmbH', checkType: 'C' },
-  { key: 'ug', label: 'UG (haftungsbeschränkt)', checkType: 'C' },
-  { key: 'ag', label: 'AG', checkType: 'C' },
-  { key: 'kg', label: 'KG', checkType: 'C' },
-  { key: 'ohg', label: 'OHG', checkType: 'C' },
-  { key: 'partg', label: 'Partnerschaftsgesellschaft', checkType: 'C' },
-  { key: 'egbr', label: 'Eingetragene GbR (eGbR)', checkType: 'C' },
-  { key: 'gbr', label: 'GbR (nicht eingetragen)', checkType: 'C' },
-  { key: 'verein', label: 'Verein', checkType: 'C' },
-  { key: 'stiftung', label: 'Stiftung', checkType: 'C' },
+  { key: 'natuerliche-person', label: 'Natürliche Person', checkType: 'A', registerLookup: false },
+  {
+    key: 'einzelunternehmen',
+    label: 'Einzelunternehmen (nicht eingetragen)',
+    checkType: 'A',
+    registerLookup: false,
+  },
+  { key: 'ek', label: 'Eingetragener Kaufmann (e. K.)', checkType: 'B', registerLookup: true },
+  { key: 'gmbh', label: 'GmbH', checkType: 'C', registerLookup: true },
+  { key: 'ug', label: 'UG (haftungsbeschränkt)', checkType: 'C', registerLookup: true },
+  { key: 'ag', label: 'AG', checkType: 'C', registerLookup: true },
+  { key: 'kg', label: 'KG', checkType: 'C', registerLookup: true },
+  { key: 'ohg', label: 'OHG', checkType: 'C', registerLookup: true },
+  { key: 'partg', label: 'Partnerschaftsgesellschaft', checkType: 'C', registerLookup: true },
+  { key: 'egbr', label: 'Eingetragene GbR (eGbR)', checkType: 'C', registerLookup: true },
+  { key: 'gbr', label: 'GbR (nicht eingetragen)', checkType: 'C', registerLookup: false },
+  { key: 'verein', label: 'Verein', checkType: 'C', registerLookup: true },
+  { key: 'stiftung', label: 'Stiftung', checkType: 'C', registerLookup: true },
 ];
 
 /** Starting risk groups (a firm edits these). */

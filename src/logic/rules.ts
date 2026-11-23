@@ -24,6 +24,10 @@ export function checkTypeOf(legalForm: string): CheckType | null {
   return LEGAL_FORMS.find((f) => f.key === legalForm)?.checkType ?? null;
 }
 
+export function needsRegisterLookup(legalForm: string): boolean {
+  return LEGAL_FORMS.find((f) => f.key === legalForm)?.registerLookup ?? false;
+}
+
 /** A politically exposed person is always high risk, whatever the group says. */
 export function effectiveRiskClass(
   m: Mandate,

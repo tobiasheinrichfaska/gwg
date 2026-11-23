@@ -7,6 +7,7 @@ import {
   checkTypeOf,
   dunningStage,
   effectiveRiskClass,
+  needsRegisterLookup,
   nextReviewDate,
   retentionDueFrom,
 } from '../src/logic/index.ts';
@@ -21,6 +22,15 @@ describe('legal forms', () => {
     expect(checkTypeOf('einzelunternehmen')).toBe('A');
     expect(checkTypeOf('ek')).toBe('B');
     expect(checkTypeOf('egbr')).toBe('C');
+  });
+  it('gives a plain GbR type C but no register lookup', () => {
+    expect(checkTypeOf('gbr')).toBe('C');
+    expect(needsRegisterLookup('gbr')).toBe(false);
+    expect(needsRegisterLookup('egbr')).toBe(true);
+    expect(needsRegisterLookup('gmbh')).toBe(true);
+    expect(needsRegisterLookup('ek')).toBe(true);
+    expect(needsRegisterLookup('einzelunternehmen')).toBe(false);
+    expect(needsRegisterLookup('unbekannt')).toBe(false);
   });
   it('has unique keys', () => {
     expect(new Set(LEGAL_FORMS.map((f) => f.key)).size).toBe(LEGAL_FORMS.length);

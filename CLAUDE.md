@@ -12,8 +12,10 @@ groups, identification status per client, rolling review deadlines, dunning ladd
 sanctions-list screening with a traffic light, the yearly audit (exception lists) and retention/deletion
 deadlines. One offline HTML file (React/Vite singlefile), data only on the device. Created 2026-11-23.
 
-**Scope decision (Tobias, 2026-11-23):** purely local. **No `device-sync`, no `local-vault`**; the only
-shared library is `rad-navi` (wheel navigation). The tool decides nothing legally: it tracks, reminds and
+**Scope decision (Tobias, 2026-11-23):** purely local. **No `device-sync`.** Storage is `local-vault`
+(encrypted) with export/import of a backup file; navigation is `rad-navi`. Stage 1: lists and deadlines
+only (no letters/PDF). Data comes in as CSV exports (mandates + persons; columns to be fixed with the real
+export header). The tool decides nothing legally: it tracks, reminds and
 documents; a human signs off.
 
 **Platform:** web (single HTML file) · **Language:** TypeScript + React 19
@@ -72,9 +74,9 @@ session the model changes.
 ## Known Limitations
 
 - Only the logic foundation exists: no screens, no storage, no import of the DATEV master data, no PDF
-  letters, no `rad-navi` wiring yet. Dunning, audit, retention and sanctions are rules, not workflows.
-- **Storage will be unencrypted** (no `local-vault`, by decision): client names and identification status
-  in browser storage / backup files. Use only on a protected device; encryption can be added later.
+  letters, no `local-vault` or `rad-navi` wiring yet. Dunning, audit, retention and sanctions are rules, not workflows.
+- Storage uses `local-vault` (not wired yet); the backup file's protection (password/encryption) must be
+  decided when it is built.
 - **No roles or secret vault in a local single file.** The requirements ask for an officer-only area for
   suspicious-activity reports (tipping-off ban). A local file cannot enforce that; plan: keep report
   details outside the tool, store at most a reference.
