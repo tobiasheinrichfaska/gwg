@@ -1,4 +1,4 @@
-import type { LegalForm, RiskClass, RiskGroup } from './model.ts';
+import type { LegalForm, RiskClass, RiskGroup } from './mandate/model.ts';
 
 /**
  * Every number and table the rules read. Adding a case = adding data here.

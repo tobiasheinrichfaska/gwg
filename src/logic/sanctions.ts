@@ -1,5 +1,5 @@
 import { SANCTION_THRESHOLDS } from './config.ts';
-import type { SanctionClass } from './model.ts';
+import type { SanctionClass } from './mandate/model.ts';
 
 /** A birth date as far as known: a list entry often has only the year. Strings 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD'. */
 export type PartialDate = string | null;
