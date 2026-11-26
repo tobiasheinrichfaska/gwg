@@ -1,4 +1,5 @@
-import type { LegalForm, RiskClass, RiskGroup } from './mandate/model.ts';
+import { fail, ok, type Result } from './core/result.ts';
+import type { LegalForm, Reason, RiskClass, RiskGroup } from './mandate/model.ts';
 
 /**
  * Every number and table the rules read. Adding a case = adding data here.
@@ -76,3 +77,48 @@ export const DEFAULT_RISK_GROUPS: readonly RiskGroup[] = [
   { id: 'H-04', name: 'Politisch exponierte Person (PEP)', riskClass: 'hoch' },
   { id: 'H-05', name: 'Bau- und Immobilienbranche', riskClass: 'hoch' },
 ];
+
+/** All rule numbers and tables as one value, so a firm can pass its own configuration. */
+export type RulesConfig = {
+  reviewIntervalMonths: Record<RiskClass, number>;
+  dunningSteps: readonly { day: number; stage: string }[];
+  retentionYears: number;
+  discrepancyRecheckDays: number;
+  sanctionThresholds: { possible: number; strong: number };
+  legalForms: readonly LegalForm[];
+  riskGroups: readonly RiskGroup[];
+};
+
+export const DEFAULT_RULES: RulesConfig = {
+  reviewIntervalMonths: REVIEW_INTERVAL_MONTHS,
+  dunningSteps: DUNNING_STEPS,
+  retentionYears: RETENTION_YEARS,
+  discrepancyRecheckDays: DISCREPANCY_RECHECK_DAYS,
+  sanctionThresholds: SANCTION_THRESHOLDS,
+  legalForms: LEGAL_FORMS,
+  riskGroups: DEFAULT_RISK_GROUPS,
+};
+
+const positive = (n: number): boolean => Number.isFinite(n) && n > 0;
+const unique = (keys: readonly string[]): boolean => new Set(keys).size === keys.length;
+
+/** Checks a configuration; every violation is the code 'bad-config'. */
+export function checkRules(r: RulesConfig): Result<RulesConfig, Reason> {
+  const bad = fail('bad-config');
+  const nums = [
+    ...Object.values(r.reviewIntervalMonths),
+    ...r.dunningSteps.map((s) => s.day),
+    r.retentionYears,
+    r.discrepancyRecheckDays,
+  ];
+  if (!nums.every(positive)) return bad;
+  if (r.dunningSteps.some((s, i) => i > 0 && s.day <= (r.dunningSteps[i - 1]?.day ?? 0)))
+    return bad;
+  if (!unique(r.dunningSteps.map((s) => s.stage))) return bad;
+  const { possible, strong } = r.sanctionThresholds;
+  const inUnit = (n: number): boolean => Number.isFinite(n) && n >= 0 && n <= 1;
+  if (!inUnit(possible) || !inUnit(strong) || possible > strong) return bad;
+  if (!unique(r.legalForms.map((f) => f.key))) return bad;
+  if (!unique(r.riskGroups.map((g) => g.id))) return bad;
+  return ok(r);
+}

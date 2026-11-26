@@ -21,6 +21,7 @@ const REASONS: Record<Reason, true> = {
   'bad-risk-reason': true,
   'bad-status': true,
   'bad-end': true,
+  'bad-config': true,
 };
 
 describe('docs/data-model.html against the code', () => {

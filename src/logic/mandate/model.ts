@@ -66,7 +66,8 @@ export type Reason =
   | 'unknown-risk-group'
   | 'bad-risk-reason'
   | 'bad-status'
-  | 'bad-end';
+  | 'bad-end'
+  | 'bad-config';
 
 export type Result<T> = CoreResult<T, Reason>;
 
