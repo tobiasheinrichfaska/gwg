@@ -1,6 +1,6 @@
-import { DEFAULT_RISK_GROUPS } from './config.ts';
-import { daysBetween, isDateKey } from './core/time.ts';
-import { nextReviewDate, type DateKey, type Mandate, type RiskGroup } from './mandate/index.ts';
+import { DEFAULT_RISK_GROUPS } from '../config.ts';
+import { daysBetween, isDateKey } from '../core/time.ts';
+import { nextReviewDate, type DateKey, type Mandate, type RiskGroup } from '../mandate/index.ts';
 
 export interface AuditExceptions {
   /** Active, no risk group. */
