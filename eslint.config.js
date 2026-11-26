@@ -60,6 +60,7 @@ function logicBlocks() {
         noImport('audit', 'core imports nothing from other modules.'),
         noImport('sanctions', 'core imports nothing from other modules.'),
         noImport('tasks', 'core imports nothing from other modules.'),
+        noImport('backup', 'core imports nothing from other modules.'),
         {
           group: ['**/config', '**/config.*'],
           message: 'core imports nothing from other modules.',
@@ -71,6 +72,7 @@ function logicBlocks() {
       [
         noImport('audit', 'mandate must not import audit.'),
         noImport('tasks', 'mandate must not import tasks.'),
+        noImport('backup', 'mandate must not import backup.'),
         deepImport('sanctions'),
         deepCore,
       ],
@@ -80,6 +82,7 @@ function logicBlocks() {
       [
         noImport('audit', 'sanctions must not import audit.'),
         noImport('tasks', 'sanctions must not import tasks.'),
+        noImport('backup', 'sanctions must not import backup.'),
         deepMandate,
         deepCore,
       ],
@@ -88,6 +91,7 @@ function logicBlocks() {
       ['src/logic/audit/**/*.ts'],
       [
         noImport('tasks', 'audit must not import tasks.'),
+        noImport('backup', 'audit must not import backup.'),
         deepMandate,
         deepImport('sanctions'),
         deepCore,
@@ -95,11 +99,25 @@ function logicBlocks() {
     ),
     block(
       ['src/logic/tasks/**/*.ts'],
-      [deepMandate, deepImport('audit'), deepImport('sanctions'), deepCore],
+      [
+        noImport('backup', 'tasks must not import backup.'),
+        deepMandate,
+        deepImport('audit'),
+        deepImport('sanctions'),
+        deepCore,
+      ],
     ),
+    block(['src/logic/backup/**/*.ts'], [deepMandate, deepCore]),
     block(
       ['src/logic/*.ts'],
-      [deepMandate, deepImport('audit'), deepImport('sanctions'), deepImport('tasks'), deepCore],
+      [
+        deepMandate,
+        deepImport('audit'),
+        deepImport('sanctions'),
+        deepImport('tasks'),
+        deepImport('backup'),
+        deepCore,
+      ],
     ),
   ];
 }

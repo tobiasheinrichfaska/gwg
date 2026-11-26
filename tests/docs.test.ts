@@ -22,6 +22,9 @@ const REASONS: Record<Reason, true> = {
   'bad-status': true,
   'bad-end': true,
   'bad-config': true,
+  'bad-backup': true,
+  'unsupported-version': true,
+  'duplicate-id': true,
 };
 
 describe('docs/data-model.html against the code', () => {

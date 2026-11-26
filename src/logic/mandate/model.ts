@@ -67,7 +67,10 @@ export type Reason =
   | 'bad-risk-reason'
   | 'bad-status'
   | 'bad-end'
-  | 'bad-config';
+  | 'bad-config'
+  | 'bad-backup'
+  | 'unsupported-version'
+  | 'duplicate-id';
 
 export type Result<T> = CoreResult<T, Reason>;
 

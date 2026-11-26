@@ -27,10 +27,24 @@
 
     <h2>1 Gespeicherte Form (Wurzel)</h2>
     <p>
-      Beschlossen, aber noch nicht gebaut: Speicherung im verschlüsselten Tresor (<code>local-vault</code>) mit
-      Export/Import einer Sicherungsdatei; deren Schutz (Passwort) ist noch offen und kommt mit den Bildschirmen. Bis dahin besteht das Modell aus der
-      Mandantenliste (<code>Mandate[]</code>) und der Konfiguration (Abschnitt 3), die als Daten in
-      <code>src/logic/config.ts</code> liegt.
+      Die Sicherungsdatei hat das <strong>Format 1</strong> (reine Logik in <code>src/logic/backup/</code>;
+      Verschlüsselung und Dateizugriff kommen später im io-Teil, deren Schutz/Passwort ist noch offen). Sie ist
+      ein JSON-Objekt mit genau diesen Feldern:
+    </p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Inhalt</th></tr>
+      <tr><td>format</td><td>string</td><td>immer <code>gwg-backup</code></td></tr>
+      <tr><td>version</td><td>Zahl</td><td>immer <code>1</code>; größer als 1 ergibt unsupported-version</td></tr>
+      <tr><td>createdOn</td><td>DateKey</td><td>Erstellungstag, gültiges Kalenderdatum</td></tr>
+      <tr><td>rules</td><td>RulesConfig</td><td>Die Konfiguration (Abschnitt 3), von <code>checkRules</code> geprüft</td></tr>
+      <tr><td>mandates</td><td>Mandate[]</td><td>Mandanten nach Nummer sortiert, jeder von <code>checkMandate</code> geprüft</td></tr>
+    </table>
+    <p>
+      <strong>Streng-Regel:</strong> Der Leser ist alles-oder-nichts. Er verwirft nie still etwas: unbekannte
+      Schlüssel auf jeder Ebene, fehlende Felder, falsche Laufzeittypen, die Schlüssel
+      <code>__proto__</code> und <code>constructor</code>, doppelte Mandantennummern und jeder Fehler von
+      <code>checkMandate</code>/<code>checkRules</code> lassen die ganze Datei scheitern. Ein Fehler nennt zusätzlich die
+      Stelle (<code>where</code>, z. B. <code>mandates[3].legalForm</code>).
     </p>
 
     <h2>2 Entitäten</h2>
@@ -103,6 +117,8 @@
       <tr><td>retentionDueFrom</td><td>(endedOn, rules) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
       <tr><td>checkMandate</td><td>(m, rules) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
       <tr><td>checkRules</td><td>(r: RulesConfig) =&gt; Result&lt;RulesConfig&gt;</td><td>Prüft eine Konfiguration; liefert bad-config</td></tr>
+      <tr><td>serializeBackup</td><td>(b: Backup) =&gt; string</td><td>JSON mit fester Schlüsselreihenfolge, Mandate nach Nummer sortiert</td></tr>
+      <tr><td>parseBackup</td><td>(text) =&gt; Result&lt;Backup&gt;</td><td>Strenger Leser (Abschnitt 1); liefert bad-backup, unsupported-version, duplicate-id oder den Fehler von checkMandate/checkRules, mit Stelle in where</td></tr>
       <tr><td>auditExceptions</td><td>(mandates, today, rules) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified (auch unbekannte Gruppe), unidentified, stalled, overdue (auch „vollständig“ ohne gültiges Prüfdatum)</td></tr>
       <tr><td>auditIsClean</td><td>(e) =&gt; boolean</td><td>Alle vier Listen leer</td></tr>
       <tr><td>buildTasks</td><td>(mandates, today, rules) =&gt; { tasks: Task[]; invalid: { mandateId, reason }[] }</td><td>Aufgabenliste: review-due, request-missing, dunning-reminder/-threat/-escalate (nur höchste erreichte Stufe), unclassified (nur aktive Mandate), retention-due (nur inaktive); Mandate ohne bestandenes checkMandate stehen in invalid; sortiert nach Art, Verzug absteigend, Mandantennummer</td></tr>
@@ -125,6 +141,9 @@
       <tr><td>bad-status</td><td>Unbekannter Statuswert, oder „vollstaendig“ ohne Datum der letzten Prüfung</td></tr>
       <tr><td>bad-end</td><td>Ende und Aktivstatus widersprechen sich: aktiv mit Enddatum, oder inaktiv ohne Enddatum (die Aufbewahrungsfrist würde nie starten)</td></tr>
       <tr><td>bad-config</td><td>Konfiguration ungültig (Zahl &lt;= 0, Mahnstufen nicht aufsteigend, Schwelle possible &gt; strong, doppelte Schlüssel/Ids, Schwellen außerhalb 0..1)</td></tr>
+      <tr><td>bad-backup</td><td>Sicherungsdatei: kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor</td></tr>
+      <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 1</td></tr>
+      <tr><td>duplicate-id</td><td>Mandantennummer kommt in der Sicherungsdatei doppelt vor</td></tr>
     </table>
 
     <h2>5 Beziehungen</h2>

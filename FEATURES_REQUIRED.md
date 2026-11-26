@@ -19,7 +19,8 @@
 - [ ] **Aufgabenliste (Bildschirm):** wer ist fällig, wer mahnt, wer eskaliert (Logik: `buildTasks`)
 - [ ] **Navigation** mit `rad-navi`
 - [ ] **Jahresaudit-Assistent** 1.–30. November mit Stichtags-Export
-- [ ] **Sicherungsdatei** schreiben und streng wieder einlesen
+- [x] **Sicherungsdatei (Logik):** Format 1, `serializeBackup`/`parseBackup` (streng, `tests/backup.test.ts`)
+- [ ] **Sicherungsdatei (IO):** schreiben, lesen, Verschlüsselung
 
 | Path                                         | Impact                              | Audit Check                        |
 | -------------------------------------------- | ----------------------------------- | ---------------------------------- |

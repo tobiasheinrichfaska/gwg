@@ -81,3 +81,37 @@ describe('ESLint module boundaries: tasks', () => {
     expect(ids).toContain('no-restricted-imports');
   });
 });
+
+describe('ESLint module boundaries: backup', () => {
+  it.each(['mandate', 'audit', 'sanctions', 'tasks', 'core'])(
+    'forbids %s importing backup',
+    async (mod) => {
+      const ids = await ruleIds(
+        `src/logic/${mod}/x.ts`,
+        "import { parseBackup } from '../backup/index.ts';\nexport const a = parseBackup;\n",
+      );
+      expect(ids).toContain('no-restricted-imports');
+    },
+  );
+
+  it('forbids a deep import into backup', async () => {
+    const ids = await ruleIds(
+      'src/logic/x.ts',
+      "import { parseBackup } from './backup/format.ts';\nexport const a = parseBackup;\n",
+    );
+    expect(ids).toContain('no-restricted-imports');
+  });
+
+  it('forbids backup deep imports into mandate and core, allows the roots', async () => {
+    const deep = await ruleIds(
+      'src/logic/backup/x.ts',
+      "import { checkMandate } from '../mandate/validate.ts';\nexport const a = checkMandate;\n",
+    );
+    expect(deep).toContain('no-restricted-imports');
+    const root = await ruleIds(
+      'src/logic/backup/x.ts',
+      "import { checkMandate } from '../mandate/index.ts';\nimport { isDateKey } from '../core/index.ts';\nexport const a = [checkMandate, isDateKey];\n",
+    );
+    expect(root).not.toContain('no-restricted-imports');
+  });
+});
