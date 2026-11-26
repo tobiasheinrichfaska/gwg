@@ -41,8 +41,9 @@ diese auf.
 
 ## Regeln (ESLint erzwingt sie, nicht Disziplin)
 
-- Richtung: `core` ← `config` ← `mandate` ← `audit`; `sanctions` hängt nur an `core` und `config`;
-  `importer` und `backup` hängen an `mandate`. Nie umgekehrt, keine Zyklen.
+- Richtung: `core` ← `mandate/model` (die Typen sind die Basis) ← `config` ← `mandate` (Regeln) ← `audit`.
+  `config` importiert aus `mandate/model` nur Typen (`import type`). `sanctions` hängt an `core`, `config` und dem
+  Typ `SanctionClass` aus `mandate/model`; `importer` und `backup` hängen an `mandate`. Nie umgekehrt, keine Zyklen.
 - Kein Tiefimport in ein anderes Modul (`logic/mandate/risk.ts`), nur `logic/mandate`. Regel: `no-restricted-imports`
   mit Mustern je Modul.
 - `io/` importiert `logic`, `logic` nie `io/` oder `ui/` (besteht schon); `ui` greift auf `io` nur über
