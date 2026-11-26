@@ -37,29 +37,29 @@ maths; "today" is always a parameter, errors are codes) and a thin UI `src/ui/`.
 
 ## Project Directory
 
-| File/Folder                                                             | Purpose                                                                                        |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `CLAUDE.md`                                                             | Project documentation and conventions                                                          |
-| `README.md`                                                             | Short description (German), license section                                                    |
-| `FEATURES_REQUIRED.md`                                                  | Critical user paths the audit validates                                                        |
-| `docs/data-model.html`                                                  | Self-contained data-model reference (`tests/docs.test.ts` ties codes and numbers to it)        |
-| `docs/modularisierung.md`                                               | Plan: Zielstruktur der Module, Abhängigkeitsregeln, Reihenfolge der Schritte                   |
-| `docs/audit-2026-11-26.md`                                              | Audit, Widerlegung, Behebung, Nachaudit (Funde mit Urteil)                                     |
-| `docs/uebergabe.md`                                                     | Handover for a new chat: state, decisions, open points in order                                |
-| `manual_tests/`                                                         | Human-tester instructions (German)                                                             |
-| `src/logic/model.ts`                                                    | Types (`Mandate`, `RiskGroup`, `LegalForm`, status unions), `Reason` codes, `Result`           |
-| `src/logic/config.ts`                                                   | All numbers and tables as data: intervals, dunning steps, retention, thresholds, legal forms   |
-| `src/logic/time.ts`                                                     | Calendar maths without time zone (`addMonths` clamps month ends)                               |
-| `src/logic/rules.ts`                                                    | Check type, effective risk class, next review, dunning stage, retention, audit exception lists |
-| `src/logic/sanctions.ts`                                                | Name normalization, similarity, traffic light (`classifyMatch`)                                |
-| `src/logic/index.ts`                                                    | Public entry of the logic layer                                                                |
-| `src/ui/App.tsx`, `src/main.tsx`                                        | UI shell (placeholder so far)                                                                  |
-| `tests/`                                                                | Vitest: `time`, `rules`, `sanctions`, `docs`; `helpers.ts`                                     |
-| `index.html`, `vite.config.ts`                                          | Single-file build (`vite-plugin-singlefile`), dev port 5178                                    |
-| `package.json`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json` | Toolchain                                                                                      |
-| `.github/workflows/tests.yml`                                           | Check "Tests": typecheck, lint, format, tests, build                                           |
-| `.gitattributes`, `.gitignore`                                          | LF line endings; ignore rules                                                                  |
-| `LICENSE`, `LICENSE_COMMERCIAL.md`, `CONTRIBUTING.md`                   | AGPLv3 + commercial                                                                            |
+| File/Folder                                                             | Purpose                                                                                                                                 |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE.md`                                                             | Project documentation and conventions                                                                                                   |
+| `README.md`                                                             | Short description (German), license section                                                                                             |
+| `FEATURES_REQUIRED.md`                                                  | Critical user paths the audit validates                                                                                                 |
+| `docs/data-model.html`                                                  | Self-contained data-model reference (`tests/docs.test.ts` ties codes and numbers to it)                                                 |
+| `docs/modularisierung.md`                                               | Plan: Zielstruktur der Module, Abhängigkeitsregeln, Reihenfolge der Schritte                                                            |
+| `docs/audit-2026-11-26.md`                                              | Audit, Widerlegung, Behebung, Nachaudit (Funde mit Urteil)                                                                              |
+| `docs/uebergabe.md`                                                     | Handover for a new chat: state, decisions, open points in order                                                                         |
+| `manual_tests/`                                                         | Human-tester instructions (German)                                                                                                      |
+| `src/logic/core/`                                                       | `time.ts` (calendar maths without time zone, `todayKey`), `result.ts` (`Result`, `ok`, `fail`), `types.ts` (`DateKey`)                  |
+| `src/logic/mandate/`                                                    | `model.ts` (types, status unions, `Reason` codes), `legal-form.ts`, `risk.ts`, `review.ts`, `dunning.ts`, `retention.ts`, `validate.ts` |
+| `src/logic/audit/`                                                      | `exceptions.ts` (yearly audit exception lists), `index.ts`                                                                              |
+| `src/logic/sanctions/`                                                  | `normalize.ts`, `similarity.ts`, `classify.ts` (traffic light), `index.ts`                                                              |
+| `src/logic/config.ts`                                                   | All numbers and tables as data: `RulesConfig`, `DEFAULT_RULES`, `checkRules`                                                            |
+| `src/logic/index.ts`                                                    | Public entry of the logic layer (barrel over the module indexes and `config.ts`)                                                        |
+| `src/ui/App.tsx`, `src/main.tsx`                                        | UI shell (placeholder so far)                                                                                                           |
+| `tests/`                                                                | Vitest: `time`, `rules`, `sanctions`, `config`, `docs`, `lint-boundaries`; `helpers.ts`                                                 |
+| `index.html`, `vite.config.ts`                                          | Single-file build (`vite-plugin-singlefile`), dev port 5178                                                                             |
+| `package.json`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json` | Toolchain                                                                                                                               |
+| `.github/workflows/tests.yml`                                           | Check "Tests": typecheck, lint, format, tests, build                                                                                    |
+| `.gitattributes`, `.gitignore`                                          | LF line endings; ignore rules                                                                                                           |
+| `LICENSE`, `LICENSE_COMMERCIAL.md`, `CONTRIBUTING.md`                   | AGPLv3 + commercial                                                                                                                     |
 
 ---
 

@@ -62,17 +62,25 @@ diese auf.
 
 ## Reihenfolge (jeder Schritt: typecheck, lint, format, test, build grün)
 
-| Nr  | Schritt                                                                                                                        | Risiko                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| M0  | Audit-Behebung (erledigt, siehe `audit-2026-11-26.md`) — Grundlage, damit der Umbau nichts Falsches einfriert                  | —                      |
-| M1  | Dateien verschieben ohne Verhaltensänderung: `core/`, `mandate/` (rules.ts zerlegen), `audit/`, `sanctions/`; Barrel pro Modul | gering, Tests als Netz |
-| M2  | ESLint-Schichtregeln und Tiefimport-Verbot; Prüfung, dass die Regel greift (absichtlicher Verstoß im Test)                     | gering                 |
-| M3  | `RulesConfig` als Pflichtparameter, `DEFAULT_RULES`; Default-Parameter entfernen; Docs-Test erweitern                          | mittel (Signaturen)    |
-| M4  | `todayKey` + Tests um Mitternacht (23:30/00:30 MEZ und Sommerzeitwechsel)                                                      | gering                 |
-| M5  | `backup/`: Schema-Version, strenger Leser, Migrationsgerüst — vor dem Tresor, weil es das Format festlegt                      | mittel                 |
-| M6  | `importer/` sobald der Spaltenkopf des Exports vorliegt (Übergabe, Punkt 3)                                                    | hängt an Tobias        |
-| M7  | `io/vault`, `io/files`; `ui/app` mit `rad-navi`; erster Bildschirm Mandantenliste                                              | mittel                 |
-| M8  | `sanctions/index-format` und Relay-Entscheidung (Übergabe, Punkte 1–2)                                                         | hängt an Tobias        |
+| Nr  | Schritt                                                                                                                        | Risiko                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| M0  | Audit-Behebung (erledigt, siehe `audit-2026-11-26.md`) — Grundlage, damit der Umbau nichts Falsches einfriert                  | —                        |
+| M1  | Dateien verschieben ohne Verhaltensänderung: `core/`, `mandate/` (rules.ts zerlegen), `audit/`, `sanctions/`; Barrel pro Modul | erledigt, Commit a511914 |
+| M2  | ESLint-Schichtregeln und Tiefimport-Verbot; Prüfung, dass die Regel greift (absichtlicher Verstoß im Test)                     | erledigt, Commit 3f6dcd9 |
+| M3  | `RulesConfig` als Pflichtparameter, `DEFAULT_RULES`; Default-Parameter entfernen; Docs-Test erweitern                          | erledigt, Commit a49da37 |
+| M4  | `todayKey` + Tests um Mitternacht (23:30/00:30 MEZ und Sommerzeitwechsel)                                                      | erledigt, Commit 0c0841f |
+| M5  | `backup/`: Schema-Version, strenger Leser, Migrationsgerüst — vor dem Tresor, weil es das Format festlegt                      | mittel                   |
+| M6  | `importer/` sobald der Spaltenkopf des Exports vorliegt (Übergabe, Punkt 3)                                                    | hängt an Tobias          |
+| M7  | `io/vault`, `io/files`; `ui/app` mit `rad-navi`; erster Bildschirm Mandantenliste                                              | mittel                   |
+| M8  | `sanctions/index-format` und Relay-Entscheidung (Übergabe, Punkte 1–2)                                                         | hängt an Tobias          |
+
+**Restschuld** (nach M1–M4 offen):
+
+- (a) Das Tiefimport-Verbot gilt für `core/` und `config.ts` nicht: beide haben keinen `index`, auf den die Regel
+  verweisen könnte.
+- (b) `mandate/model` ist auch für Wertimporte frei: ESLint kann `import type` nicht von Wertimporten trennen, also
+  kann „config importiert aus `mandate/model` nur Typen“ nicht erzwungen werden.
+- (c) `dunningStage` liefert `string` statt `DunningStage` (`mandate/dunning.ts`).
 
 ## Bewusst nicht modularisiert
 
