@@ -1,11 +1,8 @@
-import { DEFAULT_RISK_GROUPS } from '../config.ts';
-import type { Mandate, RiskClass, RiskGroup } from './model.ts';
+import type { RulesConfig } from '../config.ts';
+import type { Mandate, RiskClass } from './model.ts';
 
 /** A politically exposed person is always high risk, whatever the group says. */
-export function effectiveRiskClass(
-  m: Mandate,
-  groups: readonly RiskGroup[] = DEFAULT_RISK_GROUPS,
-): RiskClass | null {
+export function effectiveRiskClass(m: Mandate, rules: RulesConfig): RiskClass | null {
   if (m.isPep) return 'hoch';
-  return groups.find((g) => g.id === m.riskGroupId)?.riskClass ?? null;
+  return rules.riskGroups.find((g) => g.id === m.riskGroupId)?.riskClass ?? null;
 }

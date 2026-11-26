@@ -95,20 +95,20 @@
     <h2>4 Methoden (reine Logik, ohne Oberfläche)</h2>
     <table>
       <tr><th>Funktion</th><th>Signatur</th><th>Zweck</th></tr>
-      <tr><td>checkTypeOf</td><td>(legalForm: string) =&gt; CheckType | null</td><td>Prüftyp einer Rechtsform</td></tr>
-      <tr><td>needsRegisterLookup</td><td>(legalForm: string) =&gt; boolean</td><td>Gehört ein Registerabruf zur Prüfung dieser Rechtsform</td></tr>
-      <tr><td>effectiveRiskClass</td><td>(m, groups?) =&gt; RiskClass | null</td><td>Klasse der Gruppe; PEP immer hoch</td></tr>
-      <tr><td>nextReviewDate</td><td>(m, groups?) =&gt; DateKey | null</td><td>Letzte Prüfung plus Intervall der Klasse (Monatsende wird begrenzt)</td></tr>
-      <tr><td>dunningStage</td><td>(firstRequestOn, today) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>
-      <tr><td>retentionDueFrom</td><td>(endedOn) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
-      <tr><td>checkMandate</td><td>(m, groups?) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
+      <tr><td>checkTypeOf</td><td>(legalForm, rules) =&gt; CheckType | null</td><td>Prüftyp einer Rechtsform</td></tr>
+      <tr><td>needsRegisterLookup</td><td>(legalForm, rules) =&gt; boolean</td><td>Gehört ein Registerabruf zur Prüfung dieser Rechtsform</td></tr>
+      <tr><td>effectiveRiskClass</td><td>(m, rules) =&gt; RiskClass | null</td><td>Klasse der Gruppe; PEP immer hoch</td></tr>
+      <tr><td>nextReviewDate</td><td>(m, rules) =&gt; DateKey | null</td><td>Letzte Prüfung plus Intervall der Klasse (Monatsende wird begrenzt)</td></tr>
+      <tr><td>dunningStage</td><td>(firstRequestOn, today, rules) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>
+      <tr><td>retentionDueFrom</td><td>(endedOn, rules) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
+      <tr><td>checkMandate</td><td>(m, rules) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
       <tr><td>checkRules</td><td>(r: RulesConfig) =&gt; Result&lt;RulesConfig&gt;</td><td>Prüft eine Konfiguration; liefert bad-config</td></tr>
-      <tr><td>auditExceptions</td><td>(mandates, today, groups?) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified (auch unbekannte Gruppe), unidentified, stalled, overdue (auch „vollständig“ ohne gültiges Prüfdatum)</td></tr>
+      <tr><td>auditExceptions</td><td>(mandates, today, rules) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified (auch unbekannte Gruppe), unidentified, stalled, overdue (auch „vollständig“ ohne gültiges Prüfdatum)</td></tr>
       <tr><td>auditIsClean</td><td>(e) =&gt; boolean</td><td>Alle vier Listen leer</td></tr>
       <tr><td>normalizeName</td><td>(name) =&gt; string</td><td>Kleinschreibung, Umlaute, ß, ø, æ, ł usw. aufgelöst, Satzzeichen entfernt; Unsichtbare Zeichen entfernt; Buchstaben jeder Schrift bleiben erhalten</td></tr>
       <tr><td>nameSimilarity</td><td>(a, b) =&gt; number</td><td>0 bis 1, Wortreihenfolge egal (Levenshtein); zusätzliche Namensteile ergeben höchstens 0,89 (gelb, nie rot); ö als „oe“ und als „o“ wird beides versucht</td></tr>
-      <tr><td>classifyNames</td><td>(clientName, listName, clientBirth, listBirth) =&gt; SanctionClass</td><td>Einstieg des Abgleichs: Namen vergleichen und Ampel; ein Name ohne vergleichbaren Inhalt wird nie grün, sondern gelb</td></tr>
-      <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
+      <tr><td>classifyNames</td><td>(clientName, listName, clientBirth, listBirth, thresholds) =&gt; SanctionClass</td><td>Einstieg des Abgleichs: Namen vergleichen und Ampel; ein Name ohne vergleichbaren Inhalt wird nie grün, sondern gelb</td></tr>
+      <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth, thresholds) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
       <tr><td>todayKey (now: Date) =&gt; DateKey</td><td>Heutiger Kalendertag aus lokalen Feldern</td><td>Aufrufen nur io/ui; die Logikschicht ruft nie new Date()</td></tr>
       <tr><td>addDays, addMonths, daysBetween, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
     </table>

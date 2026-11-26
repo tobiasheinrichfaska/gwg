@@ -1,17 +1,14 @@
-import { DEFAULT_RISK_GROUPS } from '../config.ts';
+import type { RulesConfig } from '../config.ts';
 import { isDateKey } from '../core/time.ts';
 import { checkTypeOf } from './legal-form.ts';
-import { fail, ID_STATUSES, ok, type Mandate, type Result, type RiskGroup } from './model.ts';
+import { fail, ID_STATUSES, ok, type Mandate, type Result } from './model.ts';
 
 export const MAX_REASON_LENGTH = 500;
 
-export function checkMandate(
-  m: Mandate,
-  groups: readonly RiskGroup[] = DEFAULT_RISK_GROUPS,
-): Result<Mandate> {
+export function checkMandate(m: Mandate, rules: RulesConfig): Result<Mandate> {
   if (m.id.trim() === '' || m.name.trim() === '') return fail('bad-id');
-  if (checkTypeOf(m.legalForm) === null) return fail('unknown-legal-form');
-  if (m.riskGroupId !== null && !groups.some((g) => g.id === m.riskGroupId)) {
+  if (checkTypeOf(m.legalForm, rules) === null) return fail('unknown-legal-form');
+  if (m.riskGroupId !== null && !rules.riskGroups.some((g) => g.id === m.riskGroupId)) {
     return fail('unknown-risk-group');
   }
   for (const d of [m.firstRequestOn, m.lastCheckOn, m.endedOn]) {

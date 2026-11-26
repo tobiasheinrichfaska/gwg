@@ -1,6 +1,6 @@
-import { DEFAULT_RISK_GROUPS } from '../config.ts';
+import type { RulesConfig } from '../config.ts';
 import { daysBetween, isDateKey } from '../core/time.ts';
-import { nextReviewDate, type DateKey, type Mandate, type RiskGroup } from '../mandate/index.ts';
+import { nextReviewDate, type DateKey, type Mandate } from '../mandate/index.ts';
 
 export interface AuditExceptions {
   /** Active, no risk group. */
@@ -22,20 +22,20 @@ export interface AuditExceptions {
 export function auditExceptions(
   mandates: readonly Mandate[],
   today: DateKey,
-  groups: readonly RiskGroup[] = DEFAULT_RISK_GROUPS,
+  rules: RulesConfig,
 ): AuditExceptions {
   if (!isDateKey(today)) throw new Error(`bad date key: ${today}`);
   const active = mandates.filter((m) => m.active);
   return {
     unclassified: active.filter(
-      (m) => m.riskGroupId === null || !groups.some((g) => g.id === m.riskGroupId),
+      (m) => m.riskGroupId === null || !rules.riskGroups.some((g) => g.id === m.riskGroupId),
     ),
     unidentified: active.filter((m) => m.idStatus === 'leer'),
     stalled: active.filter((m) => m.idStatus === 'unvollstaendig' || m.idStatus === 'eskalation'),
     overdue: active.filter((m) => {
       if (m.idStatus !== 'vollstaendig') return false;
       if (m.lastCheckOn === null || !isDateKey(m.lastCheckOn)) return true;
-      const due = nextReviewDate(m, groups);
+      const due = nextReviewDate(m, rules);
       // No class (unknown group) is already listed as unclassified; do not list it twice.
       return due !== null && daysBetween(due, today) > 0;
     }),

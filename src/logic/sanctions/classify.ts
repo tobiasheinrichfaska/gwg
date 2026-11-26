@@ -1,4 +1,4 @@
-import { SANCTION_THRESHOLDS } from '../config.ts';
+import type { RulesConfig } from '../config.ts';
 import type { SanctionClass } from '../mandate/model.ts';
 import { normalizeName } from './normalize.ts';
 import { nameSimilarity } from './similarity.ts';
@@ -16,9 +16,10 @@ export function classifyNames(
   listName: string,
   clientBirth: PartialDate,
   listBirth: PartialDate,
+  thresholds: RulesConfig['sanctionThresholds'],
 ): SanctionClass {
   if (normalizeName(clientName) === '' || normalizeName(listName) === '') return 'gelb';
-  return classifyMatch(nameSimilarity(clientName, listName), clientBirth, listBirth);
+  return classifyMatch(nameSimilarity(clientName, listName), clientBirth, listBirth, thresholds);
 }
 
 const isFull = (d: PartialDate): d is string => d !== null && /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -35,10 +36,11 @@ export function classifyMatch(
   similarity: number,
   clientBirth: PartialDate,
   listBirth: PartialDate,
+  thresholds: RulesConfig['sanctionThresholds'],
 ): SanctionClass {
-  if (similarity < SANCTION_THRESHOLDS.possible) return 'gruen';
+  if (similarity < thresholds.possible) return 'gruen';
   if (isFull(clientBirth) && isFull(listBirth) && clientBirth === listBirth) {
-    return similarity >= SANCTION_THRESHOLDS.strong ? 'rot' : 'gelb';
+    return similarity >= thresholds.strong ? 'rot' : 'gelb';
   }
   const [cy, ly] = [yearOf(clientBirth), yearOf(listBirth)];
   if (cy !== null && ly !== null && cy !== ly) return 'gruen';
