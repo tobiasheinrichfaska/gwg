@@ -102,6 +102,7 @@
       <tr><td>nameSimilarity</td><td>(a, b) =&gt; number</td><td>0 bis 1, Wortreihenfolge egal (Levenshtein); zusätzliche Namensteile ergeben höchstens 0,89 (gelb, nie rot); ö als „oe“ und als „o“ wird beides versucht</td></tr>
       <tr><td>classifyNames</td><td>(clientName, listName, clientBirth, listBirth) =&gt; SanctionClass</td><td>Einstieg des Abgleichs: Namen vergleichen und Ampel; ein Name ohne vergleichbaren Inhalt wird nie grün, sondern gelb</td></tr>
       <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
+      <tr><td>todayKey (now: Date) =&gt; DateKey</td><td>Heutiger Kalendertag aus lokalen Feldern</td><td>Aufrufen nur io/ui; die Logikschicht ruft nie new Date()</td></tr>
       <tr><td>addDays, addMonths, daysBetween, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
     </table>
 

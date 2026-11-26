@@ -34,6 +34,14 @@ function fmt(y: number, m: number, d: number): DateKey {
   return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+/**
+ * Today's calendar day from the LOCAL fields of `now` (toISOString would give the previous day
+ * between 00:00 and 01:00 CET). Pure: the caller (io/ui) passes `now`.
+ */
+export function todayKey(now: Date): DateKey {
+  return fmt(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
 /** Whole calendar days from `from` to `to` (negative if `to` is earlier). */
 export function daysBetween(from: DateKey, to: DateKey): number {
   const a = parts(from);
