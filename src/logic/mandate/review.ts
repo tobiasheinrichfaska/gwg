@@ -1,5 +1,5 @@
 import type { RulesConfig } from '../config.ts';
-import { addMonths, isDateKey } from '../core/time.ts';
+import { addMonths, isDateKey } from '../core/index.ts';
 import type { DateKey, Mandate } from './model.ts';
 import { effectiveRiskClass } from './risk.ts';
 

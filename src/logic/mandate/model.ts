@@ -1,6 +1,6 @@
-import type { DateKey } from '../core/types.ts';
-import type { Result as CoreResult } from '../core/result.ts';
-import { ok as coreOk, fail as coreFail } from '../core/result.ts';
+import type { DateKey } from '../core/index.ts';
+import type { Result as CoreResult } from '../core/index.ts';
+import { ok as coreOk, fail as coreFail } from '../core/index.ts';
 
 export type { DateKey };
 

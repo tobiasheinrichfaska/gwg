@@ -76,8 +76,6 @@ diese auf.
 
 **Restschuld** (nach M1–M4 offen):
 
-- (a) Das Tiefimport-Verbot gilt für `core/` und `config.ts` nicht: beide haben keinen `index`, auf den die Regel
-  verweisen könnte.
 - (b) `mandate/model` ist auch für Wertimporte frei: ESLint kann `import type` nicht von Wertimporten trennen, also
   kann „config importiert aus `mandate/model` nur Typen“ nicht erzwungen werden.
 - (c) `dunningStage` liefert `string` statt `DunningStage` (`mandate/dunning.ts`).

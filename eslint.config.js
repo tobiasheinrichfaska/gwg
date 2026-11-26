@@ -49,6 +49,7 @@ function logicBlocks() {
     },
   });
   const deepMandate = deepImport('mandate', ['model.*']);
+  const deepCore = deepImport('core');
   return [
     // Workspace rule: the logic layer runs and is testable without any UI, browser or IO.
     block(['src/logic/**/*.ts'], []),
@@ -66,14 +67,17 @@ function logicBlocks() {
     ),
     block(
       ['src/logic/mandate/**/*.ts'],
-      [noImport('audit', 'mandate must not import audit.'), deepImport('sanctions')],
+      [noImport('audit', 'mandate must not import audit.'), deepImport('sanctions'), deepCore],
     ),
     block(
       ['src/logic/sanctions/**/*.ts'],
-      [noImport('audit', 'sanctions must not import audit.'), deepMandate],
+      [noImport('audit', 'sanctions must not import audit.'), deepMandate, deepCore],
     ),
-    block(['src/logic/audit/**/*.ts'], [deepMandate, deepImport('sanctions')]),
-    block(['src/logic/*.ts'], [deepMandate, deepImport('audit'), deepImport('sanctions')]),
+    block(['src/logic/audit/**/*.ts'], [deepMandate, deepImport('sanctions'), deepCore]),
+    block(
+      ['src/logic/*.ts'],
+      [deepMandate, deepImport('audit'), deepImport('sanctions'), deepCore],
+    ),
   ];
 }
 

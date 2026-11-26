@@ -1,5 +1,5 @@
 import type { RulesConfig } from '../config.ts';
-import { isDateKey } from '../core/time.ts';
+import { isDateKey } from '../core/index.ts';
 import type { DateKey } from './model.ts';
 
 /** First day the records may (must) be deleted: 5 years after the END OF THE CALENDAR YEAR of the end. */

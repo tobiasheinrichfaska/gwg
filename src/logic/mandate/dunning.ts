@@ -1,5 +1,5 @@
 import type { RulesConfig } from '../config.ts';
-import { daysBetween } from '../core/time.ts';
+import { daysBetween } from '../core/index.ts';
 import type { DateKey } from './model.ts';
 
 /** Dunning stage reached `today`, counted from the first request; the highest reached step wins. */

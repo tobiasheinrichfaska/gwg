@@ -1,5 +1,5 @@
 import type { RulesConfig } from '../config.ts';
-import { daysBetween, isDateKey } from '../core/time.ts';
+import { daysBetween, isDateKey } from '../core/index.ts';
 import { nextReviewDate, type DateKey, type Mandate } from '../mandate/index.ts';
 
 export interface AuditExceptions {

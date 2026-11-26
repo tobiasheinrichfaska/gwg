@@ -1,4 +1,4 @@
-import { fail, ok, type Result } from './core/result.ts';
+import { fail, ok, type Result } from './core/index.ts';
 import type { LegalForm, Reason, RiskClass, RiskGroup } from './mandate/model.ts';
 
 /**

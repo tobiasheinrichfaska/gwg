@@ -40,6 +40,24 @@ describe('ESLint module boundaries', () => {
     expect(ids).not.toContain('no-restricted-imports');
   });
 
+  it('forbids a deep import into core (sanctions -> core/time)', async () => {
+    const ids = await ruleIds(
+      'src/logic/sanctions/x.ts',
+      "import { isDateKey } from '../core/time.ts';\nexport const a = isDateKey;\n",
+    );
+    expect(ids).toContain('no-restricted-imports');
+  });
+
+  it('allows the core public entry (../core/index.ts and ../core)', async () => {
+    for (const spec of ['../core/index.ts', '../core']) {
+      const ids = await ruleIds(
+        'src/logic/sanctions/x.ts',
+        `import { isDateKey } from '${spec}';\nexport const a = isDateKey;\n`,
+      );
+      expect(ids).not.toContain('no-restricted-imports');
+    }
+  });
+
   it('still forbids React in logic (base rule kept)', async () => {
     const ids = await ruleIds('src/logic/core/x.ts', "import 'react';\n");
     expect(ids).toContain('no-restricted-imports');
