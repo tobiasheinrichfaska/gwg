@@ -9,13 +9,14 @@
 - [x] **Nächster Prüftermin rollierend nach Klasse** — `nextReviewDate`
 - [x] **Mahnleiter 14/28/42 Tage** — `dunningStage`
 - [x] **Löschfälligkeit 5 Jahre nach Ende des Beendigungsjahres** — `retentionDueFrom`
+- [x] **Aufgabenlisten-Logik** (fällig, mahnen, eskalieren, Löschung; ungültige Mandate gemeldet) — `buildTasks` (`tests/tasks.test.ts`), UI weiter offen
 - [x] **Ausnahmelisten des Jahresaudits** — `auditExceptions`
 - [x] **Sanktions-Ampel, nur anderes Geburtsjahr entlastet automatisch** — `classifyMatch`
 
 ## Bedienung (noch nicht gebaut)
 
 - [ ] **Mandantenliste einlesen** (Export der Kanzleisoftware) und prüfen
-- [ ] **Aufgabenliste:** wer ist fällig, wer mahnt, wer eskaliert
+- [ ] **Aufgabenliste (Bildschirm):** wer ist fällig, wer mahnt, wer eskaliert (Logik: `buildTasks`)
 - [ ] **Navigation** mit `rad-navi`
 - [ ] **Jahresaudit-Assistent** 1.–30. November mit Stichtags-Export
 - [ ] **Sicherungsdatei** schreiben und streng wieder einlesen

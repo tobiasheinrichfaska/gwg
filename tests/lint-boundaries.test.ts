@@ -63,3 +63,21 @@ describe('ESLint module boundaries', () => {
     expect(ids).toContain('no-restricted-imports');
   });
 });
+
+describe('ESLint module boundaries: tasks', () => {
+  it.each(['mandate', 'audit', 'sanctions', 'core'])('forbids %s importing tasks', async (mod) => {
+    const ids = await ruleIds(
+      `src/logic/${mod}/x.ts`,
+      "import { buildTasks } from '../tasks/index.ts';\nexport const a = buildTasks;\n",
+    );
+    expect(ids).toContain('no-restricted-imports');
+  });
+
+  it('forbids a deep import into tasks', async () => {
+    const ids = await ruleIds(
+      'src/logic/x.ts',
+      "import { buildTasks } from './tasks/tasks.ts';\nexport const a = buildTasks;\n",
+    );
+    expect(ids).toContain('no-restricted-imports');
+  });
+});

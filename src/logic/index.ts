@@ -3,3 +3,4 @@ export { daysInMonth, isDateKey, todayKey, daysBetween, addDays, addMonths } fro
 export * from './mandate/index.ts';
 export * from './audit/index.ts';
 export * from './sanctions/index.ts';
+export * from './tasks/index.ts';

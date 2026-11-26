@@ -59,6 +59,7 @@ function logicBlocks() {
         noImport('mandate', 'core imports nothing from other modules.'),
         noImport('audit', 'core imports nothing from other modules.'),
         noImport('sanctions', 'core imports nothing from other modules.'),
+        noImport('tasks', 'core imports nothing from other modules.'),
         {
           group: ['**/config', '**/config.*'],
           message: 'core imports nothing from other modules.',
@@ -67,16 +68,38 @@ function logicBlocks() {
     ),
     block(
       ['src/logic/mandate/**/*.ts'],
-      [noImport('audit', 'mandate must not import audit.'), deepImport('sanctions'), deepCore],
+      [
+        noImport('audit', 'mandate must not import audit.'),
+        noImport('tasks', 'mandate must not import tasks.'),
+        deepImport('sanctions'),
+        deepCore,
+      ],
     ),
     block(
       ['src/logic/sanctions/**/*.ts'],
-      [noImport('audit', 'sanctions must not import audit.'), deepMandate, deepCore],
+      [
+        noImport('audit', 'sanctions must not import audit.'),
+        noImport('tasks', 'sanctions must not import tasks.'),
+        deepMandate,
+        deepCore,
+      ],
     ),
-    block(['src/logic/audit/**/*.ts'], [deepMandate, deepImport('sanctions'), deepCore]),
+    block(
+      ['src/logic/audit/**/*.ts'],
+      [
+        noImport('tasks', 'audit must not import tasks.'),
+        deepMandate,
+        deepImport('sanctions'),
+        deepCore,
+      ],
+    ),
+    block(
+      ['src/logic/tasks/**/*.ts'],
+      [deepMandate, deepImport('audit'), deepImport('sanctions'), deepCore],
+    ),
     block(
       ['src/logic/*.ts'],
-      [deepMandate, deepImport('audit'), deepImport('sanctions'), deepCore],
+      [deepMandate, deepImport('audit'), deepImport('sanctions'), deepImport('tasks'), deepCore],
     ),
   ];
 }
