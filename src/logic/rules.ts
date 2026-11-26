@@ -17,7 +17,7 @@ import {
   type RiskClass,
   type RiskGroup,
 } from './model.ts';
-import { addMonths, daysBetween, isDateKey } from './time.ts';
+import { addMonths, daysBetween, isDateKey } from './core/time.ts';
 
 export const MAX_REASON_LENGTH = 500;
 

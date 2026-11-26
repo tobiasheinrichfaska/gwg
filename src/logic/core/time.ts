@@ -1,4 +1,4 @@
-import type { DateKey } from './model.ts';
+import type { DateKey } from './types.ts';
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 

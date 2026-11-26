@@ -1,5 +1,8 @@
-/** Dates are calendar days as 'YYYY-MM-DD' (no time zone); "today" is always a parameter. */
-export type DateKey = string;
+import type { DateKey } from './core/types.ts';
+import type { Result as CoreResult } from './core/result.ts';
+import { ok as coreOk, fail as coreFail } from './core/result.ts';
+
+export type { DateKey };
 
 export type RiskClass = 'niedrig' | 'normal' | 'hoch';
 
@@ -65,7 +68,7 @@ export type Reason =
   | 'bad-status'
   | 'bad-end';
 
-export type Result<T> = { ok: true; value: T } | { ok: false; reason: Reason };
+export type Result<T> = CoreResult<T, Reason>;
 
-export const ok = <T>(value: T): Result<T> => ({ ok: true, value });
-export const fail = (reason: Reason): Result<never> => ({ ok: false, reason });
+export const ok = <T>(value: T): Result<T> => coreOk(value);
+export const fail = (reason: Reason): Result<never> => coreFail(reason);
