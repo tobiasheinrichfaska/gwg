@@ -21,7 +21,7 @@ Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `de
   `FEATURES_REQUIRED.md`, `manual_tests/`, `CLAUDE.md`, Workspace-Eintrag in beiden `CLAUDE.md`.
 - UI ist nur ein Platzhalter; `rad-navi` und `local-vault` sind **noch nicht eingebunden** (`rad-navi` steht
   in `package.json`; `local-vault` fehlt noch dort).
-- Beide Repos nur lokal, **kein GitHub-Remote**; anlegen/pushen nur auf Tobias' ausdrückliches OK.
+- Das öffentliche Repo hat einen GitHub-Remote (`origin`); das Begleitrepo `gwg-privat` bleibt privat. Pushen nur auf eigenem Branch, nie auf `main` ohne ausdrückliches OK.
 
 ## Entscheidungen (Tobias, 2026-11-23)
 
@@ -40,12 +40,12 @@ Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `de
 
 ## Offen, in dieser Reihenfolge
 
-1. **Relay entscheiden** (Tobias): das Zeitserver-Relay im Repo `Zeitstempel` passt **nicht** (nur Hashes,
+1. **Relay entscheiden** (Tobias): das vorhandene Zeitserver-Relay (anderes Repo) passt **nicht** (nur Hashes,
    512 Byte rein, 64 KB raus, bewusst „kein offener Proxy“, nicht ausgerollt); das vorhandene Nachrichten-Relay
    der Geräte ebenfalls nicht. Wege: **A** neues kleines Abruf-Relay nach dem Muster des Zeitserver-Relays;
-   **B** bunny Pull Zone mit der EU-Adresse als Ursprung und CORS-Header (Test ca. 30 Minuten, kein Code);
+   **B** eine Pull Zone eines CDN-Anbieters mit der EU-Adresse als Ursprung und CORS-Header (Test ca. 30 Minuten, kein Code);
    **C** zweite Route im Zeitserver-Relay (verwässert dessen Prinzip). Empfehlung: A, vorher B ausprobieren.
-   Ort: neues öffentliches Repo oder Modul im Zeitstempel-Repo.
+   Ort: neues öffentliches Repo oder Modul im Repo des Zeitserver-Relays.
 2. **Schutzmaßnahmen des Relays** (Missbrauch ist ein Kosten-/Überlastrisiko, kein Datenrisiko; Antwort ist
    öffentlich, Mandantendaten gehen nie hindurch): feste Allowlist als Daten, nur HTTPS, keine Weiterleitungen,
    keine Abfragezeichenfolge, Cache mit Mindestabstand 1 Stunde zur EU, Limit je Aufrufer und gesamt,

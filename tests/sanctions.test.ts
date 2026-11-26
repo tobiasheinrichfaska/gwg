@@ -1,4 +1,10 @@
-import { classifyMatch, levenshtein, nameSimilarity, normalizeName } from '../src/logic/index.ts';
+import {
+  classifyMatch,
+  classifyNames,
+  levenshtein,
+  nameSimilarity,
+  normalizeName,
+} from '../src/logic/index.ts';
 
 describe('name normalization', () => {
   it('folds umlauts, ß, case and punctuation', () => {
@@ -51,5 +57,48 @@ describe('traffic light', () => {
   it('is green only when both birth years are known and differ', () => {
     expect(classifyMatch(0.95, '1980-05-12', '1974-05-12')).toBe('gruen');
     expect(classifyMatch(0.95, '1980-05-12', '1974')).toBe('gruen');
+  });
+});
+
+describe('names the Latin fold would lose (fail-open guard)', () => {
+  it('keeps letters of other scripts instead of emptying the name', () => {
+    expect(normalizeName('Иван Петров')).toBe('иван петров');
+    expect(nameSimilarity('Иван Петров', 'Иван Петров')).toBe(1);
+    expect(classifyNames('Иван Петров', 'Иван Петров', '1974-05-12', '1974-05-12')).toBe('rot');
+  });
+  it('folds ø, æ, ł, đ like the usual list transliterations', () => {
+    expect(normalizeName('Søren Łukasz')).toBe('soeren lukasz');
+    expect(nameSimilarity('Søren', 'Soeren')).toBe(1);
+  });
+  it('never clears a name that cannot be compared: it goes to a human', () => {
+    expect(classifyNames('', '', null, null)).toBe('gelb');
+    expect(classifyNames('...', 'Ivan Petrov', '1980-01-01', '1974-01-01')).toBe('gelb');
+  });
+  it('classifyNames agrees with classifyMatch for ordinary names', () => {
+    expect(classifyNames('Jürgen Müller', 'Mueller Juergen', '1980-05-12', '1974')).toBe('gruen');
+    expect(classifyNames('Thomas Weber', 'Sergej Iwanow', null, null)).toBe('gruen');
+  });
+});
+
+describe('findings of the independent re-audit', () => {
+  it('does not lose a changed first letter to the word sorting', () => {
+    expect(nameSimilarity('Zhang Wei', 'Chang Wei')).toBeGreaterThan(0.85);
+  });
+  it('rates extra name parts yellow at most, never red', () => {
+    const s = nameSimilarity('Vladimir Putin', 'Vladimir Vladimirovich Putin');
+    expect(s).toBeGreaterThanOrEqual(0.85);
+    expect(classifyMatch(s, '1952-10-07', '1952-10-07')).toBe('gelb');
+    expect(nameSimilarity('Putin', 'Vladimir Putin')).toBeLessThan(0.85);
+  });
+  it('folds a decomposed umlaut like a composed one', () => {
+    expect(normalizeName('Mu\u0308ller')).toBe('mueller');
+  });
+  it('treats ö as o as well, as list transliterations do', () => {
+    expect(nameSimilarity('Özil', 'Ozil')).toBe(1);
+  });
+  it('removes invisible characters instead of splitting the word', () => {
+    expect(normalizeName('Ali\u00ADev')).toBe('aliev');
+    expect(normalizeName('Ali\u200Bev')).toBe('aliev');
+    expect(nameSimilarity('Ali\u00ADev', 'Aliev')).toBe(1);
   });
 });

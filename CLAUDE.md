@@ -43,6 +43,8 @@ maths; "today" is always a parameter, errors are codes) and a thin UI `src/ui/`.
 | `README.md`                                                             | Short description (German), license section                                                    |
 | `FEATURES_REQUIRED.md`                                                  | Critical user paths the audit validates                                                        |
 | `docs/data-model.html`                                                  | Self-contained data-model reference (`tests/docs.test.ts` ties codes and numbers to it)        |
+| `docs/modularisierung.md`                                               | Plan: Zielstruktur der Module, Abhängigkeitsregeln, Reihenfolge der Schritte                   |
+| `docs/audit-2026-11-26.md`                                              | Audit, Widerlegung, Behebung, Nachaudit (Funde mit Urteil)                                     |
 | `docs/uebergabe.md`                                                     | Handover for a new chat: state, decisions, open points in order                                |
 | `manual_tests/`                                                         | Human-tester instructions (German)                                                             |
 | `src/logic/model.ts`                                                    | Types (`Mandate`, `RiskGroup`, `LegalForm`, status unions), `Reason` codes, `Result`           |
@@ -87,4 +89,11 @@ session the model changes.
 - **Legal claims in the requirements are unverified** (identification-expiry handling, § 23a reporting
   cases, retention start, goAML dates, AMLR transition 2027, treatment of a plain GbR). Check against the
   BStBK interpretation notes before each rule goes live.
+- **Name matching is a heuristic with known blind spots:** extra name parts on one side count at most
+  0.89 (yellow, never red); there is no transliteration between scripts (Cyrillic/Arabic vs Latin) and no
+  homoglyph detection (a Cyrillic "а" inside a Latin name); a birth-year range on a list entry
+  ("1970-1975") is read by its first year only. Use `classifyNames`, and measure against real lists
+  before relying on it.
+- **Open decision:** `gekuendigt` while still active (the tool ended the relationship, DATEV not yet
+  deactivated) appears in no audit list. Legitimate transitional state or a fifth list? (Tobias)
 - The firm's data comes from DATEV by CSV/manual entry; the exact export is not specified yet.

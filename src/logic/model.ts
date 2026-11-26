@@ -4,7 +4,14 @@ export type DateKey = string;
 export type RiskClass = 'niedrig' | 'normal' | 'hoch';
 
 /** Identification status as kept in the DATEV master data, plus the two states only this tool sets. */
-export type IdStatus = 'leer' | 'unvollstaendig' | 'vollstaendig' | 'eskalation' | 'gekuendigt';
+export const ID_STATUSES = [
+  'leer',
+  'unvollstaendig',
+  'vollstaendig',
+  'eskalation',
+  'gekuendigt',
+] as const;
+export type IdStatus = (typeof ID_STATUSES)[number];
 
 /** Kind of review a client needs: A natural person / sole trader, B registered sole trader, C company. */
 export type CheckType = 'A' | 'B' | 'C';

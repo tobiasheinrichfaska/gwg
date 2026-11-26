@@ -26,3 +26,11 @@ describe('time', () => {
     expect(addMonths('2026-02-28', -3)).toBe('2025-11-28');
   });
 });
+
+describe('invalid keys are refused, not rolled over', () => {
+  it('throws for a day that does not exist', () => {
+    expect(() => daysBetween('2026-02-30', '2026-03-01')).toThrow('bad date key');
+    expect(() => addDays('2026-13-01', 1)).toThrow('bad date key');
+    expect(() => addMonths('2026-04-31', 1)).toThrow('bad date key');
+  });
+});

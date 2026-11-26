@@ -16,7 +16,17 @@ export function isDateKey(s: unknown): s is DateKey {
 
 function parts(key: DateKey): [number, number, number] {
   const m = DATE_RE.exec(key);
-  if (!m) throw new Error(`bad date key: ${key}`);
+  // A date that merely looks right ('2026-02-30') must not be silently rolled over by Date.UTC.
+  // Calendar check only: results of date arithmetic may leave the 1900..2200 input range.
+  if (
+    !m ||
+    Number(m[2]) < 1 ||
+    Number(m[2]) > 12 ||
+    Number(m[3]) < 1 ||
+    Number(m[3]) > daysInMonth(Number(m[1]), Number(m[2]))
+  ) {
+    throw new Error(`bad date key: ${key}`);
+  }
   return [Number(m[1]), Number(m[2]), Number(m[3])];
 }
 

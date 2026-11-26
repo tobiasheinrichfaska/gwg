@@ -118,6 +118,14 @@ describe('checkMandate', () => {
     expect(reason({ idStatus: 'vollstaendig', lastCheckOn: null })).toBe('bad-status');
     expect(reason({ active: true, endedOn: '2026-05-01' })).toBe('bad-end');
   });
+  it('refuses a status value outside the list and exotic line breaks', () => {
+    expect(reason({ idStatus: 'Vollständig' as never })).toBe('bad-status');
+    expect(reason({ riskReason: 'a\u2028b' })).toBe('bad-risk-reason');
+    expect(reason({ riskReason: 'a\u007fb' })).toBe('bad-risk-reason');
+  });
+  it('refuses an inactive mandate without an end date (retention clock would never start)', () => {
+    expect(reason({ active: false, endedOn: null })).toBe('bad-end');
+  });
   it('accepts an inactive mandate with an end date', () => {
     expect(reason({ active: false, endedOn: '2026-05-01' })).toBe('ok');
   });
@@ -145,5 +153,38 @@ describe('yearly audit exceptions', () => {
   it('is clean when nothing is overdue — on the due day itself still in time', () => {
     const onDueDay = mandate({ riskGroupId: 'H-01', lastCheckOn: '2025-11-30' });
     expect(auditIsClean(auditExceptions([onDueDay, mandate()], today))).toBe(true);
+  });
+});
+
+describe('audit fails toward a finding, not toward silence', () => {
+  const today = '2026-11-30';
+  it('lists an unknown (e.g. deleted) risk group as unclassified', () => {
+    const e = auditExceptions([mandate({ id: '1', riskGroupId: 'GELOESCHT' })], today);
+    expect(e.unclassified.map((m) => m.id)).toEqual(['1']);
+    expect(e.overdue).toEqual([]);
+  });
+  it('lists a "complete" identification without a valid last-review date as overdue', () => {
+    const e = auditExceptions(
+      [mandate({ id: '1', lastCheckOn: null }), mandate({ id: '2', lastCheckOn: 'gestern' })],
+      today,
+    );
+    expect(e.overdue.map((m) => m.id)).toEqual(['1', '2']);
+  });
+  it('gives no review date for an invalid last-review date instead of throwing', () => {
+    expect(nextReviewDate(mandate({ lastCheckOn: '2026-02-30' }))).toBeNull();
+  });
+});
+
+describe('robustness at the edges', () => {
+  it('does not crash when the review date leaves the input range', () => {
+    expect(nextReviewDate(mandate({ riskGroupId: 'N-01', lastCheckOn: '2199-01-01' }))).toBe(
+      '2202-01-01',
+    );
+  });
+  it('gives no retention date for garbage', () => {
+    expect(retentionDueFrom('abc')).toBeNull();
+  });
+  it('always refuses an invalid today, even with an empty list', () => {
+    expect(() => auditExceptions([], 'not-a-date')).toThrow('bad date key');
   });
 });
