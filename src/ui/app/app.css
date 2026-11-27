@@ -81,6 +81,12 @@ input:focus-visible {
   color: var(--muted);
   font-size: 0.875rem;
 }
+.flag {
+  font-weight: 600;
+}
+fieldset {
+  margin: 0.6rem 0;
+}
 .filters {
   display: flex;
   flex-wrap: wrap;

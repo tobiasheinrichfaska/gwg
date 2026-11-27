@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import {
   checkMandate,
+  isPepAffected,
   ID_STATUSES,
   type DateKey,
   type Mandate,
   type RulesConfig,
 } from '../../../logic/index.ts';
+import { useApp } from '../../app/context.ts';
 import { ID_STATUS_LABELS } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
 import { PersonsSection } from './PersonsSection.tsx';
@@ -39,6 +41,7 @@ const asDate = (s: string): DateKey | null => (s === '' ? null : s);
 
 export function ClientForm({ rules, initial, takenIds, onSave, onCancel }: Props) {
   const uid = useId();
+  const { backup } = useApp();
   const start = initial ?? emptyMandate(rules);
   const [id, setId] = useState(start.id);
   const [name, setName] = useState(start.name);
@@ -109,6 +112,12 @@ export function ClientForm({ rules, initial, takenIds, onSave, onCancel }: Props
       <h2 id={fid('h')} tabIndex={-1} ref={headingRef}>
         {editing ? 'Mandant bearbeiten' : 'Mandant anlegen'}
       </h2>
+      {initial !== null && isPepAffected({ ...initial, isPep }, backup.persons) && (
+        <p className="flag" role="status">
+          <span aria-hidden="true">⚠</span> PEP-betroffen: Das Mandat wird als Risikoklasse hoch
+          geführt.
+        </p>
+      )}
       <form onSubmit={(e) => void submit(e)} noValidate>
         {error !== null && (
           <p role="alert" tabIndex={-1} ref={errorRef}>

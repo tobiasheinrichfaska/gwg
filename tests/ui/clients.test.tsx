@@ -189,7 +189,7 @@ describe('create', () => {
     type('Risikogruppe', 'N-01');
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     const row = (await screen.findByText('Erika Beispiel')).closest('tr')!;
-    expect(within(row).getAllByRole('cell')[2]?.textContent).toBe('hoch');
+    expect(within(row).getAllByRole('cell')[2]?.textContent).toContain('hoch');
   });
 
   it('cancel returns to the list and stores nothing', async () => {

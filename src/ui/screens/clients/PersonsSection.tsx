@@ -10,13 +10,17 @@ import { useApp } from '../../app/context.ts';
 import { formatBirth, NONE, PERSON_ROLE_LABELS } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
 import { nextPersonId } from '../../persons.ts';
+import { hasPepDuty, needsApproval, pepSummary } from '../../pep.ts';
+import { PepApproval, PepFlow } from '../../components/PepFlow.tsx';
 
 type Edit = { kind: 'none' } | { kind: 'form'; person: Person | null };
+type PepOpen = { personId: string; kind: 'ask' | 'approval' } | null;
 
 /** The persons of one mandate (edit form only). Each change is saved at once, apart from the mandate. */
 export function PersonsSection({ mandateId }: { mandateId: string }) {
   const { backup, replace } = useApp();
   const uid = useId();
+  const [pepOpen, setPepOpen] = useState<PepOpen>(null);
   const [edit, setEdit] = useState<Edit>({ kind: 'none' });
   const [toDelete, setToDelete] = useState<Person | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -61,6 +65,7 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
                 <th scope="col">Name</th>
                 <th scope="col">Vorname</th>
                 <th scope="col">Geburtsdatum</th>
+                <th scope="col">PEP-Auskunft</th>
                 <th scope="col">Aktionen</th>
               </tr>
             </thead>
@@ -71,7 +76,30 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
                   <th scope="row">{p.lastName}</th>
                   <td>{p.firstName === '' ? NONE : p.firstName}</td>
                   <td>{formatBirth(p.birth)}</td>
+                  <td>{pepSummary(p)}</td>
                   <td>
+                    {hasPepDuty(p) && (
+                      <>
+                        <button
+                          type="button"
+                          aria-label={`PEP-Auskunft erfassen: ${p.firstName} ${p.lastName}`}
+                          onClick={() => setPepOpen({ personId: p.id, kind: 'ask' })}
+                        >
+                          {p.pep.answer === null ? 'Auskunft erfassen' : 'Auskunft ändern'}
+                        </button>{' '}
+                        {needsApproval(p.pep) && p.pep.approvedOn === null && (
+                          <>
+                            <button
+                              type="button"
+                              aria-label={`Freigabe erfassen: ${p.firstName} ${p.lastName}`}
+                              onClick={() => setPepOpen({ personId: p.id, kind: 'approval' })}
+                            >
+                              Freigabe erfassen
+                            </button>{' '}
+                          </>
+                        )}
+                      </>
+                    )}
                     <button
                       type="button"
                       aria-label={`Person bearbeiten: ${p.firstName} ${p.lastName}`}
@@ -93,6 +121,22 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
           </table>
         </div>
       )}
+      {pepOpen !== null &&
+        (() => {
+          const person = backup.persons.find((x) => x.id === pepOpen.personId);
+          if (person === undefined) return null;
+          const Dialog = pepOpen.kind === 'ask' ? PepFlow : PepApproval;
+          return (
+            <Dialog
+              person={person}
+              mandate={backup.mandates.find((m) => m.id === mandateId)}
+              onClose={(message) => {
+                setPepOpen(null);
+                if (message !== null) setNotice(message);
+              }}
+            />
+          );
+        })()}
       {toDelete !== null && (
         <div role="alertdialog" aria-modal="true" aria-label="Person löschen" className="dialog">
           <p>

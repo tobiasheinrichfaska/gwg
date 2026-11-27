@@ -5,6 +5,7 @@ import { useApp } from '../../app/context.ts';
 import { OpenClient } from '../../components/OpenClient.tsx';
 import { formatDate, NONE } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
+import { PepApproval, PepFlow } from '../../components/PepFlow.tsx';
 import { CheckDialog } from './CheckDialog.tsx';
 import { TASK_GROUPS } from './groups.ts';
 
@@ -18,6 +19,10 @@ export function TasksScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<Mandate | null>(null);
+  const [pepOpen, setPepOpen] = useState<{
+    personId: string;
+    kind: 'pep-ask' | 'pep-approval';
+  } | null>(null);
 
   const byId = (id: string) => backup.mandates.find((m) => m.id === id);
 
@@ -43,7 +48,24 @@ export function TasksScreen() {
     setNotice(done);
   }
 
+  const personOf = (t: Task) => backup.persons.find((p) => p.id === t.personId);
+
   function actions(t: Task, m: Mandate) {
+    if ((t.kind === 'pep-ask' || t.kind === 'pep-approval') && t.personId !== undefined) {
+      const who = personOf(t);
+      const label = t.kind === 'pep-ask' ? 'Auskunft erfassen' : 'Freigabe erfassen';
+      const personId = t.personId;
+      const kind = t.kind;
+      return (
+        <button
+          type="button"
+          aria-label={`${label}: ${m.id} ${who?.firstName ?? ''} ${who?.lastName ?? ''}`.trim()}
+          onClick={() => setPepOpen({ personId, kind })}
+        >
+          {label}
+        </button>
+      );
+    }
     if (t.kind === 'request-missing') {
       return (
         <button
@@ -116,9 +138,14 @@ export function TasksScreen() {
                     const m = byId(t.mandateId);
                     if (m === undefined) return null;
                     return (
-                      <tr key={`${kind}-${t.mandateId}`}>
+                      <tr key={`${kind}-${t.mandateId}-${t.personId ?? ''}`}>
                         <th scope="row">{m.id}</th>
-                        <td>{m.name}</td>
+                        <td>
+                          {m.name}
+                          {t.personId !== undefined && personOf(t) !== undefined
+                            ? ` – Person: ${personOf(t)?.firstName} ${personOf(t)?.lastName}`
+                            : ''}
+                        </td>
                         <td>
                           {t.dueOn === null
                             ? NONE
@@ -161,6 +188,25 @@ export function TasksScreen() {
         </section>
       )}
 
+      {pepOpen !== null &&
+        (() => {
+          const person = backup.persons.find((p) => p.id === pepOpen.personId);
+          if (person === undefined) return null;
+          const Dialog = pepOpen.kind === 'pep-ask' ? PepFlow : PepApproval;
+          return (
+            <Dialog
+              person={person}
+              mandate={byId(person.mandateId)}
+              onClose={(message) => {
+                setPepOpen(null);
+                if (message !== null) {
+                  setProblem(null);
+                  setNotice(message);
+                }
+              }}
+            />
+          );
+        })()}
       {confirming !== null && (
         <CheckDialog
           mandate={confirming}

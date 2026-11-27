@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   checkTypeOf,
   effectiveRiskClass,
+  isPepAffected,
   nextReviewDate,
   type Mandate,
 } from '../../../logic/index.ts';
@@ -164,7 +165,15 @@ export function ClientsScreen() {
                           {rules.legalForms.find((f) => f.key === m.legalForm)?.label ??
                             m.legalForm}
                         </td>
-                        <td>{cls === null ? NONE : RISK_CLASS_LABELS[cls]}</td>
+                        <td>
+                          {cls === null ? NONE : RISK_CLASS_LABELS[cls]}
+                          {isPepAffected(m, backup.persons) && (
+                            <span className="flag">
+                              {' '}
+                              <span aria-hidden="true">⚠</span> PEP-betroffen
+                            </span>
+                          )}
+                        </td>
                         <td>{ID_STATUS_LABELS[m.idStatus]}</td>
                         <td>{formatDate(nextReviewDate(m, backup.persons, rules))}</td>
                         <td>

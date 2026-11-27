@@ -6,7 +6,7 @@
 
 - [x] **Rechtsform → Prüftyp A/B/C** — `checkTypeOf` (`tests/rules.test.ts`)
 - [x] **Risikoklasse je Gruppe, PEP-betroffen immer hoch** (manuelle Markierung oder Selbstauskunft je Person) — `effectiveRiskClass`, `isPepAffected` (`tests/pep.test.ts`)
-- [x] **PEP-Selbstauskunft je Person, Aufgaben `pep-ask`/`pep-approval`, Sicherung Format 2 mit und ohne `pep`** — `checkPerson`, `buildTasks` (`tests/pep.test.ts`), UI folgt (PEP-2)
+- [x] **PEP-Selbstauskunft je Person, Aufgaben `pep-ask`/`pep-approval`, Sicherung Format 2 mit und ohne `pep`** — `checkPerson`, `buildTasks` (`tests/pep.test.ts`); geführter Schritt „PEP-Selbstauskunft“ und Freigabe-Dialog, Aufgabenliste mit beiden Arten, Kennzeichen „PEP-betroffen“ (`tests/ui/pep.test.tsx`, `manual_tests/06_pep.md`)
 - [x] **Nächster Prüftermin rollierend nach Klasse** — `nextReviewDate`
 - [x] **Mahnleiter 14/28/42 Tage** — `dunningStage`
 - [x] **Löschfälligkeit 5 Jahre nach Ende des Beendigungsjahres** — `retentionDueFrom`
