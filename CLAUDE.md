@@ -82,7 +82,7 @@ session the model changes.
 ## Known Limitations
 
 - Built: logic, io layer, app frame (vault gate, state provider, rad-navi navigation) and the screen
-  "Sicherung". Clients (list, create/edit form, delete with retention hint) is built (UI-2). Tasks (grouped, actions "Erste Anforderung heute gesendet" / "Prüfung heute abgeschlossen" with confirmation, invalid mandates in their own section), audit (four lists, cut-off export `gwg-audit-<date>.txt`) and overview (numbers) are built (UI-3). Open: the audit's closing is not persisted; the overview has no links and "Mandant öffnen" cannot steer the wheel (the user opens "Mandanten" afterwards; rad-navi has no navigate call). There is no import of the DATEV
+  "Sicherung". Clients (list, create/edit form, delete with retention hint) is built (UI-2). Tasks (grouped, actions "Erste Anforderung heute gesendet" / "Prüfung heute abgeschlossen" with confirmation, invalid mandates in their own section), audit (four lists, cut-off export `gwg-audit-<date>.txt`) and overview (numbers) are built (UI-3). The audit closing is persisted (`auditClosings`, selectable cut-off date, withdrawal with confirmation, warning if findings arise later). Open: the overview has no links and "Mandant öffnen" cannot steer the wheel (the user opens "Mandanten" afterwards; rad-navi has no navigate call). There is no import of the DATEV
   master data and no PDF letters. Dunning, audit, retention and sanctions are rules, not workflows.
 - `local-vault` 0.1.0 has the device mode only (no `mode` option); without the app lock the app opens without
   a password. The lock card is shown on the backup screen. Two tabs can overwrite each other (docs/io-schnittstellen.md, point 4).

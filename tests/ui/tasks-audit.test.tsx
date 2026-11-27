@@ -167,8 +167,9 @@ describe('tasks screen', () => {
 describe('audit screen', () => {
   it('lists the four lists with counts and says how many findings remain', async () => {
     setup(<AuditScreen />, [noRequest, requested, dueReview]);
-    expect(await screen.findByText(/Stichtag:/)).toBeTruthy();
-    expect(screen.getByText('27.11.2026', { selector: 'strong' })).toBeTruthy();
+    expect(await screen.findByLabelText('Stichtag')).toBeTruthy();
+    // Default cut-off date: 30 November of the current year.
+    expect(screen.getByText('30.11.2026', { selector: 'strong' })).toBeTruthy();
     expect(screen.getByText('Noch 3 Auffälligkeiten.', { exact: false })).toBeTruthy();
     expect(screen.queryByText(/Audit abschließbar/)).toBeNull();
     for (const t of [

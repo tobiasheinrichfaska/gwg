@@ -1,4 +1,4 @@
-import type { AuditExceptions, DateKey } from '../../../logic/index.ts';
+import type { AuditClosing, AuditExceptions, DateKey } from '../../../logic/index.ts';
 import { formatDate } from '../../format.ts';
 
 export type AuditListKey = keyof AuditExceptions;
@@ -32,11 +32,18 @@ export function countFindings(e: AuditExceptions): number {
 }
 
 /** The cut-off-date list as plain text, one block per exception list. */
-export function auditText(e: AuditExceptions, today: DateKey): string {
+export function auditText(
+  e: AuditExceptions,
+  stichtag: DateKey,
+  closing: AuditClosing | null = null,
+): string {
   const lines = [
-    `GwG-Audit, Stichtag ${formatDate(today)}`,
+    `GwG-Audit, Stichtag ${formatDate(stichtag)}`,
     `Auffälligkeiten insgesamt: ${countFindings(e)}`,
     'Hinweis: Die Liste enthält Mandantennamen im Klartext. Nur auf einem geschützten Gerät aufbewahren.',
+    closing === null
+      ? 'Abschluss: nicht abgeschlossen'
+      : `Abschluss: abgeschlossen am ${formatDate(closing.closedOn)} durch ${closing.by}${closing.note === '' ? '' : `, Notiz: ${closing.note}`}`,
   ];
   for (const l of AUDIT_LISTS) {
     lines.push('', `${l.title} (${e[l.key].length})`, l.text);

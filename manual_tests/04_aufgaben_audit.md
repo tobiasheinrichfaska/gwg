@@ -26,6 +26,12 @@ ist neu (0 Mandate); sonst vorher unter „Sicherung“ eine leere Sicherung ein
 9. Bei „Angefordert AG“ unter „Mandanten“ den Status auf „vollständig“ setzen, „Letzte Prüfung am“ = heute.
    „Ohne Anforderung GmbH“ ebenso. Danach „Audit“ erneut öffnen.
 10. Bereich „Übersicht“ öffnen.
+11. Bereich „Audit“ öffnen. Im Feld „Stichtag“ das heutige Datum wählen (der Standard, 30. November, kann in der
+    Zukunft liegen und lässt sich dann nicht abschließen). „Audit abschließen“ wählen, den Dialog lesen. Ohne Namen
+    „Audit abschließen bestätigen“ wählen, dann Namen und Notiz eintragen und bestätigen.
+12. Seite neu laden (F5), Bereich „Audit“ und „Übersicht“ öffnen.
+13. Unter „Mandanten“ „Ohne Anforderung GmbH“ auf Status „leer“ setzen. Bereich „Audit“ öffnen.
+14. „Abschluss zurücknehmen“ wählen, „Abbrechen“, dann erneut wählen und bestätigen.
 
 **Erwartet:**
 
@@ -41,9 +47,16 @@ ist neu (0 Mandate); sonst vorher unter „Sicherung“ eine leere Sicherung ein
 - Schritt 7: Ein Hinweis nennt, dass Mandat `91002` vorgemerkt ist. Der Bereich „Mandanten“ öffnet sich direkt im
   Formular „Mandant bearbeiten“ für `91002`. („Abbrechen“ führt zur Liste.)
 - Schritt 8: Stichtag in der Form TT.MM.JJJJ (heute). „Noch 2 Auffälligkeiten.“: „Nicht identifiziert (1)“ mit
-  `91001`, „Identifizierung stockt (1)“ mit `91002`. Der Satz „Audit abschließbar“ fehlt. Ein Hinweis nennt, dass
-  der Abschluss nicht gespeichert wird. Die Textdatei zeigt Stichtag, Gesamtzahl und je Liste Nummer;Name.
+  `91001`, „Identifizierung stockt (1)“ mit `91002`. Der Satz „Audit abschließbar“ fehlt. Die Textdatei zeigt Stichtag, Gesamtzahl und je Liste Nummer;Name.
 - Schritt 9: „Audit abschließbar: keine Auffälligkeiten.“ und alle vier Listen mit „Keine Auffälligkeiten.“.
 - Schritt 10: „Aktive Mandate: 3 (von 3)“, keine Aufgaben („Keine offenen Aufgaben.“), „Auffälligkeiten zum Stichtag:
   0“.
+- Schritt 11: Der Dialog sagt „Sie bestätigen, dass die Ausnahmelisten geprüft wurden; das Programm entscheidet
+  nichts rechtlich.“. Ohne Namen erscheint eine Fehlermeldung (Code `bad-closing`), nichts wird gespeichert. Danach
+  steht „Abgeschlossen am <heute> durch <Name>“ (mit Notiz); der Knopf „Audit abschließen“ ist weg. Die
+  Stichtagsliste enthält die Zeile „Abschluss: …“.
+- Schritt 12: Der Abschluss ist noch da. Die Übersicht zeigt „Audit zum Stichtag …: abgeschlossen am <heute>“.
+- Schritt 13: Das Audit zeigt „Abgeschlossen am …“ und die Warnung „Seit dem Abschluss sind Auffälligkeiten
+  entstanden“; der Abschluss bleibt bestehen.
+- Schritt 14: Nach „Abbrechen“ bleibt der Abschluss; nach der Bestätigung ist er weg und die Übersicht zeigt „offen“.
 - Nach F5 (Neuladen) bleiben die Änderungen erhalten.

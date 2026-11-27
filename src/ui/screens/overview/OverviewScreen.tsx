@@ -3,12 +3,15 @@ import { auditExceptions, buildTasks } from '../../../logic/index.ts';
 import { useApp } from '../../app/context.ts';
 import { formatDate } from '../../format.ts';
 import { countFindings } from '../audit/export.ts';
+import { defaultStichtag } from '../audit/stichtag.ts';
 import { TASK_GROUPS } from '../tasks/groups.ts';
 
 /** Numbers only, no chart. The wheel is the navigation: each line names the area to open. */
 export function OverviewScreen() {
   const { backup, today } = useApp();
   const uid = useId();
+  const stichtag = defaultStichtag(today);
+  const closing = backup.auditClosings.find((c) => c.stichtag === stichtag) ?? null;
   const { active, tasks, invalid, findings } = useMemo(() => {
     const t = buildTasks(backup.mandates, today, backup.rules);
     return {
@@ -53,6 +56,13 @@ export function OverviewScreen() {
       <p>
         Auffälligkeiten zum Stichtag: <strong>{findings}</strong>. Die Listen stehen im Bereich
         „Audit“.
+      </p>
+      <p>
+        Audit zum Stichtag {formatDate(stichtag)}:{' '}
+        <strong>
+          {closing === null ? 'offen' : `abgeschlossen am ${formatDate(closing.closedOn)}`}
+        </strong>
+        .
       </p>
     </section>
   );
