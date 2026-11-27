@@ -1,4 +1,12 @@
-import { daysInMonth, fail, isDateKey, ok, type DateKey, type Result } from '../core/index.ts';
+import {
+  daysBetween,
+  daysInMonth,
+  fail,
+  isDateKey,
+  ok,
+  type DateKey,
+  type Result,
+} from '../core/index.ts';
 import type { Reason } from '../mandate/model.ts';
 import { normalizeName } from './normalize.ts';
 
@@ -172,4 +180,15 @@ export function parseIndex(text: string): Result<ListIndex, Reason> {
     entries.push(e.value);
   }
   return ok({ source: raw.source, kind: raw.kind, fetchedOn: raw.fetchedOn, entries });
+}
+
+/** Whole days between the list's state and today (0 = same day; never negative). */
+export function listAgeDays(fetchedOn: DateKey, today: DateKey): number {
+  return Math.max(0, daysBetween(fetchedOn, today));
+}
+
+/** No list at all counts as stale; otherwise stale when older than `maxAgeDays`. */
+export function isListStale(index: ListIndex | null, today: DateKey, maxAgeDays: number): boolean {
+  if (index === null) return true;
+  return listAgeDays(index.fetchedOn, today) > maxAgeDays;
 }

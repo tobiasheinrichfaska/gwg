@@ -3,7 +3,8 @@
 Hilfsmittel für die Pflichten nach dem Geldwäschegesetz in einer Steuerberatungskanzlei: Risikoklassen und
 -gruppen, Stand der Identifizierung je Mandant, rollierende Prüftermine, Mahnleiter für fehlende
 Unterlagen, Abgleich mit Sanktionslisten, Jahresaudit und Löschfristen. Eine einzige HTML-Datei, die auf dem
-eigenen Gerät läuft und nichts ins Netz sendet.
+eigenen Gerät läuft. Mandantendaten verlassen das Gerät nie. Optional (standardmäßig aus) lädt die App die
+öffentliche Sanktionsliste über ein Relay; die Anfrage enthält keine Daten.
 
 > **Nicht von einem Menschen sicherheitsgeprüft, nur Fundament – nicht für echte Mandantendaten
 > verwenden.** Das Werkzeug entscheidet nichts rechtlich; die Zahlen sind Startvorschläge, kein Gesetz.

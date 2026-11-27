@@ -9,6 +9,8 @@ export {
 } from './classify.ts';
 export {
   isListBirth,
+  isListStale,
+  listAgeDays,
   LIST_FORMAT,
   LIST_VERSION,
   MAX_BIRTHS,
@@ -22,3 +24,11 @@ export {
   type ListKind,
 } from './list.ts';
 export { screenAll, screenPerson, type Hit, type Unscreenable } from './screening.ts';
+export {
+  checkListSettings,
+  DEFAULT_LIST_SETTINGS,
+  isRelayUrl,
+  parseSettings,
+  serializeSettings,
+  type ListSettings,
+} from './list-settings.ts';

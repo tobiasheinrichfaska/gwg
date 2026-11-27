@@ -32,6 +32,12 @@ export const REASON_TEXTS: Record<Reason, string> = {
     'Der Abschluss des Jahresaudits ist ungültig: Datum, Name der abschließenden Person oder Notiz prüfen.',
   'bad-backup': 'Die Datei ist keine gültige Sicherung.',
   'bad-list': 'Die Datei ist keine gültige Sanktions- oder PEP-Liste.',
+  'bad-settings':
+    'Die Listen-Einstellungen sind ungültig: Relay-Adresse (https, ohne Abfragezeichen) und Höchstalter (1 bis 365 Tage) prüfen.',
+  'fetch-failed':
+    'Der Abruf der Sanktionsliste ist fehlgeschlagen (Netz, Fehlerstatus oder Zeitüberschreitung). Die gespeicherte Liste bleibt unverändert.',
+  'relay-bad-response':
+    'Das Relay hat keine brauchbare Liste geliefert (falscher Inhaltstyp oder zu groß). Die gespeicherte Liste bleibt unverändert.',
   'unsupported-version': 'Diese Sicherung hat ein unbekanntes Format oder eine unbekannte Version.',
   'duplicate-id': 'Diese Mandatsnummer gibt es schon.',
   'file-too-large': 'Die Datei ist zu groß.',

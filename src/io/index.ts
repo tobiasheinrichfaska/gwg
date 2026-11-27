@@ -1,11 +1,26 @@
 export {
+  createMemorySettingsStore,
   createMemoryStore,
+  createVaultSettingsStore,
   createVaultStore,
-  LIST_SLOTS,
-  listSlotName,
+  SETTINGS_SLOT,
   VAULT_SLOT,
   type AppStore,
+  type SettingsStore,
 } from './store.ts';
+export {
+  createIndexedDbListStore,
+  createMemoryListStore,
+  LIST_DB_NAME,
+  type ListStore,
+} from './list-store.ts';
+export {
+  DEFAULT_FETCH_TIMEOUT_MS,
+  DEFAULT_MAX_FETCH_BYTES,
+  fetchSanctionsList,
+  type FetchOptions,
+  type FetchedList,
+} from './sanctions-fetch.ts';
 export {
   DEFAULT_MAX_EU_LIST_BYTES,
   EU_LIST_SOURCE,

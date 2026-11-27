@@ -1,13 +1,6 @@
 // @vitest-environment jsdom
-import { createVault, memoryEnvironment } from 'local-vault';
-import {
-  createMemoryStore,
-  LIST_SLOTS,
-  createVaultStore,
-  parseEuSanctionsXml,
-  readEuListFile,
-} from '../src/io/index.ts';
-import { classifyNames, parseIndex, serializeIndex, type ListIndex } from '../src/logic/index.ts';
+import { parseEuSanctionsXml, readEuListFile } from '../src/io/index.ts';
+import { classifyNames, parseIndex, serializeIndex } from '../src/logic/index.ts';
 
 const NS = 'xmlns="http://eu.europa.ec/fpi/fsd/export"';
 const wrap = (body: string, attrs = 'generationDate="2026-11-20T10:00:00.000+01:00"') =>
@@ -174,52 +167,7 @@ describe('readEuListFile', () => {
   });
 });
 
-const small = (): ListIndex => {
-  const r = parseEuSanctionsXml(SAMPLE, '2026-11-20');
-  if (!r.ok) throw new Error('parse');
-  return r.value.index;
-};
-
-describe('list storage', () => {
-  it('memory store round-trips a list and is empty at first', async () => {
-    const s = createMemoryStore();
-    expect(await s.loadList('sanktion')).toEqual({ ok: true, value: null });
-    expect((await s.saveList(small())).ok).toBe(true);
-    const r = await s.loadList('sanktion');
-    expect(r.ok && r.value && serializeIndex(r.value)).toBe(serializeIndex(small()));
-    expect(await s.loadList('pep')).toEqual({ ok: true, value: null });
-  });
-  it('vault store keeps the list in its own slot, apart from the backup slot', async () => {
-    const v = createVault(
-      { prefix: 'gwg', slots: ['bestand', ...LIST_SLOTS] },
-      memoryEnvironment(),
-    );
-    expect((await v.startVault()).kind).toBe('open');
-    const s = createVaultStore(v);
-    expect(await s.loadList('sanktion')).toEqual({ ok: true, value: null });
-    expect((await s.saveList(small())).ok).toBe(true);
-    expect(v.readSlot('bestand')).toBeNull();
-    const r = await s.loadList('sanktion');
-    expect(r.ok && r.value && serializeIndex(r.value)).toBe(serializeIndex(small()));
-  });
-  it('reports a damaged slot as bad-list and a closed vault as store-failed', async () => {
-    const v = createVault(
-      { prefix: 'gwg', slots: ['bestand', ...LIST_SLOTS] },
-      memoryEnvironment(),
-    );
-    await v.startVault();
-    expect(v.writeSlot('liste-sanktion', 'kaputt')).toBeUndefined();
-    expect(await createVaultStore(v).loadList('sanktion')).toMatchObject({
-      ok: false,
-      reason: 'bad-list',
-    });
-    const closed = createVault({ prefix: 'gwg', slots: LIST_SLOTS }, memoryEnvironment());
-    expect(await createVaultStore(closed).loadList('sanktion')).toMatchObject({
-      ok: false,
-      reason: 'store-failed',
-    });
-    expect((await createVaultStore(closed).saveList(small())).ok).toBe(false);
-  });
+describe('list size', () => {
   it('measures the compact index for 20 000 synthetic entries', () => {
     const entries = Array.from({ length: 20_000 }, (_, i) => ({
       id: String(100_000 + i),

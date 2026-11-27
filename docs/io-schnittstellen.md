@@ -116,15 +116,30 @@ Bemerkung, zusammengeführte doppelte `logicalId`. Kaputtes XML, falsches Wurzel
 `<!ENTITY` oder einer DOCTYPE-Innenteil-Angabe (`<!DOCTYPE … [`) abgelehnt (`bad-list`); Test: eine einfache
 DOCTYPE mit Fremd-Adresse löst keinen `fetch` aus.
 
-**Speicher.** `AppStore.loadList(kind)` / `saveList(index)`; Tresor-Slot `liste-sanktion` (und `liste-pep`), im
-Vault-Config von `main.tsx` unter `slots` eingetragen (`LIST_SLOTS`). **Abweichung von Frage 1 oben:** die installierte
-`local-vault` 0.1.0 (Tag, `node_modules`) hat **keine Blob-Funktionen** (`putBytes`/`getBytes` fehlen in `dist/`);
-die Angabe weiter oben zu Blobs trifft für diese Version nicht zu. Es bleibt der Slot (Text in localStorage).
-**Größe:** 20 000 synthetische Einträge (je 3 Namen, 2 Geburtsdaten, Bemerkung 100 Zeichen) ergeben 5,08 MB
-Indextext (`serializeIndex`), verschlüsselt im Slot noch mehr. Das liegt an oder über der üblichen localStorage-Grenze
-(rund 5 Millionen Zeichen je Herkunft, gemeinsam mit dem Mandantenbestand). Ob die echte Liste hineinpasst, ist
-offen: mit der echten Datei messen; Ausweg wären Blobs (neuere `local-vault`-Version) oder ein kürzerer Index
-(ohne Bemerkung). Ein volles localStorage meldet `saveList` als `store-failed`.
+**Speicher (geändert in T5b).** Die Liste ist öffentlich und braucht keine Verschlüsselung; sie liegt **nicht** im
+Tresor und nicht in localStorage (der Index der echten Liste passt mit mehreren MB nicht sicher hinein). Stattdessen
+`src/io/list-store.ts`: `ListStore` { `load(kind)`, `save(index)`, `clear(kind)` } auf IndexedDB, Datenbank
+`gwg-listen`, ein Objektstore, Schlüssel = `kind`, Wert = Text von `serializeIndex`. Gelesen wird nur über
+`parseIndex`; beschädigte Daten oder eine Liste unter dem falschen Schlüssel sind `bad-list`, eine nicht nutzbare
+Datenbank `store-failed`, nie still „leer“. Gespeichert gilt erst nach abgeschlossener Transaktion. Die Slots
+`liste-sanktion`/`liste-pep` und `AppStore.loadList/saveList` aus T5a entfallen (es gab noch keine Daten, keine
+Migration). Test gegen die echte Implementierung mit `fake-indexeddb`.
+
+**Einstellungen.** `ListSettings` { `relayUrl` ('' = aus), `autoFetch` (Standard false), `maxAgeDays` (Standard 7) },
+Prüfung `checkListSettings` (`bad-settings`). Ort: eigener Tresor-Slot `einstellungen` (`SettingsStore`, Vault- und
+Memory-Variante), **nicht in der Sicherungsdatei**: die Einstellung gehört zum Gerät, eine zurückgespielte Sicherung
+darf den Abruf nicht einschalten oder die Adresse ändern.
+
+**Abruf über das Relay (`src/io/sanctions-fetch.ts`).** `fetchSanctionsList` fragt **nur** `relayUrl + '/liste'` ab:
+GET, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`, `redirect: 'error'`, `cache: 'no-store'`, kein Body,
+keine eigenen Header. Mandantendaten oder Namen gelangen nie in die Anfrage (Test prüft URL, Methode, Optionen exakt).
+Abbruch nach `timeoutMs` (120 s) über `AbortController`, auch beim Lesen des Bodys; Größenobergrenze `maxBytes`
+(100 MB) wird beim Lesen des Stroms geprüft, nicht erst danach (und vorab am Header `Content-Length`). Stand der
+Liste: übergebenes Datum, sonst Antwort-Header `X-Fetched-At`, sonst `generationDate` des XML, sonst heute. Fehler:
+`fetch-failed` (Netz, Status außer 200, Weiterleitung, Zeitüberschreitung), `relay-bad-response` (Inhaltstyp nicht
+XML, zu groß), `bad-list` (Inhalt kein gültiges XML der Liste). Ein Fehler lässt die gespeicherte Liste unberührt.
+`X-Stale: 1` (Relay lieferte die letzte gute Kopie) wird als `stale` gemeldet. Schaltet der Nutzer den Abruf ein,
+sieht der Server des Relay-Betreibers die IP-Adresse der Kanzlei (siehe `relay/README.md`, Datenschutz).
 
 **Annahmen (nicht belegt):** Namen und Attribute der aktuellen Version 1.1 stimmen mit dem Muster von 2020 überein;
 `month`/`day` als alte Attributnamen werden zusätzlich gelesen; eine Spanne als `year="1970-1975"` oder

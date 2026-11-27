@@ -7,7 +7,7 @@ Checkout als ignorierte Kopie `docs/privat/vorgaben.md`).
 ## Was es ist
 
 Hilfsmittel für die GwG-Pflichten einer Steuerberatungskanzlei, eine offline HTML-Datei (React/Vite singlefile).
-Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `device-sync`**; Speicher
+Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `device-sync`**; Mandantendaten verlassen das Gerät nie. Optional (standardmäßig aus) lädt die App die öffentliche Sanktionsliste über ein Relay; die Anfrage enthält keine Daten (T5b: `src/io/sanctions-fetch.ts`, Liste in IndexedDB `gwg-listen`, Einstellungen im Tresor-Slot `einstellungen`); Speicher
 `local-vault` mit Export/Import der Sicherungsdatei; Navigation `rad-navi`.
 
 ## Was steht (Commits `b361cbb`, `a237438`)
