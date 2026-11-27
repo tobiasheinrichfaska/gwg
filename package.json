@@ -20,6 +20,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "local-vault": "github:tobiasheinrichfaska/local-vault#v0.1.0",
     "rad-navi": "github:tobiasheinrichfaska/rad-navi#v0.1.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
