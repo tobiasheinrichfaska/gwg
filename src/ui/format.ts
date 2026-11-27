@@ -46,3 +46,6 @@ export const PERSON_ROLE_LABELS: Record<PersonRole, string> = {
   vertreter: 'Vertreter',
   sonstige: 'Sonstige',
 };
+
+/** "1 Tag", "7 Tage". */
+export const dayCount = (n: number): string => `${n} ${n === 1 ? 'Tag' : 'Tage'}`;

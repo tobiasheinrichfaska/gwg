@@ -2,18 +2,26 @@ import { useId, useMemo } from 'react';
 import { auditExceptions, buildTasks } from '../../../logic/index.ts';
 import { useApp } from '../../app/context.ts';
 import { formatDate } from '../../format.ts';
+import { StatusBanner } from '../../components/StatusBanner.tsx';
 import { countFindings } from '../audit/export.ts';
 import { defaultStichtag } from '../audit/stichtag.ts';
 import { TASK_GROUPS } from '../tasks/groups.ts';
 
 /** Numbers only, no chart. The wheel is the navigation: each line names the area to open. */
 export function OverviewScreen() {
-  const { backup, today } = useApp();
+  const { backup, today, liveHits, list, screeningStatus } = useApp();
   const uid = useId();
   const stichtag = defaultStichtag(today);
   const closing = backup.auditClosings.find((c) => c.stichtag === stichtag) ?? null;
   const { active, tasks, invalid, findings } = useMemo(() => {
-    const t = buildTasks(backup.mandates, backup.persons, today, backup.rules, [], []);
+    const t = buildTasks(
+      backup.mandates,
+      backup.persons,
+      today,
+      backup.rules,
+      liveHits,
+      backup.screeningDecisions,
+    );
     return {
       active: backup.mandates.filter((m) => m.active).length,
       tasks: t.tasks,
@@ -22,7 +30,7 @@ export function OverviewScreen() {
         auditExceptions(backup.mandates, backup.persons, today, backup.rules),
       ),
     };
-  }, [backup, today]);
+  }, [backup, today, liveHits]);
 
   return (
     <section aria-labelledby={`${uid}-h`}>
@@ -54,6 +62,16 @@ export function OverviewScreen() {
         </ul>
       )}
       <p>Die Aufgaben stehen im Bereich „Aufgaben“.</p>
+      <h2>Sanktionsliste</h2>
+      <StatusBanner />
+      <p>
+        Liste:{' '}
+        <strong>{list === null ? 'keine geladen' : `Stand ${formatDate(list.fetchedOn)}`}</strong>.
+        Abgleich: <strong>{screeningStatus.state === 'ok' ? 'aktuell' : 'veraltet'}</strong>
+        {backup.lastScreening.sanktion !== null &&
+          ` (zuletzt geprüft am ${formatDate(backup.lastScreening.sanktion.ranOn)})`}
+        . Details im Bereich „Abgleich“.
+      </p>
       <h2>Audit</h2>
       <p>
         Auffälligkeiten zum Stichtag: <strong>{findings}</strong>. Die Listen stehen im Bereich

@@ -1,6 +1,48 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AppStore } from '../../io/index.ts';
-import type { Backup, DateKey, Reason, Result } from '../../logic/index.ts';
+import type { AppStore, ListNote } from '../../io/index.ts';
+import type {
+  Backup,
+  DateKey,
+  Hit,
+  ListIndex,
+  ListSettings,
+  Reason,
+  Result,
+  Unscreenable,
+  UnscreenableMandate,
+} from '../../logic/index.ts';
+
+/** Result of one screening run. Kept in memory only (the decisions and `lastScreening` are saved). */
+export interface ScreeningResult {
+  /** All yellow and red hits of the run, sorted (red first). */
+  hits: Hit[];
+  unscreenable: Unscreenable[];
+  unscreenableMandates: UnscreenableMandate[];
+  ranOn: DateKey;
+  listFetchedOn: DateKey;
+  /** Fingerprint of the persons and mandates the run saw; a change makes the run outdated. */
+  signature: string;
+}
+
+/** What the last download of the list did, for the screen (also after the automatic start fetch). */
+export type FetchNote =
+  | {
+      ok: true;
+      auto: boolean;
+      /** The relay answered from an old copy (`X-Stale`). */
+      stale: boolean;
+      /** The downloaded list was older than the stored one; the stored one stays. */
+      keptNewer: DateKey | null;
+      skipped: ListNote[];
+      adjusted: ListNote[];
+    }
+  | { ok: false; auto: boolean; reason: Reason };
+
+/** How far the screening can be trusted right now: `ok`, outdated (with reasons) or impossible. */
+export interface ScreeningStatus {
+  state: 'ok' | 'stale' | 'no-list';
+  reasons: string[];
+}
 
 export interface AppState {
   /** The whole data set. Never null once the children render: first start gives an empty set. */
@@ -20,6 +62,34 @@ export interface AppState {
    */
   requestedClientId: string | null;
   requestClient(id: string | null): void;
+  /** Same for a hit (`decisionKey`): the "Abgleich" screen opens its detail page. */
+  requestedHitKey: string | null;
+  requestHit(key: string | null): void;
+
+  /** The loaded sanctions list; null = none (yet). */
+  list: ListIndex | null;
+  /** The list store could not be read; `list` is null then. */
+  listError: Reason | null;
+  settings: ListSettings;
+  /** The stored settings have been read (before that `settings` holds the defaults). */
+  settingsLoaded: boolean;
+  settingsError: Reason | null;
+  /** Checks and saves the settings (not part of the backup file). */
+  saveSettings(next: unknown): Promise<Result<ListSettings>>;
+  /** Saves a list read from a file and makes it the current one. */
+  storeList(index: ListIndex): Promise<Result<void>>;
+  /** Downloads the list through the relay of the settings and stores it. Never throws. */
+  fetchList(): Promise<FetchNote>;
+  fetching: boolean;
+  lastFetch: FetchNote | null;
+  /** Result of the last run in this session; null = no run yet since the start. */
+  screening: ScreeningResult | null;
+  /** Hits of the last run whose person/mandate still exists and whose mandate is active. */
+  liveHits: Hit[];
+  progress: { done: number; total: number } | null;
+  /** Runs the screening in chunks; saves `lastScreening` at the end. */
+  runScreening(): Promise<Result<void>>;
+  screeningStatus: ScreeningStatus;
 }
 
 export const AppContext = createContext<AppState | null>(null);

@@ -17,12 +17,12 @@
 
 ## MT-01b: Abruf eingeschaltet
 
-**Vorbedingungen:** Ein Relay ist erreichbar (siehe `relay/README.md`); die Einstellung „Relay-Adresse“ ist eingetragen und der Abruf eingeschaltet. Der Bildschirm dafür folgt mit T6; bis dahin ist dieser Fall nicht von Hand prüfbar.
+**Vorbedingungen:** Ein Relay ist erreichbar (siehe `relay/README.md`); die Einstellung „Relay-Adresse“ ist eingetragen und der Abruf eingeschaltet. Eingestellt wird das im Bereich „Abgleich“ (Aufbau eines lokalen Testservers: `07_abgleich.md`, MT-07d).
 
 **Schritte:**
 
 1. Entwicklerwerkzeuge öffnen, Reiter „Netzwerk“ leeren.
-2. Die Liste abrufen (oder die Anwendung neu starten, wenn der automatische Abruf an ist und die Liste älter als das Höchstalter ist).
+2. Im Bereich „Abgleich“ „Jetzt abrufen“ drücken (oder die Anwendung neu starten, wenn der automatische Abruf an ist und die Liste älter als das Höchstalter ist).
 
 **Erwartet:**
 

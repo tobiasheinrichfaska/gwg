@@ -3,6 +3,10 @@ import { buildTasks, checkMandate, type Mandate, type Task } from '../../../logi
 import { describeFailure } from '../../app/messages.ts';
 import { useApp } from '../../app/context.ts';
 import { OpenClient } from '../../components/OpenClient.tsx';
+import { OpenHit } from '../../components/OpenHit.tsx';
+import { StatusBanner } from '../../components/StatusBanner.tsx';
+import { hitKey } from '../sanctions/cases.ts';
+import { describeSubject } from '../sanctions/subjects.ts';
 import { formatDate, NONE } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
 import { PepApproval, PepFlow } from '../../components/PepFlow.tsx';
@@ -10,11 +14,19 @@ import { CheckDialog } from './CheckDialog.tsx';
 import { TASK_GROUPS } from './groups.ts';
 
 export function TasksScreen() {
-  const { backup, today, replace, saveError } = useApp();
+  const { backup, today, replace, saveError, liveHits } = useApp();
   const uid = useId();
   const { tasks, invalid } = useMemo(
-    () => buildTasks(backup.mandates, backup.persons, today, backup.rules, [], []),
-    [backup, today],
+    () =>
+      buildTasks(
+        backup.mandates,
+        backup.persons,
+        today,
+        backup.rules,
+        liveHits,
+        backup.screeningDecisions,
+      ),
+    [backup, today, liveHits],
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -50,7 +62,30 @@ export function TasksScreen() {
 
   const personOf = (t: Task) => backup.persons.find((p) => p.id === t.personId);
 
+  /** The hit behind a sanction task, if the last run still has it. */
+  const hitOf = (t: Task) =>
+    t.subjectKind === undefined
+      ? undefined
+      : liveHits.find(
+          (h) =>
+            h.subjectKind === t.subjectKind &&
+            h.subjectId === t.subjectId &&
+            h.entryId === t.entryId,
+        );
+
+  function sanctionLabel(t: Task): string {
+    const hit = hitOf(t);
+    if (hit === undefined) return '';
+    const who = describeSubject(hit, backup)?.name ?? '';
+    return ` – ${hit.klasse === 'rot' ? '● ROT' : '◐ GELB'}: ${who} gegen ${hit.besterName}`;
+  }
+
   function actions(t: Task, m: Mandate) {
+    const hit = hitOf(t);
+    if ((t.kind === 'sanction-clear' || t.kind === 'sanction-confirmed') && hit !== undefined) {
+      const who = describeSubject(hit, backup)?.name ?? hit.subjectId;
+      return <OpenHit hitKey={hitKey(hit)} label={`${m.id} ${who} gegen ${hit.besterName}`} />;
+    }
     if ((t.kind === 'pep-ask' || t.kind === 'pep-approval') && t.personId !== undefined) {
       const who = personOf(t);
       const label = t.kind === 'pep-ask' ? 'Auskunft erfassen' : 'Freigabe erfassen';
@@ -112,6 +147,7 @@ export function TasksScreen() {
       )}
       {problem !== null && <p role="alert">{problem}</p>}
       {notice !== null && <p role="status">{notice}</p>}
+      <StatusBanner />
       {tasks.length === 0 && invalid.length === 0 && <p>Keine offenen Aufgaben.</p>}
 
       {TASK_GROUPS.map(({ kind, title }) => {
@@ -138,13 +174,16 @@ export function TasksScreen() {
                     const m = byId(t.mandateId);
                     if (m === undefined) return null;
                     return (
-                      <tr key={`${kind}-${t.mandateId}-${t.personId ?? ''}`}>
+                      <tr
+                        key={`${kind}-${t.mandateId}-${t.personId ?? ''}-${t.subjectId ?? ''}-${t.entryId ?? ''}`}
+                      >
                         <th scope="row">{m.id}</th>
                         <td>
                           {m.name}
                           {t.personId !== undefined && personOf(t) !== undefined
                             ? ` – Person: ${personOf(t)?.firstName} ${personOf(t)?.lastName}`
                             : ''}
+                          {sanctionLabel(t)}
                         </td>
                         <td>
                           {t.dueOn === null

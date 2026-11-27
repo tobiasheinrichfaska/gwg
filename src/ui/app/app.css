@@ -119,3 +119,28 @@ select:focus-visible,
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 0.6rem 0;
+}
+.col {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  min-width: 0;
+}
+dt {
+  font-weight: 600;
+}
+dd {
+  margin: 0 0 0.4rem 0;
+}
+textarea {
+  font: inherit;
+  min-height: 4rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}

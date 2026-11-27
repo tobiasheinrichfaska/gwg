@@ -3,6 +3,7 @@ import { WheelNav, areaNode, distributor, type PageTable } from 'rad-navi';
 import { AuditScreen } from '../screens/audit/AuditScreen.tsx';
 import { BackupScreen } from '../screens/backup/BackupScreen.tsx';
 import { ClientsScreen } from '../screens/clients/ClientsScreen.tsx';
+import { SanctionsScreen } from '../screens/sanctions/SanctionsScreen.tsx';
 import { OverviewScreen } from '../screens/overview/OverviewScreen.tsx';
 import { TasksScreen } from '../screens/tasks/TasksScreen.tsx';
 
@@ -10,6 +11,7 @@ const PAGES: PageTable = {
   uebersicht: { name: 'Übersicht' },
   mandanten: { name: 'Mandanten' },
   aufgaben: { name: 'Aufgaben' },
+  abgleich: { name: 'Abgleich' },
   audit: { name: 'Audit' },
   sicherung: { name: 'Sicherung' },
 };
@@ -18,6 +20,7 @@ const TREE = distributor('wurzel', 'GwG-Pflege', [
   areaNode(PAGES, 'bereich-uebersicht', 'Übersicht', ['uebersicht']),
   areaNode(PAGES, 'bereich-mandanten', 'Mandanten', ['mandanten']),
   areaNode(PAGES, 'bereich-aufgaben', 'Aufgaben', ['aufgaben']),
+  areaNode(PAGES, 'bereich-abgleich', 'Abgleich', ['abgleich']),
   areaNode(PAGES, 'bereich-audit', 'Audit', ['audit']),
   areaNode(PAGES, 'bereich-sicherung', 'Sicherung', ['sicherung']),
 ]);
@@ -26,6 +29,7 @@ const SCREENS: Record<string, () => React.JSX.Element> = {
   uebersicht: OverviewScreen,
   mandanten: ClientsScreen,
   aufgaben: TasksScreen,
+  abgleich: SanctionsScreen,
   audit: AuditScreen,
   sicherung: BackupScreen,
 };
@@ -43,9 +47,10 @@ const TEXTS = {
 };
 
 export const CLIENTS_NODE = 'bereich-mandanten/mandanten';
+export const SANCTIONS_NODE = 'bereich-abgleich/abgleich';
 
 export function Navigation() {
-  const { requestedClientId } = useApp();
+  const { requestedClientId, requestedHitKey } = useApp();
   return (
     <WheelNav
       tree={TREE}
@@ -54,7 +59,13 @@ export function Navigation() {
         const Screen = SCREENS[page];
         return Screen ? <Screen /> : undefined;
       }}
-      jumpTarget={() => (requestedClientId === null ? undefined : CLIENTS_NODE)}
+      jumpTarget={() =>
+        requestedHitKey !== null
+          ? SANCTIONS_NODE
+          : requestedClientId === null
+            ? undefined
+            : CLIENTS_NODE
+      }
       texts={TEXTS}
     />
   );

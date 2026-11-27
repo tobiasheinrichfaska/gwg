@@ -1,7 +1,13 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { VaultGate, createVault } from 'local-vault';
-import { SETTINGS_SLOT, VAULT_SLOT, createVaultStore } from './io/index.ts';
+import {
+  SETTINGS_SLOT,
+  VAULT_SLOT,
+  createIndexedDbListStore,
+  createVaultSettingsStore,
+  createVaultStore,
+} from './io/index.ts';
 import { App } from './ui/App.tsx';
 import { VAULT_TEXTS } from './ui/app/texts.ts';
 
@@ -17,11 +23,13 @@ const vault = createVault({
   texts: VAULT_TEXTS,
 });
 const store = createVaultStore(vault);
+const settingsStore = createVaultSettingsStore(vault);
+const listStore = createIndexedDbListStore();
 
 createRoot(root).render(
   <StrictMode>
     <VaultGate vault={vault} texts={VAULT_TEXTS}>
-      <App store={store} vault={vault} />
+      <App store={store} vault={vault} listStore={listStore} settingsStore={settingsStore} />
     </VaultGate>
   </StrictMode>,
 );
