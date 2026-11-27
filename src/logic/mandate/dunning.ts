@@ -1,4 +1,4 @@
-import type { RulesConfig } from '../config.ts';
+import type { DunningStage, RulesConfig } from '../config.ts';
 import { daysBetween } from '../core/index.ts';
 import type { DateKey } from './model.ts';
 
@@ -7,10 +7,10 @@ export function dunningStage(
   firstRequestOn: DateKey | null,
   today: DateKey,
   rules: RulesConfig,
-): string {
+): DunningStage {
   if (!firstRequestOn) return 'keine';
   const elapsed = daysBetween(firstRequestOn, today);
-  let stage = 'keine';
+  let stage: DunningStage = 'keine';
   for (const step of [...rules.dunningSteps].sort((a, b) => a.day - b.day)) {
     if (elapsed >= step.day) stage = step.stage;
   }

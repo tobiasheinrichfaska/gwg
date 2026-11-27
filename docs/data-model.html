@@ -20,7 +20,7 @@
   <body>
     <h1>GwG-Pflege – Datenmodell</h1>
     <p class="note">
-      Quelle: <code>src/logic/</code> (Stand 2026-11-23). Bei jeder Änderung des Modells in derselben Sitzung
+      Quelle: <code>src/logic/</code> (Stand 2026-11-27). Bei jeder Änderung des Modells in derselben Sitzung
       neu abgleichen; <code>tests/docs.test.ts</code> prüft, dass jeder Fehlercode und jede Zahl der
       Konfiguration hier steht. Die Datei ist eigenständig (kein Netz, kein Build).
     </p>
@@ -210,8 +210,14 @@
       <tr><td>screenAll</td><td>(persons, mandates, index, thresholds) =&gt; { hits: Hit[]; unscreenable: { personId, reason }[] }</td><td>Gleicher Abgleich für alle Personen. Nicht prüfbar (nie still grün): Nachname nach Normalisierung leer (bad-person) oder Mandat unbekannt (unknown-mandate). 1 000 Personen gegen 20 000 Einträge: etwa 7 s</td></tr>
       <tr><td>serializeIndex</td><td>(index: ListIndex) =&gt; string</td><td>Kompaktes JSON, feste Schlüsselreihenfolge, Einträge nach Id sortiert</td></tr>
       <tr><td>parseIndex</td><td>(text) =&gt; Result&lt;ListIndex&gt;</td><td>Strenger Leser wie parseBackup: bad-list (Form, Typ, unbekannter Schlüssel, __proto__, Datum, Geburtsdatum, Grenzen), unsupported-version, duplicate-id; mit Stelle in where</td></tr>
+      <tr><td>checkScreeningRun</td><td>(r: ScreeningRun, kind: ListKind) =&gt; Result&lt;ScreeningRun&gt;</td><td>Prüft die Notiz zum letzten Abgleich (Daten, Listenart)</td></tr>
+      <tr><td>decisionKey</td><td>({ subjectKind, subjectId, entryId, listKind }) =&gt; string</td><td>Schlüssel einer Entscheidung zu einem Treffer (Gegenstand und Listeneintrag)</td></tr>
+      <tr><td>personSnapshot, mandateSnapshot, currentSnapshot</td><td>(p) / (m) / (kind, id, persons, mandates) =&gt; string | null</td><td>Momentaufnahme des Namens beim Entscheiden; ändert sich der Name, ist die Entscheidung veraltet</td></tr>
+      <tr><td>emptyLastScreening</td><td>() =&gt; LastScreening</td><td>Standard: noch kein Abgleich (sanktion und pep null)</td></tr>
+      <tr><td>emptyPep</td><td>() =&gt; PepDisclosure</td><td>Standard der PEP-Selbstauskunft: alles null oder leer</td></tr>
+      <tr><td>parseSettings, serializeSettings, isRelayUrl</td><td>(text) =&gt; Result&lt;ListSettings&gt; / (s) =&gt; string / (s) =&gt; boolean</td><td>Listen-Einstellungen (Relay-Adresse, Abruf, Höchstalter) strikt lesen und schreiben; leere Adresse = aus</td></tr>
       <tr><td>todayKey (now: Date) =&gt; DateKey</td><td>Heutiger Kalendertag aus lokalen Feldern</td><td>Aufrufen nur io/ui; die Logikschicht ruft nie new Date()</td></tr>
-      <tr><td>addDays, addMonths, daysBetween, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
+      <tr><td>addDays, addMonths, daysBetween, daysInMonth, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
     </table>
 
     <h3>Fehlercodes</h3>
@@ -224,7 +230,7 @@
       <tr><td>bad-risk-reason</td><td>Begründung zu lang oder mit Steuerzeichen</td></tr>
       <tr><td>bad-status</td><td>Unbekannter Statuswert, oder „vollstaendig“ ohne Datum der letzten Prüfung</td></tr>
       <tr><td>bad-end</td><td>Ende und Aktivstatus widersprechen sich: aktiv mit Enddatum, oder inaktiv ohne Enddatum (die Aufbewahrungsfrist würde nie starten)</td></tr>
-      <tr><td>bad-config</td><td>Konfiguration ungültig (Zahl &lt;= 0, Mahnstufen nicht aufsteigend, Schwelle possible &gt; strong, doppelte Schlüssel/Ids, Schwellen außerhalb 0..1)</td></tr>
+      <tr><td>bad-config</td><td>Konfiguration ungültig (Zahl &lt;= 0, Mahnstufen nicht aufsteigend oder unbekannt (erlaubt: erinnerung, androhung, eskalation), Schwelle possible &gt; strong, doppelte Schlüssel/Ids, Schwellen außerhalb 0..1)</td></tr>
       <tr><td>bad-pep</td><td>PEP-Angaben einer Person ungültig: Antwort unbekannt oder ohne Datum der Frage, Datum ungültig, Funktion zu lang oder mehrzeilig, Freigabe ohne „ja“ (Antwort oder nahestehend), Freigabe ohne Datum oder ohne Name</td></tr>
       <tr><td>bad-person</td><td>Person ungültig: Id oder Nachname leer oder zu lang oder mit Steuerzeichen, Rolle unbekannt, Geburtsdatum kein gültiges JJJJ, JJJJ-MM oder JJJJ-MM-TT</td></tr>
       <tr><td>unknown-mandate</td><td>Die Mandantennummer einer Person gibt es nicht</td></tr>

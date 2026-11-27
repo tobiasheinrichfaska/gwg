@@ -1,73 +1,73 @@
-# Übergabe (Stand 2026-11-23)
+# Übergabe (Stand 2026-11-27)
 
-Für einen neuen Chat: zuerst `CLAUDE.md` lesen, dann diese Datei. Die Originalvorgaben (KI-Chatverlauf) und die
-rechtliche Prüfliste liegen im privaten Begleitrepo `gwg-privat` unter `docs/privat/` (lokal auch in diesem
-Checkout als ignorierte Kopie `docs/privat/vorgaben.md`).
+Für einen neuen Chat: zuerst `CLAUDE.md`, dann diese Datei. Die Originalvorgaben (KI-Chatverlauf) und die
+rechtliche Prüfliste liegen im privaten Begleitrepo `gwg-privat` unter `docs/privat/`.
 
 ## Was es ist
 
-Hilfsmittel für die GwG-Pflichten einer Steuerberatungskanzlei, eine offline HTML-Datei (React/Vite singlefile).
-Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `device-sync`**; Mandantendaten verlassen das Gerät nie. Optional (standardmäßig aus) lädt die App die öffentliche Sanktionsliste über ein Relay; die Anfrage enthält keine Daten (T5b: `src/io/sanctions-fetch.ts`, Liste in IndexedDB `gwg-listen`, Einstellungen im Tresor-Slot `einstellungen`); Speicher
-`local-vault` mit Export/Import der Sicherungsdatei; Navigation `rad-navi`.
+Hilfsmittel für die GwG-Pflichten einer Steuerberatungskanzlei: eine HTML-Datei (React/Vite singlefile), rein
+lokal, **kein `device-sync`**. Mandantendaten verlassen das Gerät nie. Optional (standardmäßig aus) lädt die App
+die öffentliche Sanktionsliste über ein Relay; die Anfrage enthält keine Daten. Stufe 1: nur Listen und Fristen,
+keine Schreiben/PDF. Das Werkzeug entscheidet nichts rechtlich; ein Mensch zeichnet ab.
 
-## Was steht (Commits `b361cbb`, `a237438`)
+## Was steht (`npm test`: 466 Tests in 29 Dateien grün)
 
-- Logikschicht `src/logic/` (UI-frei, 37 Tests grün, Typecheck/Lint/Format ohne Befund):
-  Rechtsform → Prüftyp A/B/C und `registerLookup`, Risikoklasse (PEP immer hoch), rollierender Prüftermin
-  (`addMonths` begrenzt Monatsenden), Mahnleiter 14/28/42 Tage, Löschfälligkeit (1. Januar des
-  Beendigungsjahres + 6), vier Ausnahmelisten des Jahresaudits, Sanktions-Ampel.
-- Alle Zahlen und Tabellen als Daten in `src/logic/config.ts`. **Startvorschlag, kein Gesetz.**
-- `docs/data-model.html` (Test `tests/docs.test.ts` bindet Fehlercodes und Zahlen an den Code),
-  `FEATURES_REQUIRED.md`, `manual_tests/`, `CLAUDE.md`, Workspace-Eintrag in beiden `CLAUDE.md`.
-- UI ist nur ein Platzhalter; `rad-navi` und `local-vault` sind **noch nicht eingebunden** (`rad-navi` steht
-  in `package.json`; `local-vault` fehlt noch dort).
-- Das öffentliche Repo hat einen GitHub-Remote (`origin`); das Begleitrepo `gwg-privat` bleibt privat. Pushen nur auf eigenem Branch, nie auf `main` ohne ausdrückliches OK.
+- **Logik** `src/logic/` (UI-frei, „heute“ ist Parameter, Fehler sind Codes): `core`, `mandate` (`model.ts` nur
+  Typen, `values.ts` Werte; Rechtsform, Risiko, Prüftermin, Mahnleiter, Löschfrist, Person, PEP), `audit`
+  (vier Ausnahmelisten, Abschluss), `sanctions` (Namensabgleich, Ampel, Listenindex, Treffer, Entscheidungen),
+  `backup` (Format 2, liest Format 1), `tasks` (Aufgabenliste), `config.ts` (alle Zahlen als Daten).
+- **io** `src/io/`: Tresor (`local-vault`, Slot `bestand`), Einstellungen, Sicherungsdatei, EU-Listen-XML,
+  Listenspeicher (IndexedDB), Abruf über das Relay.
+- **Relay** `relay/`: anbieterneutrales Referenz-Relay (Weg A), getestet; Hoster nicht gewählt.
+- **Bildschirme** (`rad-navi`): Mandanten (mit Personen und PEP-Selbstauskunft), Aufgaben, Jahresaudit mit
+  Abschluss und Stichtags-Export, Übersicht, Sanktionsabgleich (Liste einspielen oder abrufen, Treffer klären),
+  Sicherung (mit App-Sperre).
+- **Doku:** `docs/data-model.html` (Test bindet Codes, Zahlen und jede öffentliche Funktion daran),
+  `docs/modularisierung.md`, `docs/audit-2026-11-26.md`, `docs/io-schnittstellen.md`, `docs/ui-konzept.md`,
+  `FEATURES_REQUIRED.md`, `manual_tests/`.
+- Schichtregeln: ESLint (Tiefimporte verboten) und `tests/model-types-only.test.ts` (außerhalb von `mandate/`
+  nur `import type` aus `mandate/model`). Die Restschuld aus `modularisierung.md` ist damit erledigt.
 
-## Entscheidungen (Tobias, 2026-11-23)
+## Entscheidungen von Tobias
 
-1. **Datenquelle:** CSV-Export aus DATEV; die Spalten werden mit dem echten Spaltenkopf (ohne Daten) festgelegt.
-   Vorschlag: Tabelle _Mandanten_ (Mandantennummer, Name/Firma, Rechtsform, aktiv, Identifizierungsstatus, Datum
-   letzte Identifizierung, Mandatsende, optional Rundschreibenschlüssel) und Tabelle _Personen_ (Mandantennummer,
-   Rolle, Name, Vorname, Geburtsdatum auch teilweise, optional Geburtsort/Staatsangehörigkeit). Risikogruppe und
-   PEP führt das Programm selbst. Trennzeichen, Kodierung und Datumsformat des Exports sind noch offen.
-2. **Speicher:** `local-vault` mit Export/Import. Schutz der Sicherungsdatei (Passwort/Verschlüsselung) noch offen.
-3. **Stufe 1:** nur Listen und Fristen.
-4. **Sanktionsliste:** tagesaktuell, möglichst direkt durch das Programm. Die EU-Datei (26 MB, Stand im Dateinamen
-   und `Last-Modified`) hat **keinen CORS-Header**; ein direkter Abruf aus dem Browser scheitert. Geplant: ein
-   **Relay**. Fallback ohne Relay: Datei laden und einlesen, Alter anzeigen und bei veraltetem Stand warnen.
-5. **Nicht eingetragene GbR:** Typ C (Vertreter und wirtschaftlich Berechtigte identifizieren), aber **ohne
-   Registerabruf**. Bei der Kammer bestätigen lassen (Prüfliste Nr. 11).
+1. **Speicher:** `local-vault` im Gerätemodus mit optionaler App-Sperre; ohne Sperre öffnet die App ohne Passwort.
+2. **Sicherungsdatei unverschlüsselt** (Klartext mit Mandantennamen); die Oberfläche zeigt `BACKUP_WARNING`.
+3. **PEP per Selbstauskunft:** je Person erfragt und dokumentiert, nicht gegen eine Liste geprüft; eine
+   Jahresfrist nach Amtsende ist nicht eingebaut (rechtlich unbestätigt).
+4. **Relay anbieterneutral:** Referenz in `relay/`, feste Allowlist, nur Lesen, kein Protokoll von Anfragen.
+5. **rad-navi:** die fehlenden Funktionen (Aufruf von außen, Pfeiltasten, Esc, Schutz vor Verlassen, Zähler)
+   gehen als Issue #7 ins rad-navi-Repo; bis dahin Umweg über `jumpTarget` für „Mandant öffnen“.
+6. **Datenquelle:** CSV-Export aus DATEV, Spalten erst mit dem echten Spaltenkopf (ohne Daten).
+7. **Nicht eingetragene GbR:** Typ C ohne Registerabruf; bei der Kammer bestätigen lassen.
 
 ## Offen, in dieser Reihenfolge
 
-1. **Relay entscheiden** (Tobias): das vorhandene Zeitserver-Relay (anderes Repo) passt **nicht** (nur Hashes,
-   512 Byte rein, 64 KB raus, bewusst „kein offener Proxy“, nicht ausgerollt); das vorhandene Nachrichten-Relay
-   der Geräte ebenfalls nicht. Wege: **A** neues kleines Abruf-Relay nach dem Muster des Zeitserver-Relays;
-   **B** eine Pull Zone eines CDN-Anbieters mit der EU-Adresse als Ursprung und CORS-Header (Test ca. 30 Minuten, kein Code);
-   **C** zweite Route im Zeitserver-Relay (verwässert dessen Prinzip). Empfehlung: A, vorher B ausprobieren.
-   Ort: neues öffentliches Repo oder Modul im Repo des Zeitserver-Relays.
-   **Stand:** Referenz-Relay in `relay/` (Weg A, anbieterneutral, getestet); Wahl des Hosters offen.
-2. **Schutzmaßnahmen des Relays** (Missbrauch ist ein Kosten-/Überlastrisiko, kein Datenrisiko; Antwort ist
-   öffentlich, Mandantendaten gehen nie hindurch): feste Allowlist als Daten, nur HTTPS, keine Weiterleitungen,
-   keine Abfragezeichenfolge, Cache mit Mindestabstand 1 Stunde zur EU, Limit je Aufrufer und gesamt,
-   Obergrenze der Antwortgröße, CORS nur für die App-Herkunft, kein Protokoll von Anfragen (nur Zähler),
-   Kostenobergrenze beim Hoster. Die Zähler des Zeitserver-Relays sind nur global (bekannte Grenze).
-   **Stand:** bis auf die Kostenobergrenze (Sache des Hosters) im Referenz-Relay `relay/` umgesetzt und getestet.
-3. **Spaltenkopf des DATEV-Exports** von Tobias holen, dann den Import bauen (strenger Leser, nicht erkannte
-   Zeilen mit Grund anzeigen, nichts still verwerfen).
-4. **Bildschirme** mit `rad-navi`: Mandantenliste, Aufgaben (fällig, mahnen, eskalieren), später
-   Jahresaudit-Assistent 1.–30. November mit Stichtags-Export. Tresor (`local-vault`) und Sicherungsdatei.
-5. **Sanktionsabgleich im Programm:** 26-MB-XML in einen kompakten Index (Name, Alias, Geburtsdaten) umwandeln und
-   im Tresor halten; Treffer-Klärungsmaske (nebeneinander, Ausschlussgründe, Pflichtbegründung).
-6. **Rechtliche Prüfliste abarbeiten** (`gwg-privat/docs/privat/rechtspruefung.md`, 16 Punkte) vor dem
-   Scharfschalten jeder Regel.
+1. **DATEV-Export:** Spaltenkopf von Tobias holen (Trennzeichen, Kodierung, Datumsformat); das DATEV-Worker-Repo
+   vom KI-Chat wartet darauf. Dann `importer/` bauen (strenger Leser, nicht erkannte Zeilen mit Grund zeigen).
+2. **Relay-Hoster wählen** und Weg B (CDN-Pull-Zone mit CORS, ca. 30 Minuten) gegen die echte EU-Adresse testen;
+   Kostenobergrenze beim Hoster setzen.
+3. **EU-XML-Schema an einer echten Datei bestätigen** (heute eine Annahme; Schwellen 0,85/0,9 mit echten Listen
+   messen).
+4. **rad-navi-Änderungen (Issue #7)**, danach die **UI-Tickets U1–U10** aus `docs/ui-konzept.md` Abschnitt 8
+   (U1 Ablaufrahmen zuerst; U10 rad-navi-Ergänzungen kann parallel starten; U6 braucht Format 3).
+5. **Rechtliche Prüfliste** (`gwg-privat`, `rechtspruefung.md`, Punkte 1–20) vor dem Scharfschalten jeder Regel.
+6. **Offene Entscheidungen:**
+   - aktiv + `gekuendigt` erscheint in keiner Audit-Liste: fünfte Liste oder zulässiger Übergang?
+   - Audit-Abschluss ist erst ab dem Stichtag möglich: gewollt?
+   - Das Ergebnis eines Abgleichs lebt nur im Speicher (nach dem Neuladen „Abgleich veraltet“): so lassen?
+   - Der Git-Verlauf enthält in Commit `5250e2a` den Namen eines privaten Repos; Umschreiben des Verlaufs oder
+     bewusst belassen.
 
-## Regeln für diese Arbeit
+## Arbeitsregeln
 
-- Öffentliches Repo: keine echten Mandantendaten, keine Namen privater Projekte (auch nicht in Commit-Texten).
-  `.gitignore` sperrt `*.gwg.json`, `*.pdf`, `*.xml`, `*.csv`, `*.xlsx`.
+- Kleine Tickets, jedes ein eigener grüner Commit; Pushen nur auf den eigenen Branch, nie auf `main` ohne OK.
+- **Gates-Satz:** vor jedem Weitermachen und vor jedem Commit alles laufen lassen und das Ergebnis lesen (nie
+  Zahlen übernehmen): `npx prettier --write src tests docs *.md`, dann `npm run typecheck && npm run lint &&
+npm run format:check && npm test && npm run build`.
+- Öffentliches Repo: keine echten Mandantendaten, keine Namen privater Projekte (auch nicht in Commit-Texten);
+  `.gitignore` sperrt `*.gwg.json`, `*.pdf`, `*.xml`, `*.csv`, `*.xlsx`, Testdaten stehen als Zeichenketten in
+  `tests/`.
 - Rechtsbehauptungen aus den Vorgaben sind ungeprüft; Zahlen nie als gesetzliche Pflicht darstellen.
 - Verdachtsmeldungen: ein lokales Programm kann keinen Geheimbereich erzwingen; höchstens ein Verweis, Inhalte
   außerhalb des Programms.
-- Vor jedem Weitermachen den ganzen Satz laufen lassen: `npm run typecheck`, `npm run lint`,
-  `npm run format:check`, `npm test`, `npm run build`, und das Ergebnis lesen (nie Zahlen übernehmen).
+- Ändert sich das Modell, in derselben Sitzung `docs/data-model.html` und `CLAUDE.md` angleichen.

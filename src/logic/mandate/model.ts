@@ -1,20 +1,14 @@
 import type { DateKey } from '../core/index.ts';
 import type { Result as CoreResult } from '../core/index.ts';
-import { ok as coreOk, fail as coreFail } from '../core/index.ts';
+import type { ID_STATUSES, PEP_ANSWERS, PERSON_ROLES } from './values.ts';
 
 export type { DateKey };
 
-export type RiskClass = 'niedrig' | 'normal' | 'hoch';
-
-/** Identification status as kept in the DATEV master data, plus the two states only this tool sets. */
-export const ID_STATUSES = [
-  'leer',
-  'unvollstaendig',
-  'vollstaendig',
-  'eskalation',
-  'gekuendigt',
-] as const;
 export type IdStatus = (typeof ID_STATUSES)[number];
+export type PersonRole = (typeof PERSON_ROLES)[number];
+export type PepAnswer = (typeof PEP_ANSWERS)[number];
+
+export type RiskClass = 'niedrig' | 'normal' | 'hoch';
 
 /** Kind of review a client needs: A natural person / sole trader, B registered sole trader, C company. */
 export type CheckType = 'A' | 'B' | 'C';
@@ -57,28 +51,6 @@ export interface Mandate {
   endedOn: DateKey | null;
 }
 
-export const PERSON_ROLES = [
-  'inhaber',
-  'geschaeftsfuehrer',
-  'gesellschafter',
-  'wirtschaftlich-berechtigter',
-  'vertreter',
-  'sonstige',
-] as const;
-export type PersonRole = (typeof PERSON_ROLES)[number];
-
-export const PEP_ANSWERS = ['ja', 'nein', 'unbekannt'] as const;
-export type PepAnswer = (typeof PEP_ANSWERS)[number];
-
-/** Roles whose PEP self-disclosure counts for the mandate (not 'sonstige'). */
-export const PEP_ROLES: readonly PersonRole[] = [
-  'inhaber',
-  'geschaeftsfuehrer',
-  'gesellschafter',
-  'wirtschaftlich-berechtigter',
-  'vertreter',
-];
-
 /**
  * PEP self-disclosure of one person (asked and documented, not checked against a list).
  * `amtEndedOn` is only stored and shown; no one-year rule is built in (legally unconfirmed).
@@ -97,16 +69,6 @@ export interface PepDisclosure {
   /** Who signed off; not empty when `approvedOn` is set. */
   approvedBy: string;
 }
-
-export const emptyPep = (): PepDisclosure => ({
-  answer: null,
-  askedOn: null,
-  funktion: '',
-  amtEndedOn: null,
-  nahestehend: null,
-  approvedOn: null,
-  approvedBy: '',
-});
 
 /** A natural person connected to a mandate (owner, managing director, beneficial owner ...). */
 export interface Person {
@@ -150,6 +112,3 @@ export type Reason =
   | 'store-failed';
 
 export type Result<T> = CoreResult<T, Reason>;
-
-export const ok = <T>(value: T): Result<T> => coreOk(value);
-export const fail = (reason: Reason): Result<never> => coreFail(reason);

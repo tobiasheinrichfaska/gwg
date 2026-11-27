@@ -11,7 +11,10 @@ describe('checkRules', () => {
     bad({ reviewIntervalMonths: { ...DEFAULT_RULES.reviewIntervalMonths, hoch: 0 } });
   });
   it('rejects a dunning day <= 0', () => {
-    bad({ dunningSteps: [{ day: -1, stage: 'a' }] });
+    bad({ dunningSteps: [{ day: -1, stage: 'erinnerung' }] });
+  });
+  it('rejects an unknown dunning stage', () => {
+    bad({ dunningSteps: [{ day: 14, stage: 'mahnbescheid' as never }] });
   });
   it('rejects retention years <= 0', () => {
     bad({ retentionYears: 0 });
@@ -22,8 +25,8 @@ describe('checkRules', () => {
   it('rejects dunning steps that do not ascend', () => {
     bad({
       dunningSteps: [
-        { day: 28, stage: 'a' },
-        { day: 14, stage: 'b' },
+        { day: 28, stage: 'androhung' },
+        { day: 14, stage: 'erinnerung' },
       ],
     });
   });

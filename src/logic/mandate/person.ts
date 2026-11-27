@@ -1,13 +1,6 @@
 import { daysInMonth, isDateKey } from '../core/index.ts';
-import {
-  fail,
-  ok,
-  PEP_ANSWERS,
-  PERSON_ROLES,
-  type Mandate,
-  type Person,
-  type Result,
-} from './model.ts';
+import type { Mandate, Person, Result } from './model.ts';
+import { fail, ok, PEP_ANSWERS, PERSON_ROLES } from './values.ts';
 
 export const MAX_NAME_LENGTH = 200;
 export const MAX_PEP_FUNKTION_LENGTH = 200;

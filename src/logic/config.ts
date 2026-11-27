@@ -16,14 +16,18 @@ export const REVIEW_INTERVAL_MONTHS: Record<RiskClass, number> = {
   hoch: 12,
 };
 
+/** Known dunning stages (a configuration may only use these). */
+export const DUNNING_STAGE_NAMES = ['erinnerung', 'androhung', 'eskalation'] as const;
+export type DunningStageName = (typeof DUNNING_STAGE_NAMES)[number];
+
 /** Dunning ladder for an incomplete identification: days after the first request. */
 export const DUNNING_STEPS = [
   { day: 14, stage: 'erinnerung' },
   { day: 28, stage: 'androhung' },
   { day: 42, stage: 'eskalation' },
-] as const;
+] as const satisfies readonly { day: number; stage: DunningStageName }[];
 
-export type DunningStage = 'keine' | (typeof DUNNING_STEPS)[number]['stage'];
+export type DunningStage = 'keine' | DunningStageName;
 
 /** Years kept after the end of the calendar year in which the mandate ended. */
 export const RETENTION_YEARS = 5;
@@ -81,7 +85,7 @@ export const DEFAULT_RISK_GROUPS: readonly RiskGroup[] = [
 /** All rule numbers and tables as one value, so a firm can pass its own configuration. */
 export type RulesConfig = {
   reviewIntervalMonths: Record<RiskClass, number>;
-  dunningSteps: readonly { day: number; stage: string }[];
+  dunningSteps: readonly { day: number; stage: DunningStageName }[];
   retentionYears: number;
   discrepancyRecheckDays: number;
   sanctionThresholds: { possible: number; strong: number };
@@ -115,6 +119,7 @@ export function checkRules(r: RulesConfig): Result<RulesConfig, Reason> {
   if (r.dunningSteps.some((s, i) => i > 0 && s.day <= (r.dunningSteps[i - 1]?.day ?? 0)))
     return bad;
   if (!unique(r.dunningSteps.map((s) => s.stage))) return bad;
+  if (!r.dunningSteps.every((s) => DUNNING_STAGE_NAMES.includes(s.stage))) return bad;
   const { possible, strong } = r.sanctionThresholds;
   const inUnit = (n: number): boolean => Number.isFinite(n) && n >= 0 && n <= 1;
   if (!inUnit(possible) || !inUnit(strong) || possible > strong) return bad;

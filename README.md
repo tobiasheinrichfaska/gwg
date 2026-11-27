@@ -10,8 +10,12 @@ eigenen Gerät läuft. Mandantendaten verlassen das Gerät nie. Optional (standa
 > verwenden.** Das Werkzeug entscheidet nichts rechtlich; die Zahlen sind Startvorschläge, kein Gesetz.
 > Meldungen: [SECURITY.md](SECURITY.md).
 
-**Stand: Fundament.** Die Logik (Rechtsform-Typen, Risikoklasse, Prüftermin, Mahnleiter, Löschfrist,
-Ausnahmelisten, Sanktions-Ampel) ist getestet; Bildschirme, Speicher und Import fehlen noch.
+**Stand:** Die Logik (Rechtsform-Typen, Risikoklasse, Prüftermin, Mahnleiter, Löschfrist, Ausnahmelisten,
+Sanktions-Ampel, PEP-Selbstauskunft) ist getestet. Es gibt Bildschirme für Mandanten mit Personen, Aufgaben,
+Jahresaudit mit Abschluss, Übersicht, Sanktionsabgleich und Sicherung; die Daten liegen verschlüsselt im
+Gerätespeicher. Die Sicherungsdatei ist **unverschlüsselt**. Es fehlen der Import der DATEV-Stammdaten (der
+Export ist noch nicht festgelegt), PDF-Schreiben und geführte Abläufe; die Bedienung ist noch nicht an echten
+Anwendern erprobt.
 
 **Kein Rechtsrat.** Die Zahlen (Prüfintervalle, Mahntage, Ähnlichkeitsschwellen) sind ein Startvorschlag,
 keine gesetzlichen Vorgaben; jede Kanzlei legt sie in ihrer eigenen Risikoanalyse fest. Das Programm
@@ -23,6 +27,7 @@ verwaltet und erinnert, entschieden wird von Menschen.
 npm install
 npm run typecheck
 npm run lint
+npm run format:check
 npm test
 npm run build      # dist/index.html, eine einzelne Datei
 ```

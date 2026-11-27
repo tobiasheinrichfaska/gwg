@@ -1,7 +1,8 @@
 import type { RulesConfig } from '../config.ts';
 import { isDateKey } from '../core/index.ts';
 import { checkTypeOf } from './legal-form.ts';
-import { fail, ID_STATUSES, ok, type Mandate, type Result } from './model.ts';
+import type { Mandate, Result } from './model.ts';
+import { fail, ID_STATUSES, ok } from './values.ts';
 
 export const MAX_REASON_LENGTH = 500;
 

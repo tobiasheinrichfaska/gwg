@@ -1,5 +1,6 @@
 import type { RulesConfig } from '../config.ts';
-import { PEP_ROLES, type Mandate, type Person, type RiskClass } from './model.ts';
+import type { Mandate, Person, RiskClass } from './model.ts';
+import { PEP_ROLES } from './values.ts';
 
 /**
  * PEP-affected: the manual mark, or a person in a relevant role who answered 'ja' (PEP) or whose

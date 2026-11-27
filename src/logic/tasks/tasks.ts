@@ -1,4 +1,4 @@
-import type { RulesConfig } from '../config.ts';
+import type { DunningStageName, RulesConfig } from '../config.ts';
 import { addDays, daysBetween, isDateKey } from '../core/index.ts';
 import {
   confirmedHits,
@@ -77,7 +77,7 @@ const YELLOW_PRIORITY = 6;
 const priorityOf = (t: Task): number =>
   t.kind === 'sanction-clear' && t.klasse === 'gelb' ? YELLOW_PRIORITY : PRIORITY[t.kind];
 
-const STAGE_KIND: Record<string, TaskKind> = {
+const STAGE_KIND: Record<DunningStageName, TaskKind> = {
   erinnerung: 'dunning-reminder',
   androhung: 'dunning-threat',
   eskalation: 'dunning-escalate',
@@ -135,9 +135,10 @@ export function buildTasks(
         if (m.idStatus !== 'eskalation') add(m, 'request-missing', null);
       } else {
         const stage = dunningStage(m.firstRequestOn, today, rules);
-        const kind = STAGE_KIND[stage];
         const step = rules.dunningSteps.find((s) => s.stage === stage);
-        if (kind && step) add(m, kind, addDays(m.firstRequestOn, step.day));
+        if (stage !== 'keine' && step) {
+          add(m, STAGE_KIND[stage], addDays(m.firstRequestOn, step.day));
+        }
       }
     }
     for (const p of persons) {

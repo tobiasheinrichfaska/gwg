@@ -1,4 +1,5 @@
 export * from './model.ts';
+export * from './values.ts';
 export * from './legal-form.ts';
 export * from './risk.ts';
 export * from './review.ts';

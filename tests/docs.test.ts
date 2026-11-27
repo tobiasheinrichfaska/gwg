@@ -63,3 +63,17 @@ describe('docs/data-model.html against the code', () => {
     expect(html).toContain(`(${DEFAULT_RISK_GROUPS.length} Startgruppen`);
   });
 });
+
+describe('data-model.html lists every public function of the logic layer', () => {
+  // Deliberately internal helpers that are exported only for sibling modules or tests.
+  const INTERNAL = new Set(['ok', 'fail', 'levenshtein', 'isPartialDate', 'isListBirth']);
+
+  it('has a <td> cell naming each exported function', async () => {
+    const api: Record<string, unknown> = await import('../src/logic/index.ts');
+    const missing = Object.entries(api)
+      .filter(([name, value]) => typeof value === 'function' && !INTERNAL.has(name))
+      .map(([name]) => name)
+      .filter((name) => !new RegExp(`<td>[^<]*\\b${name}\\b[^<]*</td>`).test(html));
+    expect(missing).toEqual([]);
+  });
+});
