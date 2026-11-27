@@ -187,12 +187,23 @@ export default defineConfig([
   ...logicBlocks(),
   ...ioBlocks(),
   {
+    // relay/ is movable into its own repo: it must not import from src/ (the reverse is a test).
+    files: ['relay/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['**/src/**'], message: 'relay/ must not import from src/.' }] },
+      ],
+    },
+  },
+  {
     files: [
       'vite.config.ts',
       'eslint.config.js',
       'tests/**/*.{ts,tsx}',
       'tools/**/*.ts',
       'src/**/*.test.ts',
+      'relay/**/*.test.ts',
     ],
     languageOptions: { globals: globals.node },
   },
@@ -208,7 +219,7 @@ export default defineConfig([
     // Tests use Vitest's globals. An explicit import broke when the shell was started in „c:\…“
     // (lower-case drive): a second copy of 'vitest' without a runner, „Cannot read properties of
     // undefined (reading 'config')“ — the whole file silently did not run (2026-11-11).
-    files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.ts'],
+    files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.ts', 'relay/**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

@@ -46,11 +46,13 @@ Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `de
    **B** eine Pull Zone eines CDN-Anbieters mit der EU-Adresse als Ursprung und CORS-Header (Test ca. 30 Minuten, kein Code);
    **C** zweite Route im Zeitserver-Relay (verwässert dessen Prinzip). Empfehlung: A, vorher B ausprobieren.
    Ort: neues öffentliches Repo oder Modul im Repo des Zeitserver-Relays.
+   **Stand:** Referenz-Relay in `relay/` (Weg A, anbieterneutral, getestet); Wahl des Hosters offen.
 2. **Schutzmaßnahmen des Relays** (Missbrauch ist ein Kosten-/Überlastrisiko, kein Datenrisiko; Antwort ist
    öffentlich, Mandantendaten gehen nie hindurch): feste Allowlist als Daten, nur HTTPS, keine Weiterleitungen,
    keine Abfragezeichenfolge, Cache mit Mindestabstand 1 Stunde zur EU, Limit je Aufrufer und gesamt,
    Obergrenze der Antwortgröße, CORS nur für die App-Herkunft, kein Protokoll von Anfragen (nur Zähler),
    Kostenobergrenze beim Hoster. Die Zähler des Zeitserver-Relays sind nur global (bekannte Grenze).
+   **Stand:** bis auf die Kostenobergrenze (Sache des Hosters) im Referenz-Relay `relay/` umgesetzt und getestet.
 3. **Spaltenkopf des DATEV-Exports** von Tobias holen, dann den Import bauen (strenger Leser, nicht erkannte
    Zeilen mit Grund anzeigen, nichts still verwerfen).
 4. **Bildschirme** mit `rad-navi`: Mandantenliste, Aufgaben (fällig, mahnen, eskalieren), später
