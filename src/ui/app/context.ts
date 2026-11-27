@@ -33,6 +33,8 @@ export type FetchNote =
       stale: boolean;
       /** The downloaded list was older than the stored one; the stored one stays. */
       keptNewer: DateKey | null;
+      /** The download had fewer than half the entries of the stored list; nothing was replaced. */
+      shrunk: { had: number; got: number } | null;
       skipped: ListNote[];
       adjusted: ListNote[];
     }
@@ -54,6 +56,8 @@ export interface AppState {
   replace(next: Backup): Promise<Result<void>>;
   /** Set when the last save failed. */
   saveError: Reason | null;
+  /** Where `checkBackup` found the problem, when it was the check that refused the save. */
+  saveErrorWhere: string | undefined;
   /** App-lock card of the vault, when there is a vault. */
   lockSettings: ReactNode;
   /**

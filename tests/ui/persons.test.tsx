@@ -8,6 +8,7 @@ import {
   type Backup,
   type Mandate,
   type Person,
+  type ScreeningDecision,
 } from '../../src/logic/index.ts';
 import { AppProvider } from '../../src/ui/app/AppProvider.tsx';
 import { nextPersonId } from '../../src/ui/persons.ts';
@@ -28,7 +29,26 @@ const person = (over: Partial<Person> = {}): Person => ({
   ...over,
 });
 
-function setup(mandates: Mandate[], persons: Person[] = []) {
+const decision = (kind: 'person' | 'mandate', subjectId: string): ScreeningDecision => ({
+  subjectKind: kind,
+  subjectId,
+  entryId: 'E1',
+  listKind: 'sanktion',
+  listFetchedOn: '2026-11-20',
+  decision: 'kein-treffer',
+  reason: 'Anderes Geburtsdatum',
+  decidedOn: '2026-11-27',
+  decidedBy: 'A. Beispiel',
+  subjectSnapshot: 'erika beispiel|1975-03-09',
+  entrySnapshot: 'abc',
+  actionNote: '',
+});
+
+function setup(
+  mandates: Mandate[],
+  persons: Person[] = [],
+  screeningDecisions: ScreeningDecision[] = [],
+) {
   const b: Backup = {
     format: 'gwg-backup',
     version: 2,
@@ -37,7 +57,7 @@ function setup(mandates: Mandate[], persons: Person[] = []) {
     mandates,
     persons,
     auditClosings: [],
-    screeningDecisions: [],
+    screeningDecisions,
     lastScreening: { sanktion: null, pep: null },
   };
   const store = createMemoryStore(serializeBackup(b));
@@ -47,6 +67,12 @@ function setup(mandates: Mandate[], persons: Person[] = []) {
     </AppProvider>,
   );
   return store;
+}
+async function storedBackup(s: AppStore): Promise<Backup> {
+  const r = await s.load();
+  if (!r.ok) throw new Error(`stored data not loadable: ${r.reason} ${r.where ?? ''}`);
+  if (r.value === null) throw new Error('nothing stored');
+  return r.value;
 }
 async function storedPersons(s: AppStore): Promise<Person[]> {
   const r = await s.load();
@@ -139,6 +165,43 @@ describe('persons in the clients screen', () => {
     click('Person endgültig löschen');
     await screen.findByText('Person Beispiel gelöscht.');
     expect(await storedPersons(store)).toEqual([]);
+  });
+
+  it('deleting a person removes its decisions in the same save: the stored data stays loadable', async () => {
+    const store = setup(
+      [mandate()],
+      [person(), person({ id: '10001-P2', lastName: 'Zwei' })],
+      [decision('person', '10001-P1'), decision('person', '10001-P2')],
+    );
+    await openEdit();
+    click(/Person löschen: Erika Beispiel/);
+    click('Person endgültig löschen');
+    await screen.findByText('Person Beispiel gelöscht.');
+    const b = await storedBackup(store);
+    expect(b.screeningDecisions.map((d) => d.subjectId)).toEqual(['10001-P2']);
+  });
+
+  it('deleting a mandate removes the decisions of the mandate and of its persons only', async () => {
+    const store = setup(
+      [mandate(), mandate({ id: '10002', name: 'Zweit GmbH' })],
+      [person(), person({ id: '10002-P1', mandateId: '10002' })],
+      [
+        decision('person', '10001-P1'),
+        decision('mandate', '10001'),
+        decision('person', '10002-P1'),
+        decision('mandate', '10002'),
+      ],
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Löschen: 10001/ }));
+    click('Endgültig löschen');
+    await waitFor(() =>
+      expect(screen.getByText(/Mandant 10001 Muster GmbH gelöscht/)).toBeTruthy(),
+    );
+    const b = await storedBackup(store);
+    expect(b.screeningDecisions.map((d) => `${d.subjectKind}:${d.subjectId}`).sort()).toEqual([
+      'mandate:10002',
+      'person:10002-P1',
+    ]);
   });
 
   it('removes the persons together with the mandate and names their number', async () => {

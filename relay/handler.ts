@@ -104,6 +104,18 @@ async function readLimited(res: Response, maxBytes: number): Promise<ArrayBuffer
   return out.buffer;
 }
 
+/**
+ * Only an XML answer with the root `export` is a list. An HTML error page with status 200 must never
+ * replace the last good copy: it is an upstream error, so the old copy is served with `X-Stale`.
+ */
+function looksLikeExportXml(body: ArrayBuffer, contentType: string): boolean {
+  const head = new TextDecoder('utf-8').decode(body.slice(0, 4096)).replace(/^\uFEFF/, '');
+  const text = head.replace(/^\s+/, '');
+  const startsXml = text.startsWith('<?xml') || /^<(?:[\w.-]+:)?export[\s>/]/.test(text);
+  if (!/xml/i.test(contentType) && !startsXml) return false;
+  return /^(?:<\?xml[\s\S]*?\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<(?:[\w.-]+:)?export[\s>/]/.test(text);
+}
+
 async function fetchUpstream(env: RelayEnv, deps: RelayDeps): Promise<CachedList> {
   let res: Response;
   try {
@@ -129,11 +141,13 @@ async function fetchUpstream(env: RelayEnv, deps: RelayDeps): Promise<CachedList
     throw new UpstreamError('status');
   }
   const body = await readLimited(res, env.maxBytes);
+  const contentType = res.headers.get('Content-Type') ?? '';
+  if (!looksLikeExportXml(body, contentType)) throw new UpstreamError('not-xml');
   return {
     body,
     fetchedAt: deps.now(),
     lastModified: res.headers.get('Last-Modified'),
-    contentType: res.headers.get('Content-Type') ?? 'application/octet-stream',
+    contentType: contentType === '' ? 'application/octet-stream' : contentType,
   };
 }
 

@@ -91,7 +91,7 @@ interface Setup {
   calls: { url: string; init: RequestInit | undefined }[];
 }
 
-async function listOf(on: string): Promise<ListIndex> {
+async function listOf(on: string, extra = 0): Promise<ListIndex> {
   return {
     source: 'EU konsolidierte Finanzsanktionsliste',
     kind: 'sanktion',
@@ -105,6 +105,13 @@ async function listOf(on: string): Promise<ListIndex> {
         remark: 'Erfundener Eintrag',
       },
       { id: '200', kind: 'sanktion', names: ['Muster Handels AG'], births: [], remark: 'TESTPROG' },
+      ...Array.from({ length: extra }, (_, i) => ({
+        id: `X${i}`,
+        kind: 'sanktion' as const,
+        names: [`Fiktiv Nummer${i}`],
+        births: [],
+        remark: '',
+      })),
     ],
   };
 }
@@ -115,6 +122,8 @@ function setup(
     mandates?: Mandate[];
     persons?: Person[];
     listOn?: string | null;
+    /** Extra entries in the stored list (it has 2 without them). */
+    listExtra?: number;
     settings?: { relayUrl: string; autoFetch: boolean; maxAgeDays: number };
     fetchFn?: typeof fetch;
     data?: Backup;
@@ -141,7 +150,7 @@ function setup(
   };
   const go = async () => {
     if (opts.listOn !== null && opts.listOn !== undefined)
-      await listStore.save(await listOf(opts.listOn));
+      await listStore.save(await listOf(opts.listOn, opts.listExtra));
     render(
       <AppProvider
         store={store}
@@ -219,11 +228,74 @@ describe('list: read from a file', () => {
     expect(alert.textContent).toContain('Code: bad-list');
   });
 
+  it('an unexpected exception while reading shows "Datei konnte nicht gelesen werden"', async () => {
+    await setup(<SanctionsScreen />);
+    const f = new File(['x'], 'x.xml');
+    Object.defineProperty(f, 'size', {
+      get() {
+        throw new Error('boom');
+      },
+    });
+    const input = await screen.findByLabelText('Datei der EU-Liste wählen');
+    fireEvent.change(input, { target: { files: [f] } });
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Datei konnte nicht gelesen werden');
+    expect(alert.textContent).toContain('Code: bad-list');
+  });
+
   it('warns with text and symbol when the list is older than the maximum age', async () => {
     await setup(<SanctionsScreen />, { listOn: '2026-11-10' });
     const warning = await screen.findByText(/Liste veraltet: Stand 10\.11\.2026, 17 Tage alt/);
     expect(warning.textContent).toContain('⚠');
     expect(warning.textContent).toContain('Höchstalter 7 Tage');
+  });
+});
+
+describe('list: strong shrinkage', () => {
+  const settings = { relayUrl: RELAY, autoFetch: false, maxAgeDays: 7 };
+
+  it('the file import asks for an explicit confirmation naming both numbers', async () => {
+    const s = await setup(<SanctionsScreen />, { listOn: '2026-11-10', listExtra: 4 });
+    const input = await screen.findByLabelText('Datei der EU-Liste wählen');
+    fireEvent.change(input, { target: { files: [new File([xml()], 'liste.xml')] } });
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog.textContent).toContain('2 Einträge');
+    expect(dialog.textContent).toContain('6 Einträge');
+    const save = within(dialog).getByRole('button', { name: 'Liste speichern' });
+    expect((save as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Ich habe geprüft/ }));
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(save);
+    await screen.findByText(/Liste eingelesen: 2 Einträge/);
+    const r = await s.listStore.load('sanktion');
+    expect(r.ok && r.value?.entries).toHaveLength(2);
+  });
+
+  it('a normal change (50 percent or more left) needs no confirmation', async () => {
+    await setup(<SanctionsScreen />, { listOn: '2026-11-10', listExtra: 2 });
+    const input = await screen.findByLabelText('Datei der EU-Liste wählen');
+    fireEvent.change(input, { target: { files: [new File([xml()], 'liste.xml')] } });
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    expect(
+      (within(dialog).getByRole('button', { name: 'Liste speichern' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+  });
+
+  it('the fetch at start does not replace the list and says so', async () => {
+    const s = await setup(<SanctionsScreen />, {
+      settings: { ...settings, autoFetch: true },
+      listOn: '2026-11-10',
+      listExtra: 4,
+    });
+    expect(await screen.findByText(/Die Liste wurde nicht ersetzt/)).toBeTruthy();
+    expect(screen.getByText(/6 Einträge/, { selector: 'p.warning' }).textContent).toContain(
+      '2 Einträge',
+    );
+    const r = await s.listStore.load('sanktion');
+    expect(r.ok && r.value?.entries).toHaveLength(6);
+    expect(r.ok && r.value?.fetchedOn).toBe('2026-11-10');
   });
 });
 

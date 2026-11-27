@@ -136,6 +136,15 @@ describe('closing the audit', () => {
     );
   });
 
+  it('prefixes values that start with = + - @ with an apostrophe, in the export only', () => {
+    const evil = mandate({ id: '=1+1', name: '@SUM(A1)', lastCheckOn: null, idStatus: 'leer' });
+    const e = auditExceptions([evil], [], '2026-11-30', DEFAULT_RULES);
+    const text = auditText(e, '2026-11-30', { ...closed, by: '-cmd', note: '+x' });
+    expect(text).toContain("'=1+1;'@SUM(A1)");
+    expect(text).toContain("durch '-cmd, Notiz: '+x");
+    expect(evil.name).toBe('@SUM(A1)');
+  });
+
   it('shows the audit state of the current cut-off date on the overview', async () => {
     setup(<OverviewScreen />, backupOf([clean]));
     expect(await screen.findByText(/Audit zum Stichtag 30\.11\.2026/)).toBeTruthy();

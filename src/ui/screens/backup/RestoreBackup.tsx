@@ -26,6 +26,17 @@ export function RestoreBackup({ currentCount, onRestore }: Props) {
     setDone(null);
     setPending(null);
     if (!file) return;
+    try {
+      await read(file);
+    } catch {
+      // Whatever went wrong in reading or checking: a message, never a crashed screen.
+      setError(
+        'Datei konnte nicht gelesen werden. (Code: bad-backup) Es wurde nichts überschrieben.',
+      );
+    }
+  }
+
+  async function read(file: File) {
     const text = await readBackupFile(file);
     if (!text.ok) {
       setError(

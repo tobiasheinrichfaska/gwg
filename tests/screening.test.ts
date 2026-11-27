@@ -1,6 +1,7 @@
 import {
   classifyEntry,
   screenAll,
+  screenMandates,
   screenPerson,
   type ListEntry,
   type ListIndex,
@@ -313,4 +314,18 @@ describe('screening performance and pre-filter', () => {
     expect(hits.length).toBeGreaterThan(0);
     expect(ms1).toBeLessThan(30_000);
   }, 120_000);
+});
+
+describe('very long names (pre-filter counters must not wrap)', () => {
+  const long = 'a'.repeat(40_000);
+  it('classifyEntry still finds an identical 40 000 character name', () => {
+    const r = classifyEntry(long, null, entry({ names: [long] }), th);
+    expect(r.klasse).not.toBe('gruen');
+    expect(r.aehnlichkeit).toBe(1);
+  });
+  it('screenMandates still reports a mandate with a 40 000 character name, without checkMandate', () => {
+    const m = mandate({ id: '10001', name: long });
+    const r = screenMandates([m], list([entry({ names: [long] })]), th);
+    expect(r.hits).toHaveLength(1);
+  });
 });

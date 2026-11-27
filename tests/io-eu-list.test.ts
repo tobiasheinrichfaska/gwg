@@ -28,6 +28,27 @@ const SAMPLE = wrap(
     entity('400', alias('   ')),
 );
 
+describe('parseEuSanctionsXml: entries are counted as descendants', () => {
+  it('refuses a root without any sanctionEntity', () => {
+    expect(parseEuSanctionsXml(wrap(''), '2026-11-20')).toMatchObject({
+      ok: false,
+      reason: 'bad-list',
+    });
+    expect(parseEuSanctionsXml(wrap('<other/>'), '2026-11-20')).toMatchObject({ ok: false });
+  });
+  it('finds entries nested below another element, not only direct children', () => {
+    const r = parseEuSanctionsXml(
+      wrap(`<group><sub>${entity('100', alias('Zorin Quelle'))}</sub></group>`),
+      '2026-11-20',
+    );
+    expect(r.ok && r.value.index.entries.map((e) => e.id)).toEqual(['100']);
+  });
+  it('refuses a root with another name even if it holds entries', () => {
+    const xml = `<?xml version="1.0"?><liste ${NS}>${entity('100', alias('Zorin Quelle'))}</liste>`;
+    expect(parseEuSanctionsXml(xml, '2026-11-20')).toMatchObject({ ok: false, reason: 'bad-list' });
+  });
+});
+
 describe('parseEuSanctionsXml', () => {
   it('reads names, aliases, birth dates and remark', () => {
     const r = parseEuSanctionsXml(SAMPLE, '2026-11-20');

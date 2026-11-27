@@ -8,18 +8,22 @@ import {
   type SettingsStore,
 } from '../../io/index.ts';
 import {
+  checkBackup,
   checkListSettings,
   checkScreeningRun,
   DEFAULT_LIST_SETTINGS,
   DEFAULT_RULES,
   fail,
   isListStale,
+  repairOrphanDecisions,
   ok,
   screenAll,
   screenMandates,
+  shrankTooMuch,
   todayKey,
   emptyLastScreening,
   type Backup,
+  type OrphanRepair,
   type DateKey,
   type Hit,
   type ListIndex,
@@ -29,6 +33,7 @@ import {
   type Unscreenable,
   type UnscreenableMandate,
 } from '../../logic/index.ts';
+import { OrphanRepairSection } from '../screens/backup/OrphanRepairSection.tsx';
 import { RestoreBackup } from '../screens/backup/RestoreBackup.tsx';
 import { AppContext, type AppState, type FetchNote, type ScreeningResult } from './context.ts';
 import { describeFailure } from './messages.ts';
@@ -66,7 +71,13 @@ const yieldToPage = (): Promise<void> => new Promise((resolve) => setTimeout(res
 type Loaded =
   | { kind: 'loading' }
   | { kind: 'ready'; backup: Backup }
-  | { kind: 'damaged'; reason: Reason; where: string | undefined };
+  | {
+      kind: 'damaged';
+      reason: Reason;
+      where: string | undefined;
+      /** Set when the only defect is orphan screening decisions: the data set without them. */
+      repair: OrphanRepair | null;
+    };
 
 function emptyBackup(today: DateKey): Backup {
   return {
@@ -112,6 +123,7 @@ export function AppProvider({
   const [today] = useState(() => todayKey(now ? now() : new Date()));
   const [loaded, setLoaded] = useState<Loaded>({ kind: 'loading' });
   const [saveError, setSaveError] = useState<Reason | null>(null);
+  const [saveErrorWhere, setSaveErrorWhere] = useState<string | undefined>(undefined);
   const [requestedClientId, requestClient] = useState<string | null>(null);
   const [requestedHitKey, requestHit] = useState<string | null>(null);
   const [fallbackListStore] = useState(() => createMemoryListStore());
@@ -162,11 +174,20 @@ export function AppProvider({
 
   useEffect(() => {
     let cancelled = false;
-    void store.load().then((r) => {
+    void (async () => {
+      const r = await store.load();
+      let repair: OrphanRepair | null = null;
+      if (!r.ok) {
+        const text = await store.loadText?.();
+        if (text?.ok && text.value !== null) {
+          const fixed = repairOrphanDecisions(text.value);
+          if (fixed.ok) repair = fixed.value;
+        }
+      }
       if (cancelled) return;
-      if (!r.ok) setLoaded({ kind: 'damaged', reason: r.reason, where: r.where });
+      if (!r.ok) setLoaded({ kind: 'damaged', reason: r.reason, where: r.where, repair });
       else setLoaded({ kind: 'ready', backup: r.value ?? emptyBackup(today) });
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -174,12 +195,16 @@ export function AppProvider({
 
   const replace = useCallback(
     async (next: Backup): Promise<Result<void>> => {
-      const r = await store.save(next);
+      // Never write a data set that `parseBackup` would refuse on the next start.
+      const checked = checkBackup(next);
+      const r = checked.ok ? await store.save(next) : checked;
       if (!r.ok) {
         setSaveError(r.reason);
+        setSaveErrorWhere(r.where);
         return r;
       }
       setSaveError(null);
+      setSaveErrorWhere(undefined);
       setLoaded({ kind: 'ready', backup: next });
       return r;
     },
@@ -225,13 +250,20 @@ export function AppProvider({
           } else {
             const have = live.list;
             const older = have !== null && r.value.index.fetchedOn < have.fetchedOn;
-            const saved = older ? ok(undefined) : await storeList(r.value.index);
+            // A list that lost more than half of its entries is never taken over unseen: the file import
+            // asks a person to confirm it, with both numbers.
+            const shrunk =
+              have !== null && shrankTooMuch(have.entries.length, r.value.index.entries.length)
+                ? { had: have.entries.length, got: r.value.index.entries.length }
+                : null;
+            const saved = older || shrunk !== null ? ok(undefined) : await storeList(r.value.index);
             note = saved.ok
               ? {
                   ok: true,
                   auto,
                   stale: r.value.stale,
                   keptNewer: older && have !== null ? have.fetchedOn : null,
+                  shrunk,
                   skipped: r.value.skipped,
                   adjusted: r.value.adjusted,
                 }
@@ -356,6 +388,7 @@ export function AppProvider({
             today,
             replace,
             saveError,
+            saveErrorWhere,
             lockSettings,
             requestedClientId,
             requestClient,
@@ -384,6 +417,7 @@ export function AppProvider({
       today,
       replace,
       saveError,
+      saveErrorWhere,
       lockSettings,
       requestedClientId,
       requestedHitKey,
@@ -418,6 +452,9 @@ export function AppProvider({
           Die gespeicherten Daten wurden nicht verändert. Erst wenn Sie unten eine Sicherung
           einspielen und bestätigen, werden sie ersetzt.
         </p>
+        {loaded.repair !== null && (
+          <OrphanRepairSection repair={loaded.repair} onRepair={replace} />
+        )}
         <RestoreBackup
           currentCount={null}
           onRestore={async (b) => {

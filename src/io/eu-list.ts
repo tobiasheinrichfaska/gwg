@@ -94,7 +94,11 @@ export function parseEuSanctionsXml(xml: string, fetchedOn: DateKey): Result<EuL
   const adjusted: ListNote[] = [];
   const byId = new Map<string, ListEntry>();
   let n = 0;
-  for (const ent of kids(root, 'sanctionEntity')) {
+  // Descendants by local name (not only direct children): a wrapper element must not hide the entries.
+  const entities = Array.from(root.getElementsByTagNameNS('*', 'sanctionEntity'));
+  // A file without a single entry is no list (an empty export must never replace a real one).
+  if (entities.length === 0) return fail('bad-list');
+  for (const ent of entities) {
     n++;
     const id = clean(ent.getAttribute('logicalId'));
     if (id === '' || id.length > MAX_LINE) {

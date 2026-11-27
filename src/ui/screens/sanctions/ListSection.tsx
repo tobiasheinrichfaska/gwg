@@ -53,6 +53,11 @@ export function ListSection() {
       }
       setSaveError(null);
       setPending(r.value);
+    } catch {
+      // Whatever went wrong in reading: a message, never a crashed screen.
+      setReadError(
+        'Datei konnte nicht gelesen werden. (Code: bad-list) Die gespeicherte Liste bleibt unverändert.',
+      );
     } finally {
       setReading(false);
     }
@@ -181,6 +186,14 @@ export function ListSection() {
                 {formatDate(lastFetch.keptNewer)}) bleibt.
               </p>
             )}
+            {lastFetch.shrunk !== null && (
+              <p className="warning">
+                ⚠ Die abgerufene Liste hat nur {lastFetch.shrunk.got} Einträge, die gespeicherte{' '}
+                {lastFetch.shrunk.had} Einträge. Die Liste wurde nicht ersetzt. Prüfen Sie die
+                Quelle; eine bewusst kleinere Liste spielen Sie über „Liste aus Datei einlesen“ mit
+                Bestätigung ein.
+              </p>
+            )}
             {lastFetch.stale && (
               <p className="warning">
                 ⚠ Hinweis: Das Relay hat eine ältere Kopie geliefert (X-Stale); die EU-Quelle war
@@ -208,6 +221,7 @@ export function ListSection() {
         <ListImportDialog
           file={pending}
           currentOn={list?.fetchedOn ?? null}
+          currentCount={list?.entries.length ?? null}
           error={saveError}
           onConfirm={(index) => void confirmImport(index)}
           onCancel={() => setPending(null)}

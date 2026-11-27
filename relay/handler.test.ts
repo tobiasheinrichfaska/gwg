@@ -41,7 +41,7 @@ function setup(fetchImpl?: typeof fetch, clock = { t: T0 }) {
     calls.push({ url, ...(init ? { init } : {}) });
     return fetchImpl
       ? fetchImpl(url, init)
-      : new Response('<xml/>', {
+      : new Response('<export/>', {
           headers: {
             'Last-Modified': 'Wed, 25 Nov 2026 08:00:00 GMT',
             'Content-Type': 'application/xml',
@@ -130,7 +130,7 @@ describe('Antwort und Cache', () => {
     const { run } = setup();
     const res = await run(get());
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe('<xml/>');
+    expect(await res.text()).toBe('<export/>');
     expect(res.headers.get('X-Fetched-At')).toBe('2026-11-27T10:00:00.000Z');
     expect(res.headers.get('Last-Modified')).toBe('Wed, 25 Nov 2026 08:00:00 GMT');
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=3600');
@@ -153,15 +153,56 @@ describe('Antwort und Cache', () => {
   it('bei Upstream-Fehler: letzte gute Kopie mit X-Stale und Age', async () => {
     let fail = false;
     const { run, clock } = setup((async () =>
-      fail ? new Response('x', { status: 500 }) : new Response('alt')) as typeof fetch);
+      fail
+        ? new Response('x', { status: 500 })
+        : new Response('<export>alt</export>')) as typeof fetch);
     await run(get());
     fail = true;
     clock.t += 4000_000;
     const res = await run(get());
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe('alt');
+    expect(await res.text()).toBe('<export>alt</export>');
     expect(res.headers.get('X-Stale')).toBe('1');
     expect(res.headers.get('Age')).toBe('4000');
+  });
+  it('eine HTML-Fehlerseite mit 200 überschreibt die gute Kopie nicht', async () => {
+    let page = '<?xml version="1.0"?><export>gut</export>';
+    let type = 'application/xml';
+    const { run, clock, mem } = setup(
+      (async () => new Response(page, { headers: { 'Content-Type': type } })) as typeof fetch,
+    );
+    await run(get());
+    page = '<html><body>Wartungsarbeiten</body></html>';
+    type = 'text/html';
+    clock.t += 4000_000;
+    const res = await run(get());
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('<?xml version="1.0"?><export>gut</export>');
+    expect(res.headers.get('X-Stale')).toBe('1');
+    expect((await mem.cache.getList())?.fetchedAt).toBe(T0);
+  });
+  it('HTML mit Content-Type xml oder falscher Wurzel zählt als Fehler; ohne Kopie 502', async () => {
+    for (const [body, type] of [
+      ['<html></html>', 'application/xml'],
+      ['<other/>', 'application/xml'],
+      ['<?xml version="1.0"?><html/>', 'text/html'],
+      ['<export/>', 'text/html'],
+    ] as const) {
+      const { run } = setup(
+        (async () => new Response(body, { headers: { 'Content-Type': type } })) as typeof fetch,
+      );
+      const expected = body === '<export/>' ? 200 : 502;
+      expect((await run(get())).status).toBe(expected);
+    }
+  });
+  it('akzeptiert BOM und Leerraum vor der XML-Deklaration, auch ohne XML-Content-Type', async () => {
+    const { run } = setup(
+      (async () =>
+        new Response('\uFEFF \n<?xml version="1.0"?>\n<export/>', {
+          headers: { 'Content-Type': 'application/octet-stream' },
+        })) as typeof fetch,
+    );
+    expect((await run(get())).status).toBe(200);
   });
   it('bei Netzfehler ohne Kopie: 502', async () => {
     const { run } = setup((async () => {
@@ -201,7 +242,8 @@ describe('Upstream-Aufruf', () => {
   });
   it('bricht bei zu großem Content-Length ab', async () => {
     const { run } = setup(
-      (async () => new Response('x', { headers: { 'Content-Length': '5000' } })) as typeof fetch,
+      (async () =>
+        new Response('<export/>', { headers: { 'Content-Length': '5000' } })) as typeof fetch,
     );
     expect((await run(get())).status).toBe(502);
   });
@@ -224,7 +266,9 @@ describe('Upstream-Aufruf', () => {
     expect(pulled).toBeLessThan(10);
   });
   it('akzeptiert genau maxBytes', async () => {
-    const { run } = setup((async () => new Response(new Uint8Array(1000))) as typeof fetch);
+    const { run } = setup(
+      (async () => new Response(`<export>${' '.repeat(1000 - 17)}</export>`)) as typeof fetch,
+    );
     expect((await run(get())).status).toBe(200);
   });
 });

@@ -31,6 +31,12 @@ export function countFindings(e: AuditExceptions): number {
   return AUDIT_LISTS.reduce((n, l) => n + e[l.key].length, 0);
 }
 
+/**
+ * Spreadsheet programs run a cell that starts with = + - @ (or tab/CR) as a formula: such a value gets a
+ * leading apostrophe. Only the export does this; the stored data stays as typed.
+ */
+export const safeCell = (v: string): string => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
+
 /** The cut-off-date list as plain text, one block per exception list. */
 export function auditText(
   e: AuditExceptions,
@@ -43,11 +49,11 @@ export function auditText(
     'Hinweis: Die Liste enthält Mandantennamen im Klartext. Nur auf einem geschützten Gerät aufbewahren.',
     closing === null
       ? 'Abschluss: nicht abgeschlossen'
-      : `Abschluss: abgeschlossen am ${formatDate(closing.closedOn)} durch ${closing.by}${closing.note === '' ? '' : `, Notiz: ${closing.note}`}`,
+      : `Abschluss: abgeschlossen am ${formatDate(closing.closedOn)} durch ${safeCell(closing.by)}${closing.note === '' ? '' : `, Notiz: ${safeCell(closing.note)}`}`,
   ];
   for (const l of AUDIT_LISTS) {
     lines.push('', `${l.title} (${e[l.key].length})`, l.text);
-    for (const m of e[l.key]) lines.push(`${m.id};${m.name}`);
+    for (const m of e[l.key]) lines.push(`${safeCell(m.id)};${safeCell(m.name)}`);
   }
   return `${lines.join('\n')}\n`;
 }

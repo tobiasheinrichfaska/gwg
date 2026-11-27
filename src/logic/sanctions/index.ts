@@ -18,6 +18,8 @@ export {
   MAX_REMARK_LENGTH,
   MAX_NAMES,
   parseIndex,
+  shrankTooMuch,
+  SHRINK_LIMIT,
   serializeIndex,
   type ListEntry,
   type ListIndex,

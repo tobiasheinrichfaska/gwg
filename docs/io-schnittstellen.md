@@ -135,7 +135,7 @@ GET, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`, `redirect: 'error'`
 keine eigenen Header. Mandantendaten oder Namen gelangen nie in die Anfrage (Test prüft URL, Methode, Optionen exakt).
 Abbruch nach `timeoutMs` (120 s) über `AbortController`, auch beim Lesen des Bodys; Größenobergrenze `maxBytes`
 (100 MB) wird beim Lesen des Stroms geprüft, nicht erst danach (und vorab am Header `Content-Length`). Stand der
-Liste: übergebenes Datum, sonst Antwort-Header `X-Fetched-At`, sonst `generationDate` des XML, sonst heute. Fehler:
+Liste: übergebenes Datum, sonst `generationDate` des XML, sonst Antwort-Header `X-Fetched-At` (Abrufzeit des Relays, nur Rückfall), sonst heute. Fehler:
 `fetch-failed` (Netz, Status außer 200, Weiterleitung, Zeitüberschreitung), `relay-bad-response` (Inhaltstyp nicht
 XML, zu groß), `bad-list` (Inhalt kein gültiges XML der Liste). Ein Fehler lässt die gespeicherte Liste unberührt.
 `X-Stale: 1` (Relay lieferte die letzte gute Kopie) wird als `stale` gemeldet. Schaltet der Nutzer den Abruf ein,

@@ -34,8 +34,9 @@ const isXml = (type: string | null): boolean =>
 /**
  * Downloads the public EU list from the relay. The request is a plain GET with no client data: no
  * body, no extra header, no cookies, no referrer, no redirect. The size limit applies while reading the
- * stream. State of the list: `fetchedOnOverride`, else header `X-Fetched-At`, else the XML's
- * `generationDate`, else today.
+ * stream. State of the list: `fetchedOnOverride`, else the XML's `generationDate`, else header
+ * `X-Fetched-At` (the relay's fetch time, only a fallback: a fresh copy of an old list is still old),
+ * else today.
  */
 export async function fetchSanctionsList(o: FetchOptions): Promise<Result<FetchedList>> {
   const maxBytes = o.maxBytes ?? DEFAULT_MAX_FETCH_BYTES;
@@ -88,8 +89,8 @@ export async function fetchSanctionsList(o: FetchOptions): Promise<Result<Fetche
     const header = res.headers.get('X-Fetched-At')?.slice(0, 10) ?? '';
     const fetchedOn: DateKey =
       o.fetchedOnOverride ??
-      (isDateKey(header) ? header : null) ??
       readGenerationDate(xml) ??
+      (isDateKey(header) ? header : null) ??
       o.today;
     const parsed = parseEuSanctionsXml(xml, fetchedOn);
     if (!parsed.ok) return parsed;

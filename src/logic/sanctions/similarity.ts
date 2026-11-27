@@ -27,9 +27,9 @@ const EPS = 1e-9;
 
 const BUCKETS = 32;
 /** Character histogram in 32 buckets (code unit mod 32) with the list of its non-empty buckets. Collisions only RAISE the overlap, so a bound derived from it stays valid. */
-type Hist = { counts: Int16Array; used: Uint8Array };
+type Hist = { counts: Int32Array; used: Uint8Array };
 function histogram(s: string): Hist {
-  const counts = new Int16Array(BUCKETS);
+  const counts = new Int32Array(BUCKETS);
   for (let i = 0; i < s.length; i++) {
     const k = s.charCodeAt(i) & (BUCKETS - 1);
     counts[k] = (counts[k] ?? 0) + 1;

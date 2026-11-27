@@ -9,7 +9,7 @@ export const MAX_PEP_APPROVER_LENGTH = 100;
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
 
-const goodLine = (s: unknown, max: number, allowEmpty: boolean): boolean =>
+export const goodLine = (s: unknown, max: number, allowEmpty: boolean): boolean =>
   typeof s === 'string' && s.length <= max && (allowEmpty || s.trim() !== '') && !CONTROL.test(s);
 
 /** 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD' with a real calendar; month/day only with year/month. */

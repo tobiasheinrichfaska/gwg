@@ -1,5 +1,5 @@
 import { checkRules, type RulesConfig } from '../config.ts';
-import { fail, isDateKey, ok, type DateKey, type Result } from '../core/index.ts';
+import { fail, findUnsafe, isDateKey, ok, type DateKey, type Result } from '../core/index.ts';
 import { checkAuditClosing, type AuditClosing } from '../audit/index.ts';
 import {
   checkDecision,
@@ -7,6 +7,7 @@ import {
   decisionKey,
   emptyLastScreening,
   type LastScreening,
+  type ScreeningRun,
   type ScreeningDecision,
 } from '../sanctions/index.ts';
 import {
@@ -150,25 +151,67 @@ export function serializeBackup(b: Backup): string {
   return JSON.stringify(out, null, 2) + '\n';
 }
 
+/**
+ * Whole-data-set check: values, duplicate ids and cross-references (orphan persons and decisions).
+ * `parseBackup` runs it on what it read; the app runs it before every save and download, so an invalid
+ * data set is never written. Pure; the first problem fails, with `where`.
+ */
+export function checkBackup(b: Backup): R<Backup> {
+  if (b.format !== BACKUP_FORMAT || b.version !== 2) return bad('format');
+  if (typeof b.createdOn !== 'string' || !isDateKey(b.createdOn)) return bad('createdOn');
+  const rules = checkRules(b.rules);
+  if (!rules.ok) return fail(rules.reason, 'rules');
+  const seen = new Set<string>();
+  for (const [i, m] of b.mandates.entries()) {
+    const where = `mandates[${i}]`;
+    if (!ID_STATUSES.includes(m.idStatus)) return fail('bad-status', `${where}.idStatus`);
+    const c = checkMandate(m, b.rules);
+    if (!c.ok) return fail(c.reason, where);
+    if (seen.has(m.id)) return fail('duplicate-id', `${where}.id`);
+    seen.add(m.id);
+  }
+  const seenPersons = new Set<string>();
+  for (const [i, p] of b.persons.entries()) {
+    const where = `persons[${i}]`;
+    const c = checkPerson(p, b.mandates);
+    if (!c.ok) return fail(c.reason, where);
+    if (seenPersons.has(p.id)) return fail('duplicate-id', `${where}.id`);
+    seenPersons.add(p.id);
+  }
+  const seenDays = new Set<string>();
+  for (const [i, a] of b.auditClosings.entries()) {
+    const where = `auditClosings[${i}]`;
+    const c = checkAuditClosing(a);
+    if (!c.ok) return fail(c.reason, where);
+    if (seenDays.has(a.stichtag)) return fail('duplicate-id', `${where}.stichtag`);
+    seenDays.add(a.stichtag);
+  }
+  const seenKeys = new Set<string>();
+  for (const [i, d] of b.screeningDecisions.entries()) {
+    const where = `screeningDecisions[${i}]`;
+    const c = checkDecision(d, b.persons, b.mandates);
+    if (!c.ok) return fail(c.reason, where);
+    const key = decisionKey(d);
+    if (seenKeys.has(key)) return fail('duplicate-id', where);
+    seenKeys.add(key);
+  }
+  for (const k of ['sanktion', 'pep'] as const) {
+    const r = b.lastScreening[k];
+    if (r === null) continue;
+    const c = checkScreeningRun(r, k);
+    if (!c.ok) return fail(c.reason, `lastScreening.${k}`);
+  }
+  return ok(b);
+}
+
 const bad = (where: string): R<never> => fail('bad-backup', where);
 
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /** Pollution keys anywhere in the parsed tree. */
 function hasForbiddenKey(v: unknown): string | null {
-  if (Array.isArray(v)) {
-    for (let i = 0; i < v.length; i++) {
-      const w = hasForbiddenKey(v[i]);
-      if (w !== null) return `[${i}]${w}`;
-    }
-  } else if (isObj(v)) {
-    for (const k of Object.keys(v)) {
-      if (FORBIDDEN_KEYS.includes(k)) return `.${k}`;
-      const w = hasForbiddenKey(v[k]);
-      if (w !== null) return `.${k}${w}`;
-    }
-  }
-  return null;
+  const f = findUnsafe(v, FORBIDDEN_KEYS);
+  return f === null ? null : f.kind === 'deep' ? '.nesting' : f.path;
 }
 
 type Kind = 'string' | 'boolean' | 'number' | 'string|null' | 'any';
@@ -375,24 +418,16 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     'root',
   );
   if (!top.ok) return top;
-  if (!isDateKey(raw.createdOn as string)) return bad('createdOn');
   const rules = readRules(raw.rules);
   if (!rules.ok) return rules;
+  if (!isDateKey(raw.createdOn as string)) return bad('createdOn');
   const rawMandates = list(raw.mandates, 'mandates');
   if (!rawMandates.ok) return rawMandates;
-  const seen = new Set<string>();
   const mandates: Mandate[] = [];
   for (const [i, item] of rawMandates.value.entries()) {
-    const where = `mandates[${i}]`;
-    const s = shape(item, MANDATE_SPEC, where);
+    const s = shape(item, MANDATE_SPEC, `mandates[${i}]`);
     if (!s.ok) return s;
-    const m = s.value as unknown as Mandate;
-    if (!ID_STATUSES.includes(m.idStatus)) return fail('bad-status', `${where}.idStatus`);
-    const c = checkMandate(m, rules.value);
-    if (!c.ok) return fail(c.reason, where);
-    if (seen.has(m.id)) return fail('duplicate-id', `${where}.id`);
-    seen.add(m.id);
-    mandates.push(m);
+    mandates.push(s.value as unknown as Mandate);
   }
   const persons: Person[] = [];
   const closings: AuditClosing[] = [];
@@ -401,7 +436,6 @@ export function parseBackup(text: string): Result<Backup, Reason> {
   if (raw.version === 2) {
     const rawPersons = list(raw.persons, 'persons');
     if (!rawPersons.ok) return rawPersons;
-    const seenPersons = new Set<string>();
     for (const [i, item] of rawPersons.value.entries()) {
       const where = `persons[${i}]`;
       // `pep` is optional in the file (older version 2 files): missing means the default.
@@ -412,41 +446,23 @@ export function parseBackup(text: string): Result<Backup, Reason> {
       if (!s.ok) return s;
       const ps = shape(s.value.pep, PEP_SPEC, `${where}.pep`);
       if (!ps.ok) return ps;
-      const p = s.value as unknown as Person;
-      const c = checkPerson(p, mandates);
-      if (!c.ok) return fail(c.reason, where);
-      if (seenPersons.has(p.id)) return fail('duplicate-id', `${where}.id`);
-      seenPersons.add(p.id);
-      persons.push(p);
+      persons.push(s.value as unknown as Person);
     }
     const rawClosings = list(raw.auditClosings, 'auditClosings');
     if (!rawClosings.ok) return rawClosings;
-    const seenDays = new Set<string>();
     for (const [i, item] of rawClosings.value.entries()) {
       const where = `auditClosings[${i}]`;
       const s = shape(item, CLOSING_SPEC, where);
       if (!s.ok) return s;
-      const a = s.value as unknown as AuditClosing;
-      const c = checkAuditClosing(a);
-      if (!c.ok) return fail(c.reason, where);
-      if (seenDays.has(a.stichtag)) return fail('duplicate-id', `${where}.stichtag`);
-      seenDays.add(a.stichtag);
-      closings.push(a);
+      closings.push(s.value as unknown as AuditClosing);
     }
     const rawDecisions = list(src.screeningDecisions, 'screeningDecisions');
     if (!rawDecisions.ok) return rawDecisions;
-    const seenKeys = new Set<string>();
     for (const [i, item] of rawDecisions.value.entries()) {
       const where = `screeningDecisions[${i}]`;
       const s = shape(item, DECISION_SPEC, where);
       if (!s.ok) return s;
-      const d = s.value as unknown as ScreeningDecision;
-      const c = checkDecision(d, persons, mandates);
-      if (!c.ok) return fail(c.reason, where);
-      const key = decisionKey(d);
-      if (seenKeys.has(key)) return fail('duplicate-id', where);
-      seenKeys.add(key);
-      decisions.push(d);
+      decisions.push(s.value as unknown as ScreeningDecision);
     }
     const ls = shape(src.lastScreening, { sanktion: 'any', pep: 'any' }, 'lastScreening');
     if (!ls.ok) return ls;
@@ -456,12 +472,11 @@ export function parseBackup(text: string): Result<Backup, Reason> {
       if (v === null) continue;
       const r = shape(v, RUN_SPEC, where);
       if (!r.ok) return r;
-      const c = checkScreeningRun(r.value as unknown as LastScreening['sanktion'] & object, k);
-      if (!c.ok) return fail(c.reason, where);
-      lastScreening = { ...lastScreening, [k]: c.value };
+      lastScreening = { ...lastScreening, [k]: r.value as unknown as ScreeningRun };
     }
   }
-  return ok({
+  // Every cross-reference and value rule lives in `checkBackup`, the same check the save runs.
+  return checkBackup({
     format: BACKUP_FORMAT,
     version: 2,
     createdOn: raw.createdOn as string,

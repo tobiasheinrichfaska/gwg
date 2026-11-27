@@ -14,7 +14,7 @@ import { CheckDialog } from './CheckDialog.tsx';
 import { TASK_GROUPS } from './groups.ts';
 
 export function TasksScreen() {
-  const { backup, today, replace, saveError, liveHits } = useApp();
+  const { backup, today, replace, saveError, saveErrorWhere, liveHits } = useApp();
   const uid = useId();
   const { tasks, invalid } = useMemo(
     () =>
@@ -141,8 +141,9 @@ export function TasksScreen() {
       </p>
       {saveError !== null && (
         <p role="alert">
-          Letzte Speicherung im Gerät fehlgeschlagen (Code: {saveError}). Die Änderung ist nicht
-          gespeichert; speichern Sie eine Sicherungsdatei.
+          Letzte Speicherung im Gerät fehlgeschlagen (Code: {saveError}
+          {saveErrorWhere === undefined ? '' : `, Stelle: ${saveErrorWhere}`}). Die Änderung ist
+          nicht gespeichert; speichern Sie eine Sicherungsdatei.
         </p>
       )}
       {problem !== null && <p role="alert">{problem}</p>}

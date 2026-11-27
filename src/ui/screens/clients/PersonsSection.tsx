@@ -3,11 +3,14 @@ import {
   checkPerson,
   emptyPep,
   PERSON_ROLES,
+  removePerson,
+  type Backup,
   type Person,
   type PersonRole,
 } from '../../../logic/index.ts';
 import { useApp } from '../../app/context.ts';
 import { formatBirth, NONE, PERSON_ROLE_LABELS } from '../../format.ts';
+import { describeFailure } from '../../app/messages.ts';
 import { reasonText } from '../../messages.ts';
 import { nextPersonId } from '../../persons.ts';
 import { hasPepDuty, needsApproval, pepSummary } from '../../pep.ts';
@@ -27,8 +30,12 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
   const mine = backup.persons.filter((p) => p.mandateId === mandateId);
 
   async function persist(persons: Person[]): Promise<string | null> {
-    const r = await replace({ ...backup, persons });
-    return r.ok ? null : `${reasonText(r.reason)} (Code: ${r.reason})`;
+    return persistBackup({ ...backup, persons });
+  }
+
+  async function persistBackup(next: Backup): Promise<string | null> {
+    const r = await replace(next);
+    return r.ok ? null : describeFailure(r.reason, r.where);
   }
 
   async function save(p: Person, isNew: boolean): Promise<string | null> {
@@ -44,7 +51,8 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
   }
 
   async function remove(p: Person) {
-    const problem = await persist(backup.persons.filter((x) => x.id !== p.id));
+    // The person's screening decisions go in the same save; otherwise the stored data would not load again.
+    const problem = await persistBackup(removePerson(backup, p.id));
     setToDelete(null);
     setNotice(problem ?? `Person ${p.lastName} gelöscht.`);
   }

@@ -13,7 +13,8 @@ import { formatDate } from './format.ts';
  */
 export const REASON_TEXTS: Record<Reason, string> = {
   'bad-date': 'Ein Datum ist ungültig.',
-  'bad-id': 'Mandatsnummer und Name müssen ausgefüllt sein.',
+  'bad-id':
+    'Mandatsnummer und Name müssen ausgefüllt sein (je eine Zeile; Nummer höchstens 50, Name höchstens 200 Zeichen).',
   'unknown-legal-form': 'Bitte eine Rechtsform aus der Liste wählen.',
   'unknown-risk-group': 'Die Risikogruppe gibt es in den Regeln nicht.',
   'bad-risk-reason':

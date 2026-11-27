@@ -116,6 +116,13 @@ describe('checkMandate', () => {
   it('refuses each defect with its code', () => {
     expect(reason({ id: ' ' })).toBe('bad-id');
     expect(reason({ name: '' })).toBe('bad-id');
+    expect(reason({ name: 'a'.repeat(201) })).toBe('bad-id');
+    expect(reason({ id: '1'.repeat(51) })).toBe('bad-id');
+    expect(reason({ name: 'a'.repeat(200) })).toBe('ok');
+    for (const ch of ['\n', '\r', '\t', '\u0000', '\u2028', '\u2029', '\u0085', '\u007f']) {
+      expect(reason({ name: `Muster${ch}GmbH` })).toBe('bad-id');
+      expect(reason({ id: `100${ch}01` })).toBe('bad-id');
+    }
     expect(reason({ legalForm: 'x' })).toBe('unknown-legal-form');
     expect(reason({ riskGroupId: 'Z-99' })).toBe('unknown-risk-group');
     expect(reason({ lastCheckOn: '2026-02-30' })).toBe('bad-date');

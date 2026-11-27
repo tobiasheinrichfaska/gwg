@@ -18,6 +18,11 @@ export interface AppStore {
   /** `ok(null)` = nothing stored yet. Damaged data is an error code, never an empty data set. */
   load(): Promise<Result<Backup | null>>;
   save(b: Backup): Promise<Result<void>>;
+  /**
+   * The stored text as it is, unread (`ok(null)` = nothing stored). Only for the lock screen, which offers
+   * to repair a data set whose sole defect is orphan screening decisions.
+   */
+  loadText?(): Promise<Result<string | null>>;
 }
 
 /** Slot name inside the vault; the vault config of the app must list it in `slots`. */
@@ -66,6 +71,10 @@ export function createVaultStore(vault: Vault, slot: string = VAULT_SLOT): AppSt
       return Promise.resolve(parseBackup(text));
     },
     save: (b) => writeText(vault, slot, serializeBackup(b)),
+    loadText() {
+      const text = readText(vault, slot);
+      return Promise.resolve(text === undefined ? fail('store-failed') : ok(text));
+    },
   };
 }
 
@@ -80,6 +89,7 @@ export function createMemoryStore(initialText: string | null = null): AppStore {
       text = serializeBackup(b);
       return Promise.resolve(ok(undefined));
     },
+    loadText: () => Promise.resolve(ok(text)),
   };
 }
 

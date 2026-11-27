@@ -8,7 +8,7 @@ ist ohne Änderung in ein eigenes Repo verschiebbar (kein Import aus `src/`).
 
 - `GET /liste` liefert die Datei der festen `upstreamUrl`; `OPTIONS /liste` beantwortet den Preflight.
 - Cache mit Mindestabstand `minRefetchSeconds` zum Upstream; bei Upstream-Fehler die letzte gute Kopie mit
-  `X-Stale: 1` und `Age`. Header `X-Fetched-At` (UTC) und `Last-Modified` des Upstreams werden weitergereicht.
+  `X-Stale: 1` und `Age`. Header `X-Fetched-At` (UTC, Abrufzeit des Relays, nicht der Stand der Liste) und `Last-Modified` des Upstreams werden weitergereicht.
 - CORS nur für `allowedOrigin` (`Vary: Origin`); `Cache-Control: public, max-age=3600`, `nosniff`, keine Cookies.
 - Grenzen je Aufrufer und gesamt pro Stunde (429 mit `Retry-After`); Obergrenze `maxBytes` (sonst 502).
 

@@ -1,6 +1,11 @@
 import {
   DEFAULT_RULES,
   parseBackup,
+  checkBackup,
+  removeMandate,
+  removePerson,
+  repairOrphanDecisions,
+  type ScreeningDecision,
   serializeBackup,
   type AuditClosing,
   type Backup,
@@ -311,5 +316,163 @@ describe('backup reader: prototype pollution', () => {
     );
     fails(parseBackup(text2), 'bad-backup');
     expect(({} as any).x).toBeUndefined();
+  });
+});
+
+describe('old data sets with over-long or multi-line mandate names', () => {
+  it('parseBackup refuses a name over 200 characters and says where', () => {
+    const o = obj();
+    o.mandates[1].name = 'x'.repeat(201);
+    fails(parse(o), 'bad-id', 'mandates[1]');
+  });
+  it('parseBackup refuses a name with a line break and a 51 character id', () => {
+    const o = obj();
+    o.mandates[0].name = 'a\u2028b';
+    fails(parse(o), 'bad-id', 'mandates[0]');
+    const p = obj();
+    p.mandates[0].id = '1'.repeat(51);
+    fails(parse(p), 'bad-id', 'mandates[0]');
+  });
+});
+
+const dec = (kind: 'person' | 'mandate', subjectId: string, entryId = 'E1'): ScreeningDecision => ({
+  subjectKind: kind,
+  subjectId,
+  entryId,
+  listKind: 'sanktion',
+  listFetchedOn: '2026-11-20',
+  decision: 'kein-treffer',
+  reason: 'Anderes Geburtsdatum',
+  decidedOn: '2026-11-27',
+  decidedBy: 'A. Beispiel',
+  subjectSnapshot: 'x|',
+  entrySnapshot: 'abc',
+  actionNote: '',
+});
+const withDecisions = (): Backup => ({
+  ...base(),
+  screeningDecisions: [
+    dec('person', 'p1'),
+    dec('person', 'p2'),
+    dec('person', 'p3'),
+    dec('mandate', '10001'),
+    dec('mandate', '10002'),
+  ],
+});
+
+describe('removePerson / removeMandate', () => {
+  it('removePerson drops the person and only its decisions; the result is valid', () => {
+    const r = removePerson(withDecisions(), 'p2');
+    expect(r.persons.map((p) => p.id).sort()).toEqual(['p1', 'p3']);
+    expect(r.screeningDecisions.map((d) => d.subjectId).sort()).toEqual([
+      '10001',
+      '10002',
+      'p1',
+      'p3',
+    ]);
+    expect(checkBackup(r).ok).toBe(true);
+    expect(parseBackup(serializeBackup(r)).ok).toBe(true);
+  });
+  it('without removePerson the same deletion would be refused as an orphan decision', () => {
+    const b = withDecisions();
+    const naive = { ...b, persons: b.persons.filter((p) => p.id !== 'p2') };
+    const r = checkBackup(naive);
+    expect(r).toMatchObject({ ok: false, reason: 'unknown-mandate' });
+  });
+  it('removeMandate drops persons and the decisions of the mandate and of its persons', () => {
+    const r = removeMandate(withDecisions(), '10001');
+    expect(r.mandates.map((m) => m.id)).toEqual(['10002']);
+    expect(r.persons.map((p) => p.id)).toEqual(['p3']);
+    expect(r.screeningDecisions.map((d) => `${d.subjectKind}:${d.subjectId}`).sort()).toEqual([
+      'mandate:10002',
+      'person:p3',
+    ]);
+    expect(checkBackup(r).ok).toBe(true);
+  });
+  it('a person id equal to a mandate id does not mix up the kinds', () => {
+    const b: Backup = {
+      ...base(),
+      persons: [person({ id: '10002', mandateId: '10001' })],
+      screeningDecisions: [dec('person', '10002'), dec('mandate', '10002')],
+    };
+    expect(removePerson(b, '10002').screeningDecisions.map((d) => d.subjectKind)).toEqual([
+      'mandate',
+    ]);
+    const m = removeMandate(b, '10002');
+    expect(m.screeningDecisions.map((d) => d.subjectKind)).toEqual(['person']);
+  });
+});
+
+describe('checkBackup', () => {
+  it('accepts a sound data set and gives it back', () => {
+    const b = withDecisions();
+    expect(checkBackup(b)).toEqual({ ok: true, value: b });
+  });
+  it('finds orphan persons, orphan decisions and duplicates, with the place', () => {
+    const b = withDecisions();
+    expect(checkBackup({ ...b, persons: [person({ mandateId: '99999' })] })).toMatchObject({
+      reason: 'unknown-mandate',
+      where: 'persons[0]',
+    });
+    expect(checkBackup({ ...b, screeningDecisions: [dec('mandate', '99999')] })).toMatchObject({
+      reason: 'unknown-mandate',
+      where: 'screeningDecisions[0]',
+    });
+    expect(checkBackup({ ...b, persons: [person(), person()] })).toMatchObject({
+      reason: 'duplicate-id',
+      where: 'persons[1].id',
+    });
+    expect(checkBackup({ ...b, mandates: [mandate(), mandate()] })).toMatchObject({
+      reason: 'duplicate-id',
+      where: 'mandates[1].id',
+    });
+    expect(
+      checkBackup({ ...b, screeningDecisions: [dec('mandate', '10001'), dec('mandate', '10001')] }),
+    ).toMatchObject({ reason: 'duplicate-id', where: 'screeningDecisions[1]' });
+  });
+});
+
+describe('repairOrphanDecisions', () => {
+  const orphaned = (extra: (o: any) => void = () => {}) => {
+    const o = obj(withDecisions());
+    o.persons = o.persons.filter((p: any) => p.id !== 'p2');
+    extra(o);
+    return JSON.stringify(o);
+  };
+  it('removes only the orphans and says how many', () => {
+    const text = orphaned();
+    expect(parseBackup(text).ok).toBe(false);
+    const r = repairOrphanDecisions(text);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.removed).toBe(1);
+    expect(r.value.backup.screeningDecisions).toHaveLength(4);
+    expect(checkBackup(r.value.backup).ok).toBe(true);
+  });
+  it('refuses when anything else is wrong, or when nothing is orphaned', () => {
+    expect(repairOrphanDecisions(orphaned((o) => (o.mandates[0].name = '')))).toMatchObject({
+      ok: false,
+    });
+    expect(repairOrphanDecisions(serializeBackup(withDecisions())).ok).toBe(false);
+    expect(repairOrphanDecisions('{kaputt').ok).toBe(false);
+  });
+});
+
+describe('nesting depth (iterative scan)', () => {
+  it('refuses a file nested 100 000 levels deep with bad-backup, without a stack overflow', () => {
+    const deep = '['.repeat(100_000) + ']'.repeat(100_000);
+    const r = parseBackup(`{"format":"gwg-backup","version":2,"x":${deep}}`);
+    expect(r).toMatchObject({ ok: false, reason: 'bad-backup' });
+    const objs = '{"a":'.repeat(100_000) + '1' + '}'.repeat(100_000);
+    expect(parseBackup(`{"format":"gwg-backup","x":${objs}}`)).toMatchObject({
+      ok: false,
+      reason: 'bad-backup',
+    });
+  });
+  it('refuses 65 levels, accepts the normal depth', () => {
+    const lvl = (n: number) => '['.repeat(n) + ']'.repeat(n);
+    const o = { ...obj(), extra: JSON.parse(lvl(65)) };
+    expect(parse(o)).toMatchObject({ ok: false, reason: 'bad-backup', where: 'nesting' });
+    expect(parseBackup(serializeBackup(base())).ok).toBe(true);
   });
 });

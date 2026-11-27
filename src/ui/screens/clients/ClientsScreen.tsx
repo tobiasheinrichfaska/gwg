@@ -4,18 +4,20 @@ import {
   effectiveRiskClass,
   isPepAffected,
   nextReviewDate,
+  removeMandate,
   type Mandate,
 } from '../../../logic/index.ts';
 import { useApp } from '../../app/context.ts';
 import { formatDate, ID_STATUS_LABELS, NONE, RISK_CLASS_LABELS } from '../../format.ts';
-import { reasonText } from '../../messages.ts';
+import { describeFailure } from '../../app/messages.ts';
 import { ClientForm } from './ClientForm.tsx';
 import { DeleteDialog } from './DeleteDialog.tsx';
 
 type View = { kind: 'list' } | { kind: 'form'; editId: string | null };
 
 export function ClientsScreen() {
-  const { backup, today, replace, saveError, requestedClientId, requestClient } = useApp();
+  const { backup, today, replace, saveError, saveErrorWhere, requestedClientId, requestClient } =
+    useApp();
   const { rules, mandates } = backup;
   const uid = useId();
   // A mandate another screen asked for opens in the edit form (taken once, then cleared).
@@ -59,17 +61,14 @@ export function ClientsScreen() {
   async function save(m: Mandate, isNew: boolean): Promise<string | null> {
     const next = isNew ? [...mandates, m] : mandates.map((x) => (x.id === m.id ? m : x));
     const r = await replace({ ...backup, mandates: next });
-    if (!r.ok) return `${reasonText(r.reason)} (Code: ${r.reason})`;
+    if (!r.ok) return describeFailure(r.reason, r.where);
     backToList(`Mandant ${m.id} ${m.name} gespeichert.`);
     return null;
   }
 
   async function remove(m: Mandate) {
-    const r = await replace({
-      ...backup,
-      mandates: mandates.filter((x) => x.id !== m.id),
-      persons: backup.persons.filter((p) => p.mandateId !== m.id),
-    });
+    // Persons and the decisions about the mandate and its persons go in the same save.
+    const r = await replace(removeMandate(backup, m.id));
     setToDelete(null);
     if (r.ok) backToList(`Mandant ${m.id} ${m.name} gelöscht.`);
     else setNotice(null);
@@ -81,7 +80,7 @@ export function ClientsScreen() {
     return (
       <section aria-labelledby={`${uid}-h`}>
         <h1 id={`${uid}-h`}>Mandanten</h1>
-        {saveError !== null && <SaveError code={saveError} />}
+        {saveError !== null && <SaveError code={saveError} where={saveErrorWhere} />}
         <ClientForm
           rules={rules}
           initial={initial}
@@ -98,7 +97,7 @@ export function ClientsScreen() {
       <h1 id={`${uid}-h`} tabIndex={-1} ref={headingRef}>
         Mandanten
       </h1>
-      {saveError !== null && <SaveError code={saveError} />}
+      {saveError !== null && <SaveError code={saveError} where={saveErrorWhere} />}
       {notice !== null && <p role="status">{notice}</p>}
       <p>
         <button type="button" onClick={() => setView({ kind: 'form', editId: null })}>
@@ -232,10 +231,11 @@ export function ClientsScreen() {
   );
 }
 
-function SaveError({ code }: { code: string }) {
+function SaveError({ code, where }: { code: string; where: string | undefined }) {
   return (
     <p role="alert">
-      Letzte Speicherung im Gerät fehlgeschlagen (Code: {code}). Die Änderung ist nicht gespeichert;
+      Letzte Speicherung im Gerät fehlgeschlagen (Code: {code}
+      {where === undefined ? '' : `, Stelle: ${where}`}). Die Änderung ist nicht gespeichert;
       speichern Sie eine Sicherungsdatei.
     </p>
   );

@@ -1,13 +1,18 @@
 import type { RulesConfig } from '../config.ts';
 import { isDateKey } from '../core/index.ts';
 import { checkTypeOf } from './legal-form.ts';
+import { goodLine, MAX_NAME_LENGTH } from './person.ts';
 import type { Mandate, Result } from './model.ts';
 import { fail, ID_STATUSES, ok } from './values.ts';
 
 export const MAX_REASON_LENGTH = 500;
+export const MAX_MANDATE_ID_LENGTH = 50;
 
 export function checkMandate(m: Mandate, rules: RulesConfig): Result<Mandate> {
-  if (m.id.trim() === '' || m.name.trim() === '') return fail('bad-id');
+  // One line each (no control characters, no U+2028/2029/0085), not empty, bounded in length.
+  if (!goodLine(m.id, MAX_MANDATE_ID_LENGTH, false) || !goodLine(m.name, MAX_NAME_LENGTH, false)) {
+    return fail('bad-id');
+  }
   if (checkTypeOf(m.legalForm, rules) === null) return fail('unknown-legal-form');
   if (m.riskGroupId !== null && !rules.riskGroups.some((g) => g.id === m.riskGroupId)) {
     return fail('unknown-risk-group');

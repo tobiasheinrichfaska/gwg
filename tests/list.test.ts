@@ -195,3 +195,11 @@ describe('list index format', () => {
     expect(parse(raw({ entries: many.slice(0, MAX_ENTRIES) })).ok).toBe(true);
   });
 });
+
+describe('nesting depth (iterative scan)', () => {
+  it('refuses a list nested 100 000 levels deep with bad-list, without a stack overflow', () => {
+    const deep = '['.repeat(100_000) + ']'.repeat(100_000);
+    const r = parseIndex(`{"format":"${LIST_FORMAT}","version":1,"x":${deep}}`);
+    expect(r).toMatchObject({ ok: false, reason: 'bad-list' });
+  });
+});

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { fetchSanctionsList } from '../src/io/index.ts';
+import { isListStale } from '../src/logic/index.ts';
 
 const NS = 'xmlns="http://eu.europa.ec/fpi/fsd/export"';
 const XML = (gen = '2026-11-18T10:00:00.000+01:00') =>
@@ -42,7 +43,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('fetchSanctionsList', () => {
-  it('reads synthetic XML into an index and prefers X-Fetched-At for the state', async () => {
+  it('reads synthetic XML into an index; the XML generationDate is the state, not the header', async () => {
     const r = await fetchSanctionsList({
       ...base,
       fetchFn: fetchWith(() =>
@@ -57,18 +58,25 @@ describe('fetchSanctionsList', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.index.entries.map((e) => e.id)).toEqual(['100']);
-    expect(r.value.index.fetchedOn).toBe('2026-11-26');
+    expect(r.value.index.fetchedOn).toBe('2026-11-18');
     expect(r.value.lastModified).toBe('Wed, 25 Nov 2026 10:00:00 GMT');
     expect(r.value.stale).toBe(false);
     expect(r.value.skipped).toEqual([]);
   });
-  it('falls back to generationDate, then to today; the override wins', async () => {
+  it('falls back to generationDate, then X-Fetched-At, then today; the override wins', async () => {
     const f = (xml: string) => fetchWith(() => Promise.resolve(respond(xml)));
     const a = await fetchSanctionsList({ ...base, fetchFn: f(XML()) });
     expect(a.ok && a.value.index.fetchedOn).toBe('2026-11-18');
     const noGen = XML().replace(/ generationDate="[^"]*"/, '');
     const b = await fetchSanctionsList({ ...base, fetchFn: f(noGen) });
     expect(b.ok && b.value.index.fetchedOn).toBe('2026-11-27');
+    const h = await fetchSanctionsList({
+      ...base,
+      fetchFn: fetchWith(() =>
+        Promise.resolve(respond(noGen, { 'X-Fetched-At': '2026-11-26T03:00:00.000Z' })),
+      ),
+    });
+    expect(h.ok && h.value.index.fetchedOn).toBe('2026-11-26');
     const c = await fetchSanctionsList({
       ...base,
       fetchedOnOverride: '2026-11-01',
@@ -77,6 +85,22 @@ describe('fetchSanctionsList', () => {
       ),
     });
     expect(c.ok && c.value.index.fetchedOn).toBe('2026-11-01');
+  });
+  it('an old list through a fresh relay copy keeps its old state and is stale', async () => {
+    const r = await fetchSanctionsList({
+      ...base,
+      fetchFn: fetchWith(() =>
+        Promise.resolve(
+          respond(XML('2025-01-01T10:00:00.000+01:00'), {
+            'X-Fetched-At': '2026-11-27T03:00:00.000Z',
+          }),
+        ),
+      ),
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.index.fetchedOn).toBe('2025-01-01');
+    expect(isListStale(r.value.index, base.today, 14)).toBe(true);
   });
   it('reports the X-Stale header', async () => {
     const r = await fetchSanctionsList({

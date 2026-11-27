@@ -2,6 +2,7 @@ import {
   daysBetween,
   daysInMonth,
   fail,
+  findUnsafe,
   isDateKey,
   ok,
   type DateKey,
@@ -93,19 +94,8 @@ export function serializeIndex(index: ListIndex): string {
 }
 
 function hasForbiddenKey(v: unknown): string | null {
-  if (Array.isArray(v)) {
-    for (let i = 0; i < v.length; i++) {
-      const w = hasForbiddenKey(v[i]);
-      if (w !== null) return `[${i}]${w}`;
-    }
-  } else if (isObj(v)) {
-    for (const k of Object.keys(v)) {
-      if (FORBIDDEN_KEYS.includes(k)) return `.${k}`;
-      const w = hasForbiddenKey(v[k]);
-      if (w !== null) return `.${k}${w}`;
-    }
-  }
-  return null;
+  const f = findUnsafe(v, FORBIDDEN_KEYS);
+  return f === null ? null : f.kind === 'deep' ? '.nesting' : f.path;
 }
 
 /** Exactly these keys. */
@@ -191,4 +181,12 @@ export function listAgeDays(fetchedOn: DateKey, today: DateKey): number {
 export function isListStale(index: ListIndex | null, today: DateKey, maxAgeDays: number): boolean {
   if (index === null) return true;
   return listAgeDays(index.fetchedOn, today) > maxAgeDays;
+}
+
+/** A new list with fewer than this share of the stored list's entries is suspicious (cut-off or wrong file). */
+export const SHRINK_LIMIT = 0.5;
+
+/** True when `incoming` has less than half the entries of `stored` (a stored list of none never counts). */
+export function shrankTooMuch(stored: number, incoming: number): boolean {
+  return stored > 0 && incoming < stored * SHRINK_LIMIT;
 }

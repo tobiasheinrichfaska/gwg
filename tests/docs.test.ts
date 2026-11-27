@@ -66,7 +66,14 @@ describe('docs/data-model.html against the code', () => {
 
 describe('data-model.html lists every public function of the logic layer', () => {
   // Deliberately internal helpers that are exported only for sibling modules or tests.
-  const INTERNAL = new Set(['ok', 'fail', 'levenshtein', 'isPartialDate', 'isListBirth']);
+  const INTERNAL = new Set([
+    'ok',
+    'fail',
+    'levenshtein',
+    'isPartialDate',
+    'isListBirth',
+    'goodLine',
+  ]);
 
   it('has a <td> cell naming each exported function', async () => {
     const api: Record<string, unknown> = await import('../src/logic/index.ts');
