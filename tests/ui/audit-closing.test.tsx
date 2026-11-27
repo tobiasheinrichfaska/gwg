@@ -28,6 +28,8 @@ const backupOf = (mandates: Mandate[], auditClosings: AuditClosing[] = []): Back
   mandates,
   persons: [],
   auditClosings,
+  screeningDecisions: [],
+  lastScreening: { sanktion: null, pep: null },
 });
 function setup(ui: React.ReactNode, b: Backup) {
   const store = createMemoryStore(serializeBackup(b));

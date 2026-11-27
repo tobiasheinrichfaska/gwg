@@ -23,7 +23,33 @@ export {
   type ListIndex,
   type ListKind,
 } from './list.ts';
-export { screenAll, screenPerson, type Hit, type Unscreenable } from './screening.ts';
+export {
+  currentSnapshot,
+  screenAll,
+  screenMandates,
+  screenPerson,
+  type Hit,
+  type Unscreenable,
+  type UnscreenableMandate,
+} from './screening.ts';
+export {
+  checkDecision,
+  checkScreeningRun,
+  DECISIONS,
+  decisionKey,
+  emptyLastScreening,
+  entrySnapshot,
+  mandateSnapshot,
+  MAX_DECIDER_LENGTH,
+  MAX_DECISION_REASON,
+  personSnapshot,
+  type DecisionKind,
+  type LastScreening,
+  type ScreeningDecision,
+  type ScreeningRun,
+  type SubjectKind,
+} from './decision.ts';
+export { confirmedHits, openHits } from './hits.ts';
 export {
   checkListSettings,
   DEFAULT_LIST_SETTINGS,

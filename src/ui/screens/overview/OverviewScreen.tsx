@@ -13,7 +13,7 @@ export function OverviewScreen() {
   const stichtag = defaultStichtag(today);
   const closing = backup.auditClosings.find((c) => c.stichtag === stichtag) ?? null;
   const { active, tasks, invalid, findings } = useMemo(() => {
-    const t = buildTasks(backup.mandates, backup.persons, today, backup.rules);
+    const t = buildTasks(backup.mandates, backup.persons, today, backup.rules, [], []);
     return {
       active: backup.mandates.filter((m) => m.active).length,
       tasks: t.tasks,

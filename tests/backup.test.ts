@@ -38,6 +38,8 @@ const base = (): Backup => ({
     person({ id: 'p1', birth: null }),
   ],
   auditClosings: [closing({ stichtag: '2026-11-30' }), closing({ stichtag: '2025-11-30' })],
+  screeningDecisions: [],
+  lastScreening: { sanktion: null, pep: null },
 });
 const obj = (b: Backup = base()): any => JSON.parse(serializeBackup(b));
 const parse = (o: unknown) => parseBackup(JSON.stringify(o));
@@ -71,6 +73,8 @@ describe('backup round trip', () => {
       'mandates',
       'persons',
       'auditClosings',
+      'screeningDecisions',
+      'lastScreening',
     ]);
     expect(obj().version).toBe(2);
     expect(obj().persons.map((p: Person) => p.id)).toEqual(['p1', 'p2', 'p3']);
@@ -170,6 +174,8 @@ describe('backup reader: version 1 migration', () => {
     const o = obj();
     delete o.persons;
     delete o.auditClosings;
+    delete o.screeningDecisions;
+    delete o.lastScreening;
     o.version = 1;
     return o;
   };

@@ -26,6 +26,7 @@ const REASONS: Record<Reason, true> = {
   'bad-pep': true,
   'unknown-mandate': true,
   'bad-closing': true,
+  'bad-decision': true,
   'bad-backup': true,
   'bad-list': true,
   'bad-settings': true,

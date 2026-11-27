@@ -1,6 +1,13 @@
 import type { RulesConfig } from '../config.ts';
 import { addDays, daysBetween, isDateKey } from '../core/index.ts';
 import {
+  confirmedHits,
+  openHits,
+  type Hit,
+  type ScreeningDecision,
+  type SubjectKind,
+} from '../sanctions/index.ts';
+import {
   checkMandate,
   dunningStage,
   nextReviewDate,
@@ -19,6 +26,8 @@ export type TaskKind =
   | 'dunning-escalate'
   | 'pep-ask'
   | 'pep-approval'
+  | 'sanction-clear'
+  | 'sanction-confirmed'
   | 'request-missing'
   | 'retention-due'
   | 'unclassified';
@@ -32,6 +41,11 @@ export interface Task {
   daysOverdue: number;
   /** Only for the PEP kinds: the person concerned. */
   personId?: string;
+  /** Only for the sanction kinds: who was hit, by which list entry, and how strong. */
+  subjectKind?: SubjectKind;
+  subjectId?: string;
+  entryId?: string;
+  klasse?: 'gelb' | 'rot';
 }
 
 export interface InvalidMandate {
@@ -48,15 +62,20 @@ export interface TaskList {
 /** Sort priority: lower comes first. */
 const PRIORITY: Record<TaskKind, number> = {
   'dunning-escalate': 0,
-  'pep-approval': 1,
-  'retention-due': 2,
-  'dunning-threat': 3,
-  'review-due': 4,
-  'dunning-reminder': 5,
-  'pep-ask': 6,
-  'request-missing': 7,
-  unclassified: 8,
+  'sanction-clear': 1, // red hits; yellow ones rank `YELLOW_PRIORITY`
+  'sanction-confirmed': 2,
+  'pep-approval': 3,
+  'retention-due': 4,
+  'dunning-threat': 5,
+  'review-due': 7,
+  'dunning-reminder': 8,
+  'pep-ask': 9,
+  'request-missing': 10,
+  unclassified: 11,
 };
+const YELLOW_PRIORITY = 6;
+const priorityOf = (t: Task): number =>
+  t.kind === 'sanction-clear' && t.klasse === 'gelb' ? YELLOW_PRIORITY : PRIORITY[t.kind];
 
 const STAGE_KIND: Record<string, TaskKind> = {
   erinnerung: 'dunning-reminder',
@@ -68,6 +87,8 @@ const STAGE_KIND: Record<string, TaskKind> = {
  * Work list derived from the mandates: who is due, who gets dunned, who escalates.
  * Pure and deterministic; only active mandates get tasks, except `retention-due` (inactive only).
  * A mandate that fails `checkMandate` is listed in `invalid` instead of producing tasks.
+ * `hits` are computed outside (screening); open ones become `sanction-clear` (one per hit), confirmed
+ * ones `sanction-confirmed` until the decision has an `actionNote`. Only active mandates get them.
  * `today` must be a valid date key (a programming error otherwise, it throws).
  */
 export function buildTasks(
@@ -75,6 +96,8 @@ export function buildTasks(
   persons: readonly Person[],
   today: DateKey,
   rules: RulesConfig,
+  hits: readonly Hit[],
+  decisions: readonly ScreeningDecision[],
 ): TaskList {
   if (!isDateKey(today)) throw new Error(`bad date key: ${today}`);
   const tasks: Task[] = [];
@@ -139,16 +162,45 @@ export function buildTasks(
     }
   }
 
+  const active = new Set(
+    mandates.filter((m) => m.active && checkMandate(m, rules).ok).map((m) => m.id),
+  );
+  for (const h of openHits(hits, decisions, persons, mandates)) {
+    if (!active.has(h.mandateId)) continue;
+    tasks.push({
+      mandateId: h.mandateId,
+      kind: 'sanction-clear',
+      dueOn: null,
+      daysOverdue: 0,
+      subjectKind: h.subjectKind,
+      subjectId: h.subjectId,
+      entryId: h.entryId,
+      klasse: h.klasse,
+    });
+  }
+  for (const { hit: h, decision: d } of confirmedHits(hits, decisions, persons, mandates)) {
+    if (d.actionNote !== '' || !active.has(h.mandateId)) continue;
+    tasks.push({
+      mandateId: h.mandateId,
+      kind: 'sanction-confirmed',
+      dueOn: null,
+      daysOverdue: 0,
+      subjectKind: h.subjectKind,
+      subjectId: h.subjectId,
+      entryId: h.entryId,
+      klasse: h.klasse,
+    });
+  }
+
+  const cmp = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
   tasks.sort(
     (a, b) =>
-      PRIORITY[a.kind] - PRIORITY[b.kind] ||
+      priorityOf(a) - priorityOf(b) ||
       b.daysOverdue - a.daysOverdue ||
-      (a.mandateId < b.mandateId ? -1 : a.mandateId > b.mandateId ? 1 : 0) ||
-      ((a.personId ?? '') < (b.personId ?? '')
-        ? -1
-        : (a.personId ?? '') > (b.personId ?? '')
-          ? 1
-          : 0),
+      cmp(a.mandateId, b.mandateId) ||
+      cmp(a.personId ?? '', b.personId ?? '') ||
+      cmp(a.subjectId ?? '', b.subjectId ?? '') ||
+      cmp(a.entryId ?? '', b.entryId ?? ''),
   );
   return { tasks, invalid };
 }

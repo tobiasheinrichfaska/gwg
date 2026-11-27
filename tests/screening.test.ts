@@ -109,7 +109,8 @@ describe('screenPerson / screenAll', () => {
     const hits = screenPerson(person(), idx, th);
     expect(hits.map((h) => h.entryId)).toEqual(['B']);
     expect(hits[0]).toMatchObject({
-      personId: 'P1',
+      subjectKind: 'person',
+      subjectId: 'P1',
       mandateId: '10001',
       kind: 'sanktion',
       klasse: 'gelb',
@@ -134,7 +135,7 @@ describe('screenPerson / screenAll', () => {
       person({ id: 'P0', birth: null }),
     ];
     const { hits } = screenAll(persons, ms, idx, th);
-    expect(hits.map((h) => `${h.personId}/${h.entryId}/${h.klasse}`)).toEqual([
+    expect(hits.map((h) => `${h.subjectId}/${h.entryId}/${h.klasse}`)).toEqual([
       'P1/R1/rot',
       'P0/R1/gelb',
       'P0/Y2/gelb',
@@ -160,7 +161,7 @@ describe('screenPerson / screenAll', () => {
       { personId: 'X2', reason: 'bad-person' },
       { personId: 'X3', reason: 'unknown-mandate' },
     ]);
-    expect(hits.map((h) => h.personId)).toEqual(['OK']);
+    expect(hits.map((h) => h.subjectId)).toEqual(['OK']);
   });
   it('carries the entry kind (pep)', () => {
     const idx = list([entry({ kind: 'pep', remark: 'Minister' })], 'pep');
@@ -297,7 +298,7 @@ describe('screening performance and pre-filter', () => {
       }),
     );
     const got = screenAll(persons, ms, idx, th).hits.map(
-      (h) => `${h.personId}/${h.entryId}/${h.klasse}/${h.besterName}/${h.aehnlichkeit}`,
+      (h) => `${h.subjectId}/${h.entryId}/${h.klasse}/${h.besterName}/${h.aehnlichkeit}`,
     );
     expect(got.sort()).toEqual(expected.sort());
   });

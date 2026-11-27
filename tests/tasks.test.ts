@@ -2,7 +2,7 @@ import { buildTasks, type Mandate } from '../src/logic/index.ts';
 import { mandate, rules } from './helpers.ts';
 
 const TODAY = '2026-11-26';
-const build = (ms: Mandate[], today = TODAY) => buildTasks(ms, [], today, rules);
+const build = (ms: Mandate[], today = TODAY) => buildTasks(ms, [], today, rules, [], []);
 const kinds = (ms: Mandate[], today = TODAY) => build(ms, today).tasks.map((t) => t.kind);
 
 describe('buildTasks', () => {
@@ -51,7 +51,7 @@ describe('buildTasks', () => {
 
   it('unclassified for null and unknown risk group', () => {
     expect(kinds([mandate({ riskGroupId: null })])).toEqual(['unclassified']);
-    const r = buildTasks([mandate({ riskGroupId: 'X-99' })], [], TODAY, rules);
+    const r = buildTasks([mandate({ riskGroupId: 'X-99' })], [], TODAY, rules, [], []);
     expect(r.tasks).toEqual([]);
     expect(r.invalid).toEqual([{ mandateId: '10001', reason: 'unknown-risk-group' }]);
   });

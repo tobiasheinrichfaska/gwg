@@ -1,5 +1,6 @@
 import type { RulesConfig } from '../config.ts';
 import type { Mandate, Person, Reason, SanctionClass } from '../mandate/model.ts';
+import { entrySnapshot, mandateSnapshot, personSnapshot, type SubjectKind } from './decision.ts';
 import { classifyPrepared, prepareEntry, type PreparedEntry } from './classify.ts';
 import type { ListIndex, ListKind } from './list.ts';
 import { normalizeName } from './normalize.ts';
@@ -7,7 +8,9 @@ import { prepareName, type PreparedName } from './similarity.ts';
 
 /** A possible match of a person with a list entry; green is never a hit. */
 export interface Hit {
-  personId: string;
+  subjectKind: SubjectKind;
+  /** Person id, or the mandate id for a mandate hit. */
+  subjectId: string;
   mandateId: string;
   entryId: string;
   kind: ListKind;
@@ -15,6 +18,8 @@ export interface Hit {
   /** The list name (main name or alias) that matched best. */
   besterName: string;
   aehnlichkeit: number;
+  /** Fingerprint of the entry (`entrySnapshot`), to void decisions when the entry changes. */
+  entrySnapshot: string;
 }
 
 /** A person who could not be compared; never silently green. */
@@ -38,23 +43,39 @@ const canScreen = (p: Person): boolean => normalizeName(p.lastName) !== '';
 function compare(a: Hit, b: Hit): number {
   if (a.klasse !== b.klasse) return a.klasse === 'rot' ? -1 : 1;
   if (a.aehnlichkeit !== b.aehnlichkeit) return b.aehnlichkeit - a.aehnlichkeit;
-  return a.personId < b.personId
-    ? -1
-    : a.personId > b.personId
-      ? 1
-      : a.entryId < b.entryId
-        ? -1
-        : a.entryId > b.entryId
-          ? 1
-          : 0;
+  const ka = `${a.subjectKind}/${a.subjectId}`;
+  const kb = `${b.subjectKind}/${b.subjectId}`;
+  return ka < kb ? -1 : ka > kb ? 1 : a.entryId < b.entryId ? -1 : a.entryId > b.entryId ? 1 : 0;
 }
 
 /** Context of one person: name prepared once. */
-type Subject = { person: Person; client: PreparedName; empty: boolean };
+type Subject = {
+  kind: SubjectKind;
+  id: string;
+  mandateId: string;
+  birth: string | null;
+  client: PreparedName;
+  empty: boolean;
+};
 const subjectOf = (p: Person): Subject => {
   const name = personName(p);
-  return { person: p, client: prepareName(name), empty: normalizeName(name) === '' };
+  return {
+    kind: 'person',
+    id: p.id,
+    mandateId: p.mandateId,
+    birth: p.birth,
+    client: prepareName(name),
+    empty: normalizeName(name) === '',
+  };
 };
+const subjectOfMandate = (m: Mandate): Subject => ({
+  kind: 'mandate',
+  id: m.id,
+  mandateId: m.id,
+  birth: null,
+  client: prepareName(m.name),
+  empty: normalizeName(m.name) === '',
+});
 
 function addHits(
   out: Hit[],
@@ -68,16 +89,18 @@ function addHits(
   for (let i = from; i < to; i++) {
     const pe = entries[i];
     if (pe === undefined) continue;
-    const m = classifyPrepared(s.client, s.empty, s.person.birth, pe, t, floor);
+    const m = classifyPrepared(s.client, s.empty, s.birth, pe, t, floor);
     if (m === null || m.klasse === 'gruen') continue;
     out.push({
-      personId: s.person.id,
-      mandateId: s.person.mandateId,
+      subjectKind: s.kind,
+      subjectId: s.id,
+      mandateId: s.mandateId,
       entryId: pe.entry.id,
       kind: pe.entry.kind,
       klasse: m.klasse,
       besterName: m.besterName,
       aehnlichkeit: m.aehnlichkeit,
+      entrySnapshot: entrySnapshot(pe.entry),
     });
   }
 }
@@ -128,4 +151,51 @@ export function screenAll(
     for (const s of subjects) addHits(hits, s, entries, from, to, thresholds, floor);
   }
   return { hits: hits.sort(compare), unscreenable };
+}
+
+/** A mandate that could not be compared (its name normalizes to nothing); never silently green. */
+export interface UnscreenableMandate {
+  mandateId: string;
+  reason: Extract<Reason, 'bad-id'>;
+}
+
+/**
+ * Screens the names of the ACTIVE mandates against the list. A mandate has no birth date (unknown), so
+ * a name match is at most yellow, never red. Mandates with an empty normalized name are reported.
+ */
+export function screenMandates(
+  mandates: readonly Mandate[],
+  index: ListIndex,
+  thresholds: Thresholds,
+): { hits: Hit[]; unscreenable: UnscreenableMandate[] } {
+  const entries = preparedEntries(index);
+  const hits: Hit[] = [];
+  const unscreenable: UnscreenableMandate[] = [];
+  const subjects: Subject[] = [];
+  for (const m of mandates) {
+    if (!m.active) continue;
+    const s = subjectOfMandate(m);
+    if (s.empty) unscreenable.push({ mandateId: m.id, reason: 'bad-id' });
+    else subjects.push(s);
+  }
+  for (let from = 0; from < entries.length; from += BLOCK) {
+    const to = Math.min(entries.length, from + BLOCK);
+    for (const s of subjects) addHits(hits, s, entries, from, to, thresholds, thresholds.possible);
+  }
+  return { hits: hits.sort(compare), unscreenable };
+}
+
+/** Snapshot of the subject of a hit as it is now, or null when the person/mandate no longer exists. */
+export function currentSnapshot(
+  kind: SubjectKind,
+  id: string,
+  persons: readonly Person[],
+  mandates: readonly Mandate[],
+): string | null {
+  if (kind === 'person') {
+    const p = persons.find((x) => x.id === id);
+    return p === undefined ? null : personSnapshot(p);
+  }
+  const m = mandates.find((x) => x.id === id);
+  return m === undefined ? null : mandateSnapshot(m);
 }

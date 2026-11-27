@@ -92,3 +92,5 @@ ergänzt: Wurzelimport erlaubt, Tiefimport verboten). Sicherungsformat 2; Format
 
 - Kein eigenes Paket/Workspace je Modul: ein Build, eine Datei, ein Repo reichen; Ordnergrenzen mit Lint genügen.
 - Keine Abstraktion für „Regeln als Plugins“: Zusätze sind Daten in `config`, nicht Code-Verzweigungen.
+
+**Notiz T6a (2026-11-27):** `sanctions/` hat jetzt `decision.ts` (`ScreeningDecision`, `checkDecision`, Momentaufnahmen `personSnapshot`/`mandateSnapshot`/`entrySnapshot`, `ScreeningRun`/`LastScreening`), `hits.ts` (`openHits`, `confirmedHits`) und `screenMandates` in `screening.ts`; `Hit` trägt `subjectKind`/`subjectId`/`entrySnapshot` statt `personId`. `tasks/` bekommt `hits` und `decisions` als Parameter (Treffer werden außerhalb berechnet) und die Arten `sanction-clear`/`sanction-confirmed`. Sicherung Format 2 um `screeningDecisions` und `lastScreening` erweitert (fehlend = leer, kein Versionssprung, weil Format 2 noch nicht ausgeliefert ist). Die Bildschirme folgen mit T6b; bis dahin übergeben `TasksScreen` und `OverviewScreen` leere Treffer.

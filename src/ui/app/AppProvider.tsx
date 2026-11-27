@@ -3,6 +3,7 @@ import type { AppStore } from '../../io/index.ts';
 import {
   DEFAULT_RULES,
   todayKey,
+  emptyLastScreening,
   type Backup,
   type DateKey,
   type Reason,
@@ -26,6 +27,8 @@ function emptyBackup(today: DateKey): Backup {
     mandates: [],
     persons: [],
     auditClosings: [],
+    screeningDecisions: [],
+    lastScreening: emptyLastScreening(),
   };
 }
 

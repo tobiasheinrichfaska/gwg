@@ -17,6 +17,8 @@ const backup = (): Backup => ({
   mandates: [mandate({ id: '10002', name: 'Zweite GmbH' }), mandate({ id: '10001' })],
   persons: [],
   auditClosings: [],
+  screeningDecisions: [],
+  lastScreening: { sanktion: null, pep: null },
 });
 
 describe('memory store', () => {

@@ -2,6 +2,14 @@ import { checkRules, type RulesConfig } from '../config.ts';
 import { fail, isDateKey, ok, type DateKey, type Result } from '../core/index.ts';
 import { checkAuditClosing, type AuditClosing } from '../audit/index.ts';
 import {
+  checkDecision,
+  checkScreeningRun,
+  decisionKey,
+  emptyLastScreening,
+  type LastScreening,
+  type ScreeningDecision,
+} from '../sanctions/index.ts';
+import {
   checkMandate,
   checkPerson,
   emptyPep,
@@ -23,6 +31,10 @@ export type Backup = {
   mandates: Mandate[];
   persons: Person[];
   auditClosings: AuditClosing[];
+  /** Rulings on screening hits; a file without the key reads as empty. */
+  screeningDecisions: ScreeningDecision[];
+  /** Last screening run per list kind; a file without the key reads as 'never'. */
+  lastScreening: LastScreening;
 };
 
 type Obj = Record<string, unknown>;
@@ -40,6 +52,16 @@ const byKey =
     const y = key(b);
     return x < y ? -1 : x > y ? 1 : 0;
   };
+
+const runOut = (r: LastScreening['sanktion']) =>
+  r === null
+    ? null
+    : {
+        ranOn: r.ranOn,
+        listKind: r.listKind,
+        listFetchedOn: r.listFetchedOn,
+        hitCount: r.hitCount,
+      };
 
 /** JSON with a fixed key order and mandates sorted by id, persons by mandate and id, closings by cut-off date (equal data gives equal text). */
 export function serializeBackup(b: Backup): string {
@@ -104,6 +126,26 @@ export function serializeBackup(b: Backup): string {
     auditClosings: [...b.auditClosings]
       .sort(byKey<AuditClosing>((c) => c.stichtag))
       .map((c) => ({ stichtag: c.stichtag, closedOn: c.closedOn, by: c.by, note: c.note })),
+    screeningDecisions: [...b.screeningDecisions]
+      .sort(byKey<ScreeningDecision>(decisionKey))
+      .map((d) => ({
+        subjectKind: d.subjectKind,
+        subjectId: d.subjectId,
+        entryId: d.entryId,
+        listKind: d.listKind,
+        listFetchedOn: d.listFetchedOn,
+        decision: d.decision,
+        reason: d.reason,
+        decidedOn: d.decidedOn,
+        decidedBy: d.decidedBy,
+        subjectSnapshot: d.subjectSnapshot,
+        entrySnapshot: d.entrySnapshot,
+        actionNote: d.actionNote,
+      })),
+    lastScreening: {
+      sanktion: runOut(b.lastScreening.sanktion),
+      pep: runOut(b.lastScreening.pep),
+    },
   };
   return JSON.stringify(out, null, 2) + '\n';
 }
@@ -258,6 +300,28 @@ const PEP_SPEC: Record<string, Kind> = {
   approvedBy: 'string',
 };
 
+const DECISION_SPEC: Record<string, Kind> = {
+  subjectKind: 'string',
+  subjectId: 'string',
+  entryId: 'string',
+  listKind: 'string',
+  listFetchedOn: 'string',
+  decision: 'string',
+  reason: 'string',
+  decidedOn: 'string',
+  decidedBy: 'string',
+  subjectSnapshot: 'string',
+  entrySnapshot: 'string',
+  actionNote: 'string',
+};
+
+const RUN_SPEC: Record<string, Kind> = {
+  ranOn: 'string',
+  listKind: 'string',
+  listFetchedOn: 'string',
+  hitCount: 'number',
+};
+
 const CLOSING_SPEC: Record<string, Kind> = {
   stichtag: 'string',
   closedOn: 'string',
@@ -288,9 +352,26 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     rules: 'any',
     mandates: 'any',
   };
+  // The screening keys are optional in version 2 (missing = empty): default them before the strict shape check.
+  const src: Obj =
+    raw.version === 2
+      ? {
+          ...raw,
+          ...(Object.hasOwn(raw, 'screeningDecisions') ? {} : { screeningDecisions: [] }),
+          ...(Object.hasOwn(raw, 'lastScreening') ? {} : { lastScreening: emptyLastScreening() }),
+        }
+      : raw;
   const top = shape(
-    raw,
-    raw.version === 1 ? v1 : { ...v1, persons: 'any', auditClosings: 'any' },
+    src,
+    raw.version === 1
+      ? v1
+      : {
+          ...v1,
+          persons: 'any',
+          auditClosings: 'any',
+          screeningDecisions: 'any',
+          lastScreening: 'any',
+        },
     'root',
   );
   if (!top.ok) return top;
@@ -315,6 +396,8 @@ export function parseBackup(text: string): Result<Backup, Reason> {
   }
   const persons: Person[] = [];
   const closings: AuditClosing[] = [];
+  const decisions: ScreeningDecision[] = [];
+  let lastScreening = emptyLastScreening();
   if (raw.version === 2) {
     const rawPersons = list(raw.persons, 'persons');
     if (!rawPersons.ok) return rawPersons;
@@ -350,6 +433,33 @@ export function parseBackup(text: string): Result<Backup, Reason> {
       seenDays.add(a.stichtag);
       closings.push(a);
     }
+    const rawDecisions = list(src.screeningDecisions, 'screeningDecisions');
+    if (!rawDecisions.ok) return rawDecisions;
+    const seenKeys = new Set<string>();
+    for (const [i, item] of rawDecisions.value.entries()) {
+      const where = `screeningDecisions[${i}]`;
+      const s = shape(item, DECISION_SPEC, where);
+      if (!s.ok) return s;
+      const d = s.value as unknown as ScreeningDecision;
+      const c = checkDecision(d, persons, mandates);
+      if (!c.ok) return fail(c.reason, where);
+      const key = decisionKey(d);
+      if (seenKeys.has(key)) return fail('duplicate-id', where);
+      seenKeys.add(key);
+      decisions.push(d);
+    }
+    const ls = shape(src.lastScreening, { sanktion: 'any', pep: 'any' }, 'lastScreening');
+    if (!ls.ok) return ls;
+    for (const k of ['sanktion', 'pep'] as const) {
+      const where = `lastScreening.${k}`;
+      const v = ls.value[k];
+      if (v === null) continue;
+      const r = shape(v, RUN_SPEC, where);
+      if (!r.ok) return r;
+      const c = checkScreeningRun(r.value as unknown as LastScreening['sanktion'] & object, k);
+      if (!c.ok) return fail(c.reason, where);
+      lastScreening = { ...lastScreening, [k]: c.value };
+    }
   }
   return ok({
     format: BACKUP_FORMAT,
@@ -359,5 +469,7 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     mandates,
     persons,
     auditClosings: closings,
+    screeningDecisions: decisions,
+    lastScreening,
   });
 }

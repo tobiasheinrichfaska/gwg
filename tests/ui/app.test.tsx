@@ -17,6 +17,8 @@ const backup = (n: number): Backup => ({
   mandates: Array.from({ length: n }, (_, i) => mandate({ id: String(10001 + i) })),
   persons: [],
   auditClosings: [],
+  screeningDecisions: [],
+  lastScreening: { sanktion: null, pep: null },
 });
 const clock = () => new Date(2026, 10, 27, 12, 0, 0);
 

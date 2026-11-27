@@ -37,6 +37,8 @@ function setup(ui: 'clients' | 'tasks', persons: Person[], mandates: Mandate[] =
     mandates,
     persons,
     auditClosings: [],
+    screeningDecisions: [],
+    lastScreening: { sanktion: null, pep: null },
   };
   const store = createMemoryStore(serializeBackup(b));
   render(

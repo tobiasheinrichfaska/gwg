@@ -126,11 +126,11 @@ describe('isPepAffected and risk class', () => {
 
 describe('buildTasks: pep', () => {
   const kinds = (ms: Mandate[], ps: Person[]) =>
-    buildTasks(ms, ps, TODAY, rules).tasks.map(
+    buildTasks(ms, ps, TODAY, rules, [], []).tasks.map(
       (t) => `${t.kind}:${t.personId ?? ''}:${t.daysOverdue}`,
     );
   it('asks persons that were not asked, with no due date', () => {
-    const t = buildTasks([mandate()], [person()], TODAY, rules).tasks;
+    const t = buildTasks([mandate()], [person()], TODAY, rules, [], []).tasks;
     expect(t).toEqual([
       { mandateId: '10001', kind: 'pep-ask', dueOn: null, daysOverdue: 0, personId: 'p1' },
     ]);
@@ -169,7 +169,9 @@ describe('buildTasks: pep', () => {
       person({ id: 'a', mandateId: 'A' }),
       person({ id: 'c', mandateId: 'C', pep: pep({ answer: 'ja', askedOn: '2026-11-01' }) }),
     ];
-    const order = buildTasks(ms2, ps, TODAY, rules).tasks.map((t) => `${t.kind}:${t.mandateId}`);
+    const order = buildTasks(ms2, ps, TODAY, rules, [], []).tasks.map(
+      (t) => `${t.kind}:${t.mandateId}`,
+    );
     expect(order).toEqual([
       'dunning-escalate:B',
       'pep-approval:C',
@@ -180,7 +182,7 @@ describe('buildTasks: pep', () => {
   });
   it('a pep-affected mandate gets its review earlier', () => {
     const m = mandate({ riskGroupId: 'N-01', lastCheckOn: '2025-11-01' });
-    const none = buildTasks([m], [], TODAY, rules).tasks.map((t) => t.kind);
+    const none = buildTasks([m], [], TODAY, rules, [], []).tasks.map((t) => t.kind);
     expect(none).toEqual([]);
     const ps = [
       person({
@@ -192,7 +194,9 @@ describe('buildTasks: pep', () => {
         }),
       }),
     ];
-    expect(buildTasks([m], ps, TODAY, rules).tasks.map((t) => t.kind)).toEqual(['review-due']);
+    expect(buildTasks([m], ps, TODAY, rules, [], []).tasks.map((t) => t.kind)).toEqual([
+      'review-due',
+    ]);
   });
 });
 
@@ -205,6 +209,8 @@ describe('backup format 2: pep', () => {
     mandates: [mandate()],
     persons,
     auditClosings: [],
+    screeningDecisions: [],
+    lastScreening: { sanktion: null, pep: null },
   });
   const full = pep({
     answer: 'ja',
@@ -235,6 +241,8 @@ describe('backup format 2: pep', () => {
     o.version = 1;
     delete o.persons;
     delete o.auditClosings;
+    delete o.screeningDecisions;
+    delete o.lastScreening;
     const r = parseBackup(JSON.stringify(o));
     expect(r.ok && r.value.version).toBe(2);
     expect(r.ok && r.value.persons).toEqual([]);

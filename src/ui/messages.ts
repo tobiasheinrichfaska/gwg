@@ -30,6 +30,8 @@ export const REASON_TEXTS: Record<Reason, string> = {
   'unknown-mandate': 'Das Mandat dieser Person gibt es nicht.',
   'bad-closing':
     'Der Abschluss des Jahresaudits ist ungültig: Datum, Name der abschließenden Person oder Notiz prüfen.',
+  'bad-decision':
+    'Die Entscheidung zum Treffer ist ungültig: Begründung (1 bis 500 Zeichen), Name der entscheidenden Person (höchstens 100 Zeichen) und Daten prüfen.',
   'bad-backup': 'Die Datei ist keine gültige Sicherung.',
   'bad-list': 'Die Datei ist keine gültige Sanktions- oder PEP-Liste.',
   'bad-settings':

@@ -14,6 +14,7 @@
 - [x] **Ausnahmelisten des Jahresaudits** — `auditExceptions`
 - [x] **Sanktions-Ampel, nur anderes Geburtsjahr entlastet automatisch** — `classifyMatch`
 - [x] **Abgleich-Logik Personen gegen Sanktions-/PEP-Liste** (Aliase, mehrere Geburtsdaten, Spanne, nicht prüfbare Personen gemeldet, 1 000 × 20 000 in ca. 7 s) und Listenformat `gwg-liste` — `classifyEntry`, `screenPerson`, `screenAll`, `parseIndex` (`tests/list.test.ts`, `tests/screening.test.ts`); offen: Quelle der Liste (Import/Download), Bildschirm
+- [x] **Entscheidungen zu Treffern (Logik, ohne Bildschirm):** `ScreeningDecision` mit Pflichtbegründung, Verfall bei geänderter Person, geändertem Mandatsnamen oder geändertem Listeneintrag, `openHits`/`confirmedHits`, Mandatsabgleich `screenMandates`, Aufgaben `sanction-clear`/`sanction-confirmed`, Sicherung mit `screeningDecisions` und `lastScreening` (`tests/decision.test.ts`); Bildschirme folgen mit T6b
 
 ## Bedienung (noch nicht gebaut)
 

@@ -22,6 +22,8 @@ const backupOf = (mandates: Mandate[]): Backup => ({
   mandates,
   persons: [],
   auditClosings: [],
+  screeningDecisions: [],
+  lastScreening: { sanktion: null, pep: null },
 });
 
 function setup(mandates: Mandate[] = [], store?: AppStore) {
