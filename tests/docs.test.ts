@@ -23,6 +23,7 @@ const REASONS: Record<Reason, true> = {
   'bad-end': true,
   'bad-config': true,
   'bad-person': true,
+  'bad-pep': true,
   'unknown-mandate': true,
   'bad-closing': true,
   'bad-backup': true,

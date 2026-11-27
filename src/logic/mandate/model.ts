@@ -47,6 +47,7 @@ export interface Mandate {
   riskGroupId: string | null;
   /** Mandatory when the group was chosen against the suggestion. */
   riskReason: string;
+  /** Manual PEP mark (e.g. from DATEV); persons' self-disclosures add to it (`isPepAffected`). */
   isPep: boolean;
   /** First request for documents was sent; starts the dunning clock. */
   firstRequestOn: DateKey | null;
@@ -66,6 +67,47 @@ export const PERSON_ROLES = [
 ] as const;
 export type PersonRole = (typeof PERSON_ROLES)[number];
 
+export const PEP_ANSWERS = ['ja', 'nein', 'unbekannt'] as const;
+export type PepAnswer = (typeof PEP_ANSWERS)[number];
+
+/** Roles whose PEP self-disclosure counts for the mandate (not 'sonstige'). */
+export const PEP_ROLES: readonly PersonRole[] = [
+  'inhaber',
+  'geschaeftsfuehrer',
+  'gesellschafter',
+  'wirtschaftlich-berechtigter',
+  'vertreter',
+];
+
+/**
+ * PEP self-disclosure of one person (asked and documented, not checked against a list).
+ * `amtEndedOn` is only stored and shown; no one-year rule is built in (legally unconfirmed).
+ */
+export interface PepDisclosure {
+  /** null = not asked yet. */
+  answer: PepAnswer | null;
+  askedOn: DateKey | null;
+  /** Office or function, one line, may be empty. */
+  funktion: string;
+  amtEndedOn: DateKey | null;
+  /** Family member or close associate of a PEP; null = not asked. */
+  nahestehend: PepAnswer | null;
+  /** Sign-off for the business relationship with a PEP. */
+  approvedOn: DateKey | null;
+  /** Who signed off; not empty when `approvedOn` is set. */
+  approvedBy: string;
+}
+
+export const emptyPep = (): PepDisclosure => ({
+  answer: null,
+  askedOn: null,
+  funktion: '',
+  amtEndedOn: null,
+  nahestehend: null,
+  approvedOn: null,
+  approvedBy: '',
+});
+
 /** A natural person connected to a mandate (owner, managing director, beneficial owner ...). */
 export interface Person {
   id: string;
@@ -77,6 +119,7 @@ export interface Person {
   firstName: string;
   /** 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD'; null = unknown (same shape as the sanctions logic's partial date). */
   birth: string | null;
+  pep: PepDisclosure;
 }
 
 export type SanctionClass = 'gruen' | 'gelb' | 'rot';
@@ -92,6 +135,7 @@ export type Reason =
   | 'bad-end'
   | 'bad-config'
   | 'bad-person'
+  | 'bad-pep'
   | 'unknown-mandate'
   | 'bad-closing'
   | 'bad-backup'

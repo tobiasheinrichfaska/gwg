@@ -154,7 +154,7 @@ export function ClientsScreen() {
                 </thead>
                 <tbody>
                   {rows.map((m) => {
-                    const cls = effectiveRiskClass(m, rules);
+                    const cls = effectiveRiskClass(m, backup.persons, rules);
                     const personCount = backup.persons.filter((p) => p.mandateId === m.id).length;
                     return (
                       <tr key={m.id}>
@@ -166,7 +166,7 @@ export function ClientsScreen() {
                         </td>
                         <td>{cls === null ? NONE : RISK_CLASS_LABELS[cls]}</td>
                         <td>{ID_STATUS_LABELS[m.idStatus]}</td>
-                        <td>{formatDate(nextReviewDate(m, rules))}</td>
+                        <td>{formatDate(nextReviewDate(m, backup.persons, rules))}</td>
                         <td>
                           {personCount}
                           {personCount === 0 && checkTypeOf(m.legalForm, rules) === 'C' && (

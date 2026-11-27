@@ -5,6 +5,7 @@ import {
   type ListEntry,
   type ListIndex,
   type Person,
+  emptyPep,
 } from '../src/logic/index.ts';
 import { mandate, rules } from './helpers.ts';
 
@@ -24,6 +25,7 @@ const person = (over: Partial<Person> = {}): Person => ({
   lastName: 'Petrov',
   firstName: 'Ivan',
   birth: null,
+  pep: emptyPep(),
   ...over,
 });
 const list = (entries: ListEntry[], kind: ListIndex['kind'] = 'sanktion'): ListIndex => ({
@@ -236,6 +238,7 @@ function synthetic(nPersons: number, nEntries: number, seed: number) {
       lastName: name.slice(1).join(' ') || 'X',
       firstName: name[0] ?? '',
       birth: r() < 0.5 ? null : String(1940 + Math.floor(r() * 60)),
+      pep: emptyPep(),
     };
     // plant near matches (typo, reversed order, alias, umlaut) so the sample contains real hits
     if (i % 4 === 0 && entries[i % nEntries]) {

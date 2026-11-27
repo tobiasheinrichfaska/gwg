@@ -84,6 +84,8 @@ diese auf.
 `AuditClosing` und `checkAuditClosing` in `audit/closing.ts`. `backup` hängt damit auch an `audit` (Lint-Block
 ergänzt: Wurzelimport erlaubt, Tiefimport verboten). Sicherungsformat 2; Format 1 wird beim Lesen migriert.
 
+**Notiz PEP-1 (2026-11-27):** `Person.pep` (`PepDisclosure`, `emptyPep`, `PEP_ROLES`) liegt in `mandate/model.ts`, `checkPerson` prüft es (`bad-pep`), `isPepAffected` in `mandate/risk.ts`. `effectiveRiskClass`, `nextReviewDate`, `auditExceptions` und `buildTasks` bekommen `persons` als Pflichtparameter. Neue Aufgabenarten `pep-ask` und `pep-approval` (mit `personId`). Sicherungsformat 2 schreibt `pep`; Dateien ohne `pep` je Person bekommen den Standard. Nur Logik, die UI folgt in PEP-2.
+
 **Notiz T4 (2026-11-27):** `sanctions/` hat jetzt `list.ts` (Modell `ListEntry`/`ListIndex`, `serializeIndex`, strenges `parseIndex`, Format `gwg-liste` 1; Datumsprüfung dort privat, weil `sanctions` nur Typen aus `mandate/model` bezieht), `screening.ts` (`screenPerson`, `screenAll`) und `classifyEntry` in `classify.ts`. `Person` kommt nur als Typ über `mandate/model`. Der Vorfilter in `similarity.ts` ist verlustfrei (Längen- und Zeichenhäufigkeitsschranke: lev ≥ längster − Überlappung; Teilmengen-Modus mit eigener Schranke); `screenAll` arbeitet in Blöcken zu 64 Einträgen (Cache), 1 000 × 20 000 Einträge dauern etwa 7 s statt etwa 4 min brute force.
 
 ## Bewusst nicht modularisiert

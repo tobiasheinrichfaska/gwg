@@ -22,7 +22,7 @@ export function AuditScreen() {
   const [dialog, setDialog] = useState<'close' | 'reopen' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const exceptions = useMemo(
-    () => auditExceptions(backup.mandates, stichtag, backup.rules),
+    () => auditExceptions(backup.mandates, backup.persons, stichtag, backup.rules),
     [backup, stichtag],
   );
   const clean = auditIsClean(exceptions);
@@ -33,7 +33,12 @@ export function AuditScreen() {
     () =>
       closing !== null &&
       !auditIsClean(
-        auditExceptions(backup.mandates, today > stichtag ? today : stichtag, backup.rules),
+        auditExceptions(
+          backup.mandates,
+          backup.persons,
+          today > stichtag ? today : stichtag,
+          backup.rules,
+        ),
       ),
     [closing, backup, today, stichtag],
   );

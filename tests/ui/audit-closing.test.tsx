@@ -127,7 +127,7 @@ describe('closing the audit', () => {
   });
 
   it('adds the closing line to the cut-off export', () => {
-    const e = auditExceptions([clean], '2026-11-30', DEFAULT_RULES);
+    const e = auditExceptions([clean], [], '2026-11-30', DEFAULT_RULES);
     expect(auditText(e, '2026-11-30')).toContain('Abschluss: nicht abgeschlossen');
     expect(auditText(e, '2026-11-30', closed)).toContain(
       'Abschluss: abgeschlossen am 01.12.2026 durch A. Prüfer, Notiz: alles gesehen',

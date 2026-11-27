@@ -25,6 +25,8 @@ export const REASON_TEXTS: Record<Reason, string> = {
   'bad-config': 'Die Einstellungen (Fristen, Mahnstufen) sind ungültig.',
   'bad-person':
     'Die Person ist ungültig: Nachname, Rolle und Geburtsdatum (JJJJ, JJJJ-MM oder JJJJ-MM-TT) prüfen.',
+  'bad-pep':
+    'Die PEP-Angaben sind ungültig: Bei einer Antwort braucht es das Datum der Frage; eine Freigabe nur bei „ja“, mit Datum und Name; Funktion höchstens 200 Zeichen.',
   'unknown-mandate': 'Das Mandat dieser Person gibt es nicht.',
   'bad-closing':
     'Der Abschluss des Jahresaudits ist ungültig: Datum, Name der abschließenden Person oder Notiz prüfen.',

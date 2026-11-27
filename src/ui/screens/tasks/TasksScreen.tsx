@@ -12,7 +12,7 @@ export function TasksScreen() {
   const { backup, today, replace, saveError } = useApp();
   const uid = useId();
   const { tasks, invalid } = useMemo(
-    () => buildTasks(backup.mandates, today, backup.rules),
+    () => buildTasks(backup.mandates, backup.persons, today, backup.rules),
     [backup, today],
   );
   const [notice, setNotice] = useState<string | null>(null);

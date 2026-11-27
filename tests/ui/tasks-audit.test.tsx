@@ -190,7 +190,7 @@ describe('audit screen', () => {
   });
 
   it('builds the cut-off list as plain text', () => {
-    const e = auditExceptions([noRequest, dueReview], '2026-11-27', DEFAULT_RULES);
+    const e = auditExceptions([noRequest, dueReview], [], '2026-11-27', DEFAULT_RULES);
     const text = auditText(e, '2026-11-27');
     expect(text).toContain('Stichtag 27.11.2026');
     expect(text).toContain('Auffälligkeiten insgesamt: 2');

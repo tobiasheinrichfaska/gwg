@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { createMemoryStore, type AppStore } from '../../src/io/index.ts';
 import {
   DEFAULT_RULES,
+  emptyPep,
   serializeBackup,
   type Backup,
   type Mandate,
@@ -23,6 +24,7 @@ const person = (over: Partial<Person> = {}): Person => ({
   lastName: 'Beispiel',
   firstName: 'Erika',
   birth: '1975-03-09',
+  pep: emptyPep(),
   ...over,
 });
 

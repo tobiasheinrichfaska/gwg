@@ -1,6 +1,6 @@
 import type { RulesConfig } from '../config.ts';
 import { daysBetween, isDateKey } from '../core/index.ts';
-import { nextReviewDate, type DateKey, type Mandate } from '../mandate/index.ts';
+import { nextReviewDate, type DateKey, type Mandate, type Person } from '../mandate/index.ts';
 
 export interface AuditExceptions {
   /** Active, no risk group. */
@@ -21,6 +21,7 @@ export interface AuditExceptions {
  */
 export function auditExceptions(
   mandates: readonly Mandate[],
+  persons: readonly Person[],
   today: DateKey,
   rules: RulesConfig,
 ): AuditExceptions {
@@ -35,7 +36,7 @@ export function auditExceptions(
     overdue: active.filter((m) => {
       if (m.idStatus !== 'vollstaendig') return false;
       if (m.lastCheckOn === null || !isDateKey(m.lastCheckOn)) return true;
-      const due = nextReviewDate(m, rules);
+      const due = nextReviewDate(m, persons, rules);
       // No class (unknown group) is already listed as unclassified; do not list it twice.
       return due !== null && daysBetween(due, today) > 0;
     }),

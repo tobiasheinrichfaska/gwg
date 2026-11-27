@@ -4,6 +4,7 @@ import { checkAuditClosing, type AuditClosing } from '../audit/index.ts';
 import {
   checkMandate,
   checkPerson,
+  emptyPep,
   ID_STATUSES,
   type Mandate,
   type Person,
@@ -90,6 +91,15 @@ export function serializeBackup(b: Backup): string {
         lastName: p.lastName,
         firstName: p.firstName,
         birth: p.birth,
+        pep: {
+          answer: p.pep.answer,
+          askedOn: p.pep.askedOn,
+          funktion: p.pep.funktion,
+          amtEndedOn: p.pep.amtEndedOn,
+          nahestehend: p.pep.nahestehend,
+          approvedOn: p.pep.approvedOn,
+          approvedBy: p.pep.approvedBy,
+        },
       })),
     auditClosings: [...b.auditClosings]
       .sort(byKey<AuditClosing>((c) => c.stichtag))
@@ -235,6 +245,17 @@ const PERSON_SPEC: Record<string, Kind> = {
   lastName: 'string',
   firstName: 'string',
   birth: 'string|null',
+  pep: 'any',
+};
+
+const PEP_SPEC: Record<string, Kind> = {
+  answer: 'string|null',
+  askedOn: 'string|null',
+  funktion: 'string',
+  amtEndedOn: 'string|null',
+  nahestehend: 'string|null',
+  approvedOn: 'string|null',
+  approvedBy: 'string',
 };
 
 const CLOSING_SPEC: Record<string, Kind> = {
@@ -300,8 +321,14 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     const seenPersons = new Set<string>();
     for (const [i, item] of rawPersons.value.entries()) {
       const where = `persons[${i}]`;
-      const s = shape(item, PERSON_SPEC, where);
+      // `pep` is optional in the file (older version 2 files): missing means the default.
+      const hasPep = isObj(item) && Object.hasOwn(item, 'pep');
+      let body: unknown = item;
+      if (isObj(item) && !hasPep) body = { ...item, pep: emptyPep() };
+      const s = shape(body, PERSON_SPEC, where);
       if (!s.ok) return s;
+      const ps = shape(s.value.pep, PEP_SPEC, `${where}.pep`);
+      if (!ps.ok) return ps;
       const p = s.value as unknown as Person;
       const c = checkPerson(p, mandates);
       if (!c.ok) return fail(c.reason, where);

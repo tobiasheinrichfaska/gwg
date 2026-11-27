@@ -1,5 +1,11 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { checkPerson, PERSON_ROLES, type Person, type PersonRole } from '../../../logic/index.ts';
+import {
+  checkPerson,
+  emptyPep,
+  PERSON_ROLES,
+  type Person,
+  type PersonRole,
+} from '../../../logic/index.ts';
 import { useApp } from '../../app/context.ts';
 import { formatBirth, NONE, PERSON_ROLE_LABELS } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
@@ -110,6 +116,7 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
           build={(f) => ({
             id: edit.person?.id ?? nextPersonId(backup.persons, mandateId),
             mandateId,
+            pep: edit.person?.pep ?? emptyPep(),
             ...f,
           })}
         />

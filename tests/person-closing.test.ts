@@ -4,6 +4,7 @@ import {
   PERSON_ROLES,
   type AuditClosing,
   type Person,
+  emptyPep,
 } from '../src/logic/index.ts';
 import { mandate } from './helpers.ts';
 
@@ -15,6 +16,7 @@ const person = (over: Partial<Person> = {}): Person => ({
   lastName: 'Muster',
   firstName: 'Max',
   birth: '1970-05-01',
+  pep: emptyPep(),
   ...over,
 });
 const code = (p: Person) => {
