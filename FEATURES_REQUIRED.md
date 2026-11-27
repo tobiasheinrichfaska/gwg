@@ -12,6 +12,7 @@
 - [x] **Aufgabenlisten-Logik** (fällig, mahnen, eskalieren, Löschung; ungültige Mandate gemeldet) — `buildTasks` (`tests/tasks.test.ts`), UI weiter offen
 - [x] **Ausnahmelisten des Jahresaudits** — `auditExceptions`
 - [x] **Sanktions-Ampel, nur anderes Geburtsjahr entlastet automatisch** — `classifyMatch`
+- [x] **Abgleich-Logik Personen gegen Sanktions-/PEP-Liste** (Aliase, mehrere Geburtsdaten, Spanne, nicht prüfbare Personen gemeldet, 1 000 × 20 000 in ca. 7 s) und Listenformat `gwg-liste` — `classifyEntry`, `screenPerson`, `screenAll`, `parseIndex` (`tests/list.test.ts`, `tests/screening.test.ts`); offen: Quelle der Liste (Import/Download), Bildschirm
 
 ## Bedienung (noch nicht gebaut)
 

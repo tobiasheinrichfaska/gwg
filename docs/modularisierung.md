@@ -72,7 +72,7 @@ diese auf.
 | M5  | `backup/`: Schema-Version, strenger Leser, Migrationsgerüst — vor dem Tresor, weil es das Format festlegt                      | erledigt, Commit 34b283b                                                     |
 | M6  | `importer/` sobald der Spaltenkopf des Exports vorliegt (Übergabe, Punkt 3)                                                    | hängt an Tobias                                                              |
 | M7  | `io/vault`, `io/files`; `ui/app` mit `rad-navi`; erster Bildschirm Mandantenliste                                              | io erledigt (IO-2: `io/store.ts`, `io/files.ts`); `ui/app`, Bildschirm offen |
-| M8  | `sanctions/index-format` und Relay-Entscheidung (Übergabe, Punkte 1–2)                                                         | hängt an Tobias                                                              |
+| M8  | `sanctions/index-format` und Relay-Entscheidung (Übergabe, Punkte 1–2)                                                         | Format und Abgleich erledigt (T4), Quelle und Relay hängen an Tobias         |
 
 **Restschuld** (nach M1–M4 offen):
 
@@ -83,6 +83,8 @@ diese auf.
 **Notiz T1 (2026-11-27):** `Person` (+ `PersonRole`) liegt in `mandate/model.ts`, `checkPerson` in `mandate/person.ts`;
 `AuditClosing` und `checkAuditClosing` in `audit/closing.ts`. `backup` hängt damit auch an `audit` (Lint-Block
 ergänzt: Wurzelimport erlaubt, Tiefimport verboten). Sicherungsformat 2; Format 1 wird beim Lesen migriert.
+
+**Notiz T4 (2026-11-27):** `sanctions/` hat jetzt `list.ts` (Modell `ListEntry`/`ListIndex`, `serializeIndex`, strenges `parseIndex`, Format `gwg-liste` 1; Datumsprüfung dort privat, weil `sanctions` nur Typen aus `mandate/model` bezieht), `screening.ts` (`screenPerson`, `screenAll`) und `classifyEntry` in `classify.ts`. `Person` kommt nur als Typ über `mandate/model`. Der Vorfilter in `similarity.ts` ist verlustfrei (Längen- und Zeichenhäufigkeitsschranke: lev ≥ längster − Überlappung; Teilmengen-Modus mit eigener Schranke); `screenAll` arbeitet in Blöcken zu 64 Einträgen (Cache), 1 000 × 20 000 Einträge dauern etwa 7 s statt etwa 4 min brute force.
 
 ## Bewusst nicht modularisiert
 

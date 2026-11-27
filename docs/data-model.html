@@ -79,6 +79,29 @@
       <tr><td>firstName</td><td>Text, höchstens 200 Zeichen</td><td>ja (leer erlaubt)</td><td>Vorname; eine Zeile, keine Steuerzeichen</td></tr>
       <tr><td>birth</td><td>JJJJ, JJJJ-MM, JJJJ-MM-TT oder null</td><td>ja</td><td>Geburtsdatum, Kalender geprüft; Monat nur mit Jahr, Tag nur mit Monat; null = unbekannt</td></tr>
     </table>
+    <h3>ListEntry und ListIndex (Sanktions- und PEP-Liste, Abgleichindex)</h3>
+    <p class="note">Nicht Teil der Sicherungsdatei: der Index ist eine eigene Datei (<code>{ format: "gwg-liste", version: 1 }</code>), die ein späterer Import aus der Quelle erzeugt. Reine Daten; Lesen und Schreiben ohne Seiteneffekte (<code>parseIndex</code>, <code>serializeIndex</code>).</p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
+      <tr><td>ListIndex.source</td><td>Text, höchstens 200 Zeichen</td><td>ja</td><td>Herkunft der Liste (z. B. Name der Liste); nicht leer, eine Zeile</td></tr>
+      <tr><td>ListIndex.kind</td><td>sanktion | pep</td><td>ja</td><td>Art der Liste; jeder Eintrag hat dieselbe Art</td></tr>
+      <tr><td>ListIndex.fetchedOn</td><td>Datum</td><td>ja</td><td>Stand der Liste, Kalender geprüft</td></tr>
+      <tr><td>ListIndex.entries</td><td>Liste von ListEntry, höchstens 200 000</td><td>ja</td><td>Die Einträge; Ids eindeutig (sonst duplicate-id), beim Schreiben nach Id sortiert</td></tr>
+      <tr><td>ListEntry.id</td><td>Text, höchstens 200 Zeichen</td><td>ja</td><td>Schlüssel in der Liste; nicht leer, eine Zeile</td></tr>
+      <tr><td>ListEntry.kind</td><td>sanktion | pep</td><td>ja</td><td>Art des Eintrags (Sanktion oder politisch exponierte Person)</td></tr>
+      <tr><td>ListEntry.names</td><td>Liste von Text, 1 bis 50</td><td>ja</td><td>Hauptname und Aliase; jeder höchstens 200 Zeichen, eine Zeile, mit mindestens einem Buchstaben oder einer Ziffer; Buchstaben jeder Schrift</td></tr>
+      <tr><td>ListEntry.births</td><td>Liste von JJJJ, JJJJ-MM, JJJJ-MM-TT oder JJJJ/JJJJ, höchstens 50</td><td>ja (leer erlaubt)</td><td>Bekannte Geburtsdaten, Kalender geprüft; „JJJJ/JJJJ“ ist eine Spanne (erstes Jahr nicht nach dem zweiten); leer = unbekannt</td></tr>
+      <tr><td>ListEntry.remark</td><td>Text, höchstens 500 Zeichen</td><td>ja (leer erlaubt)</td><td>Listungsgrund oder Funktion als Kurztext, eine Zeile</td></tr>
+    </table>
+    <h3>Hit (Treffer des Abgleichs)</h3>
+    <p class="note">Ergebnis von <code>screenPerson</code>/<code>screenAll</code>; wird nicht gespeichert. Nur gelb und rot sind Treffer, grün nie.</p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Bedeutung</th></tr>
+      <tr><td>personId, mandateId</td><td>Text</td><td>Die abgeglichene Person und ihr Mandat</td></tr>
+      <tr><td>entryId, kind</td><td>Text, sanktion | pep</td><td>Der getroffene Listeneintrag und seine Art</td></tr>
+      <tr><td>klasse</td><td>gelb | rot</td><td>Strengste Ampel über alle Namen und Geburtsdaten des Eintrags</td></tr>
+      <tr><td>besterName, aehnlichkeit</td><td>Text, Zahl 0..1</td><td>Der Name oder Alias des Eintrags mit dem stärksten Ergebnis und dessen Ähnlichkeit</td></tr>
+    </table>
     <h3>AuditClosing (Abschluss des Jahresaudits)</h3>
     <p class="note">Hält fest, dass ein Mensch das Jahresaudit zu einem Stichtag abgeschlossen hat; das Werkzeug entscheidet nichts. Je Stichtag höchstens ein Abschluss.</p>
     <table>
@@ -152,6 +175,11 @@
       <tr><td>nameSimilarity</td><td>(a, b) =&gt; number</td><td>0 bis 1, Wortreihenfolge egal (Levenshtein); zusätzliche Namensteile ergeben höchstens 0,89 (gelb, nie rot); ö als „oe“ und als „o“ wird beides versucht</td></tr>
       <tr><td>classifyNames</td><td>(clientName, listName, clientBirth, listBirth, thresholds) =&gt; SanctionClass</td><td>Einstieg des Abgleichs: Namen vergleichen und Ampel; ein Name ohne vergleichbaren Inhalt wird nie grün, sondern gelb</td></tr>
       <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth, thresholds) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
+      <tr><td>classifyEntry</td><td>(clientName, clientBirth, entry, thresholds) =&gt; { klasse, besterName, aehnlichkeit }</td><td>Ein Name gegen jeden Namen und Alias und jedes Geburtsdatum eines Listeneintrags; strengste Ampel zählt. Grün nur, wenn kein Name die Schwelle possible erreicht oder für JEDES Geburtsdatum beide Jahre bekannt sind und abweichen (Spanne: Kundenjahr außerhalb); rot nur bei Name ab strong und gleichem vollen Datum; Eintrag ohne Geburtsdatum = unbekannt (gelb); leerer Name gelb</td></tr>
+      <tr><td>screenPerson</td><td>(person, index, thresholds) =&gt; Hit[]</td><td>Name der Person = „Vorname Nachname“; nur gelb und rot, rot vor gelb, dann Ähnlichkeit absteigend, dann Personen- und Eintrags-Id. Ein verlustfreier Vorfilter (Längen- und Zeichenhäufigkeitsschranke, Teilmengen-Modus mit eigener Schranke) überspringt nur Vergleiche, die beweisbar unter possible bleiben; Test gegen die Brute-Force-Fassung</td></tr>
+      <tr><td>screenAll</td><td>(persons, mandates, index, thresholds) =&gt; { hits: Hit[]; unscreenable: { personId, reason }[] }</td><td>Gleicher Abgleich für alle Personen. Nicht prüfbar (nie still grün): Nachname nach Normalisierung leer (bad-person) oder Mandat unbekannt (unknown-mandate). 1 000 Personen gegen 20 000 Einträge: etwa 7 s</td></tr>
+      <tr><td>serializeIndex</td><td>(index: ListIndex) =&gt; string</td><td>Kompaktes JSON, feste Schlüsselreihenfolge, Einträge nach Id sortiert</td></tr>
+      <tr><td>parseIndex</td><td>(text) =&gt; Result&lt;ListIndex&gt;</td><td>Strenger Leser wie parseBackup: bad-list (Form, Typ, unbekannter Schlüssel, __proto__, Datum, Geburtsdatum, Grenzen), unsupported-version, duplicate-id; mit Stelle in where</td></tr>
       <tr><td>todayKey (now: Date) =&gt; DateKey</td><td>Heutiger Kalendertag aus lokalen Feldern</td><td>Aufrufen nur io/ui; die Logikschicht ruft nie new Date()</td></tr>
       <tr><td>addDays, addMonths, daysBetween, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
     </table>
@@ -171,8 +199,9 @@
       <tr><td>unknown-mandate</td><td>Die Mandantennummer einer Person gibt es nicht</td></tr>
       <tr><td>bad-closing</td><td>Abschluss des Jahresaudits ungültig: Datum ungültig, Abschluss vor dem Stichtag, Name leer oder zu lang, Notiz zu lang, mehrzeilig oder mit Steuerzeichen</td></tr>
       <tr><td>bad-backup</td><td>Sicherungsdatei: kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor</td></tr>
-      <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 2</td></tr>
-      <tr><td>duplicate-id</td><td>Mandantennummer, Personen-Id oder Stichtag eines Abschlusses kommt in der Sicherungsdatei doppelt vor</td></tr>
+      <tr><td>bad-list</td><td>Listendatei (Sanktions-/PEP-Index): kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor, ungültiges Datum oder Geburtsdatum/Spanne, Name ohne Buchstaben, mehr als 200 000 Einträge, mehr als 50 Namen oder Geburtsdaten je Eintrag, Art des Eintrags weicht von der der Liste ab</td></tr>
+      <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 2, Listendatei eine neuere Version als 1</td></tr>
+      <tr><td>duplicate-id</td><td>Mandantennummer, Personen-Id oder Stichtag eines Abschlusses kommt in der Sicherungsdatei doppelt vor; Eintrags-Id in einer Listendatei</td></tr>
       <tr><td>file-too-large</td><td>Gewählte Sicherungsdatei ist größer als erlaubt (Standard 10 MB); sie wird nicht gelesen (io-Schicht)</td></tr>
       <tr><td>store-failed</td><td>Tresor lässt sich nicht lesen oder schreiben (geschlossen, Slot unlesbar, Speicher voll); nichts wird überschrieben (io-Schicht)</td></tr>
     </table>

@@ -95,6 +95,7 @@ export type Reason =
   | 'unknown-mandate'
   | 'bad-closing'
   | 'bad-backup'
+  | 'bad-list'
   | 'unsupported-version'
   | 'duplicate-id'
   | 'file-too-large'

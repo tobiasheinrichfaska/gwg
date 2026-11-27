@@ -26,6 +26,7 @@ const REASONS: Record<Reason, true> = {
   'unknown-mandate': true,
   'bad-closing': true,
   'bad-backup': true,
+  'bad-list': true,
   'unsupported-version': true,
   'duplicate-id': true,
   'file-too-large': true,

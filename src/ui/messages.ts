@@ -29,6 +29,7 @@ export const REASON_TEXTS: Record<Reason, string> = {
   'bad-closing':
     'Der Abschluss des Jahresaudits ist ungültig: Datum, Name der abschließenden Person oder Notiz prüfen.',
   'bad-backup': 'Die Datei ist keine gültige Sicherung.',
+  'bad-list': 'Die Datei ist keine gültige Sanktions- oder PEP-Liste.',
   'unsupported-version': 'Diese Sicherung hat ein unbekanntes Format oder eine unbekannte Version.',
   'duplicate-id': 'Diese Mandatsnummer gibt es schon.',
   'file-too-large': 'Die Datei ist zu groß.',
