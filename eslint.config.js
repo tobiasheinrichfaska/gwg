@@ -107,7 +107,7 @@ function logicBlocks() {
         deepCore,
       ],
     ),
-    block(['src/logic/backup/**/*.ts'], [deepMandate, deepCore]),
+    block(['src/logic/backup/**/*.ts'], [deepMandate, deepImport('audit'), deepCore]),
     block(
       ['src/logic/*.ts'],
       [

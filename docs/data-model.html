@@ -27,7 +27,7 @@
 
     <h2>1 Gespeicherte Form (Wurzel)</h2>
     <p>
-      Die Sicherungsdatei hat das <strong>Format 1</strong> (reine Logik in <code>src/logic/backup/</code>;
+      Die Sicherungsdatei hat das <strong>Format 2</strong> (reine Logik in <code>src/logic/backup/</code>;
       Speicher und Dateizugriff in <code>src/io/</code>). Die Datei ist <strong>unverschlüsselt</strong> (Entscheidung
       Tobias): sie enthält Mandantennamen im Klartext, die Oberfläche zeigt dazu einen Warnhinweis
       (<code>BACKUP_WARNING</code>). Der Browserspeicher dagegen liegt im local-vault (Gerätemodus, optional mit
@@ -36,16 +36,18 @@
     <table>
       <tr><th>Feld</th><th>Typ</th><th>Inhalt</th></tr>
       <tr><td>format</td><td>string</td><td>immer <code>gwg-backup</code></td></tr>
-      <tr><td>version</td><td>Zahl</td><td>immer <code>1</code>; größer als 1 ergibt unsupported-version</td></tr>
+      <tr><td>version</td><td>Zahl</td><td>immer <code>2</code>; größer als 2 ergibt unsupported-version; Dateien des Formats 1 werden beim Lesen übernommen (ohne Personen, ohne Abschlüsse)</td></tr>
       <tr><td>createdOn</td><td>DateKey</td><td>Erstellungstag, gültiges Kalenderdatum</td></tr>
       <tr><td>rules</td><td>RulesConfig</td><td>Die Konfiguration (Abschnitt 3), von <code>checkRules</code> geprüft</td></tr>
       <tr><td>mandates</td><td>Mandate[]</td><td>Mandanten nach Nummer sortiert, jeder von <code>checkMandate</code> geprüft</td></tr>
+      <tr><td>persons</td><td>Person[]</td><td>Personen nach Mandantennummer und Id sortiert, jede von <code>checkPerson</code> geprüft; im Format 1 nicht vorhanden</td></tr>
+      <tr><td>auditClosings</td><td>AuditClosing[]</td><td>Abschlüsse des Jahresaudits nach Stichtag sortiert, jeder von <code>checkAuditClosing</code> geprüft; im Format 1 nicht vorhanden</td></tr>
     </table>
     <p>
       <strong>Streng-Regel:</strong> Der Leser ist alles-oder-nichts. Er verwirft nie still etwas: unbekannte
       Schlüssel auf jeder Ebene, fehlende Felder, falsche Laufzeittypen, die Schlüssel
-      <code>__proto__</code> und <code>constructor</code>, doppelte Mandantennummern und jeder Fehler von
-      <code>checkMandate</code>/<code>checkRules</code> lassen die ganze Datei scheitern. Ein Fehler nennt zusätzlich die
+      <code>__proto__</code> und <code>constructor</code>, doppelte Mandantennummern, doppelte Personen-Ids, zwei Abschlüsse zum selben Stichtag und jeder Fehler von
+      <code>checkMandate</code>/<code>checkPerson</code>/<code>checkAuditClosing</code>/<code>checkRules</code> lassen die ganze Datei scheitern. Ein Fehler nennt zusätzlich die
       Stelle (<code>where</code>, z. B. <code>mandates[3].legalForm</code>).
     </p>
 
@@ -65,6 +67,26 @@
       <tr><td>firstRequestOn</td><td>Datum oder null</td><td>ja</td><td>Erste Anforderung der Unterlagen; startet die Mahnleiter</td></tr>
       <tr><td>lastCheckOn</td><td>Datum oder null</td><td>ja</td><td>Letzte abgeschlossene Prüfung; Grundlage des nächsten Termins</td></tr>
       <tr><td>endedOn</td><td>Datum oder null</td><td>ja</td><td>Ende des Mandats; nur bei inaktiven Mandaten; startet die Aufbewahrungsfrist</td></tr>
+    </table>
+    <h3>Person</h3>
+    <p class="note">Eine natürliche Person zu einem Mandanten (Inhaber, Geschäftsführer, wirtschaftlich Berechtigter ...). Das Geburtsdatum hat dieselbe Form wie das Teildatum der Sanktionsprüfung.</p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
+      <tr><td>id</td><td>Text, höchstens 200 Zeichen</td><td>ja</td><td>Schlüssel; nicht leer, eine Zeile, keine Steuerzeichen; eindeutig in der Datei</td></tr>
+      <tr><td>mandateId</td><td>Schlüssel von Mandate</td><td>ja</td><td>Zu welchem Mandanten die Person gehört; muss existieren, sonst unknown-mandate</td></tr>
+      <tr><td>role</td><td>inhaber | geschaeftsfuehrer | gesellschafter | wirtschaftlich-berechtigter | vertreter | sonstige</td><td>ja</td><td>Rolle der Person beim Mandanten</td></tr>
+      <tr><td>lastName</td><td>Text, höchstens 200 Zeichen</td><td>ja</td><td>Nachname; nicht leer, eine Zeile, keine Steuerzeichen</td></tr>
+      <tr><td>firstName</td><td>Text, höchstens 200 Zeichen</td><td>ja (leer erlaubt)</td><td>Vorname; eine Zeile, keine Steuerzeichen</td></tr>
+      <tr><td>birth</td><td>JJJJ, JJJJ-MM, JJJJ-MM-TT oder null</td><td>ja</td><td>Geburtsdatum, Kalender geprüft; Monat nur mit Jahr, Tag nur mit Monat; null = unbekannt</td></tr>
+    </table>
+    <h3>AuditClosing (Abschluss des Jahresaudits)</h3>
+    <p class="note">Hält fest, dass ein Mensch das Jahresaudit zu einem Stichtag abgeschlossen hat; das Werkzeug entscheidet nichts. Je Stichtag höchstens ein Abschluss.</p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Pflicht</th><th>Bedeutung</th></tr>
+      <tr><td>stichtag</td><td>Datum</td><td>ja</td><td>Stichtag des Audits; eindeutig in der Datei, sonst duplicate-id</td></tr>
+      <tr><td>closedOn</td><td>Datum</td><td>ja</td><td>Tag des Abschlusses; nicht vor dem Stichtag</td></tr>
+      <tr><td>by</td><td>Text, höchstens 100 Zeichen</td><td>ja</td><td>Wer abgeschlossen hat; nicht leer, eine Zeile, keine Steuerzeichen</td></tr>
+      <tr><td>note</td><td>Text, höchstens 500 Zeichen</td><td>ja (leer erlaubt)</td><td>Anmerkung; eine Zeile, keine Steuerzeichen</td></tr>
     </table>
     <h3>RiskGroup (Risikogruppe)</h3>
     <table>
@@ -118,9 +140,11 @@
       <tr><td>dunningStage</td><td>(firstRequestOn, today, rules) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>
       <tr><td>retentionDueFrom</td><td>(endedOn, rules) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
       <tr><td>checkMandate</td><td>(m, rules) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
+      <tr><td>checkPerson</td><td>(p, mandates) =&gt; Result&lt;Person&gt;</td><td>Prüft eine Person (Namen, Rolle, Geburtsdatum): bad-person; Mandant fehlt: unknown-mandate</td></tr>
+      <tr><td>checkAuditClosing</td><td>(c) =&gt; Result&lt;AuditClosing&gt;</td><td>Prüft einen Abschluss des Jahresaudits; liefert bad-closing</td></tr>
       <tr><td>checkRules</td><td>(r: RulesConfig) =&gt; Result&lt;RulesConfig&gt;</td><td>Prüft eine Konfiguration; liefert bad-config</td></tr>
-      <tr><td>serializeBackup</td><td>(b: Backup) =&gt; string</td><td>JSON mit fester Schlüsselreihenfolge, Mandate nach Nummer sortiert</td></tr>
-      <tr><td>parseBackup</td><td>(text) =&gt; Result&lt;Backup&gt;</td><td>Strenger Leser (Abschnitt 1); liefert bad-backup, unsupported-version, duplicate-id oder den Fehler von checkMandate/checkRules, mit Stelle in where</td></tr>
+      <tr><td>serializeBackup</td><td>(b: Backup) =&gt; string</td><td>Schreibt immer Format 2: feste Schlüsselreihenfolge, Mandate nach Nummer, Personen nach Mandantennummer und Id, Abschlüsse nach Stichtag sortiert</td></tr>
+      <tr><td>parseBackup</td><td>(text) =&gt; Result&lt;Backup&gt;</td><td>Strenger Leser (Abschnitt 1) für Format 1 (wird übernommen) und 2; liefert bad-backup, unsupported-version, duplicate-id oder den Fehler von checkMandate/checkPerson/checkAuditClosing/checkRules, mit Stelle in where</td></tr>
       <tr><td>auditExceptions</td><td>(mandates, today, rules) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified (auch unbekannte Gruppe), unidentified, stalled, overdue (auch „vollständig“ ohne gültiges Prüfdatum)</td></tr>
       <tr><td>auditIsClean</td><td>(e) =&gt; boolean</td><td>Alle vier Listen leer</td></tr>
       <tr><td>buildTasks</td><td>(mandates, today, rules) =&gt; { tasks: Task[]; invalid: { mandateId, reason }[] }</td><td>Aufgabenliste: review-due, request-missing, dunning-reminder/-threat/-escalate (nur höchste erreichte Stufe), unclassified (nur aktive Mandate), retention-due (nur inaktive); Mandate ohne bestandenes checkMandate stehen in invalid; sortiert nach Art, Verzug absteigend, Mandantennummer</td></tr>
@@ -143,26 +167,33 @@
       <tr><td>bad-status</td><td>Unbekannter Statuswert, oder „vollstaendig“ ohne Datum der letzten Prüfung</td></tr>
       <tr><td>bad-end</td><td>Ende und Aktivstatus widersprechen sich: aktiv mit Enddatum, oder inaktiv ohne Enddatum (die Aufbewahrungsfrist würde nie starten)</td></tr>
       <tr><td>bad-config</td><td>Konfiguration ungültig (Zahl &lt;= 0, Mahnstufen nicht aufsteigend, Schwelle possible &gt; strong, doppelte Schlüssel/Ids, Schwellen außerhalb 0..1)</td></tr>
+      <tr><td>bad-person</td><td>Person ungültig: Id oder Nachname leer oder zu lang oder mit Steuerzeichen, Rolle unbekannt, Geburtsdatum kein gültiges JJJJ, JJJJ-MM oder JJJJ-MM-TT</td></tr>
+      <tr><td>unknown-mandate</td><td>Die Mandantennummer einer Person gibt es nicht</td></tr>
+      <tr><td>bad-closing</td><td>Abschluss des Jahresaudits ungültig: Datum ungültig, Abschluss vor dem Stichtag, Name leer oder zu lang, Notiz zu lang, mehrzeilig oder mit Steuerzeichen</td></tr>
       <tr><td>bad-backup</td><td>Sicherungsdatei: kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor</td></tr>
-      <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 1</td></tr>
-      <tr><td>duplicate-id</td><td>Mandantennummer kommt in der Sicherungsdatei doppelt vor</td></tr>
+      <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 2</td></tr>
+      <tr><td>duplicate-id</td><td>Mandantennummer, Personen-Id oder Stichtag eines Abschlusses kommt in der Sicherungsdatei doppelt vor</td></tr>
       <tr><td>file-too-large</td><td>Gewählte Sicherungsdatei ist größer als erlaubt (Standard 10 MB); sie wird nicht gelesen (io-Schicht)</td></tr>
       <tr><td>store-failed</td><td>Tresor lässt sich nicht lesen oder schreiben (geschlossen, Slot unlesbar, Speicher voll); nichts wird überschrieben (io-Schicht)</td></tr>
     </table>
 
     <h2>5 Beziehungen</h2>
-    <svg viewBox="0 0 560 120" role="img" aria-label="Beziehungen">
+    <svg viewBox="0 0 560 160" role="img" aria-label="Beziehungen">
       <rect class="e" x="10" y="35" width="130" height="40" rx="4" /><text x="40" y="60">Mandate</text>
       <rect class="e" x="240" y="5" width="130" height="40" rx="4" /><text x="262" y="30">RiskGroup</text>
       <rect class="e" x="240" y="70" width="130" height="40" rx="4" /><text x="262" y="95">LegalForm</text>
       <line x1="140" y1="48" x2="240" y2="25" /><text class="lab" x="150" y="30">riskGroupId</text>
       <line x1="140" y1="62" x2="240" y2="90" /><text class="lab" x="150" y="95">legalForm</text>
+      <rect class="e" x="10" y="115" width="130" height="40" rx="4" /><text x="48" y="140">Person</text>
+      <line x1="75" y1="115" x2="75" y2="75" /><text class="lab" x="82" y="100">mandateId</text>
     </svg>
     <table>
       <tr><th>Von</th><th>Feld</th><th>Nach</th><th>Kardinalität</th></tr>
       <tr><td>Mandate</td><td>riskGroupId</td><td>RiskGroup</td><td>n : 0..1</td></tr>
       <tr><td>Mandate</td><td>legalForm</td><td>LegalForm</td><td>n : 1</td></tr>
+      <tr><td>Person</td><td>mandateId</td><td>Mandate</td><td>n : 1</td></tr>
     </table>
+    <p class="note">AuditClosing hat keine Beziehung zu anderen Entitäten; es gehört zum Stichtag (je Stichtag höchstens einer).</p>
 
     <h2>6 Werkseinstellungen</h2>
     <p>

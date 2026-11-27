@@ -114,6 +114,19 @@ describe('ESLint module boundaries: backup', () => {
     );
     expect(root).not.toContain('no-restricted-imports');
   });
+
+  it('forbids a deep import into audit, allows its root', async () => {
+    const deep = await ruleIds(
+      'src/logic/backup/x.ts',
+      "import { checkAuditClosing } from '../audit/closing.ts';\nexport const a = checkAuditClosing;\n",
+    );
+    expect(deep).toContain('no-restricted-imports');
+    const root = await ruleIds(
+      'src/logic/backup/x.ts',
+      "import { checkAuditClosing } from '../audit/index.ts';\nexport const a = checkAuditClosing;\n",
+    );
+    expect(root).not.toContain('no-restricted-imports');
+  });
 });
 
 describe('ESLint module boundaries: io', () => {

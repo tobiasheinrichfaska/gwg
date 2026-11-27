@@ -1,17 +1,27 @@
 import { checkRules, type RulesConfig } from '../config.ts';
 import { fail, isDateKey, ok, type DateKey, type Result } from '../core/index.ts';
-import { checkMandate, ID_STATUSES, type Mandate, type Reason } from '../mandate/index.ts';
+import { checkAuditClosing, type AuditClosing } from '../audit/index.ts';
+import {
+  checkMandate,
+  checkPerson,
+  ID_STATUSES,
+  type Mandate,
+  type Person,
+  type Reason,
+} from '../mandate/index.ts';
 
 export const BACKUP_FORMAT = 'gwg-backup';
-export const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2;
 
-/** Stored form, version 1. Pure data: encryption is the job of the io layer. */
+/** Stored form, version 2 (version 1 files are migrated on read: no persons, no closings). Pure data: encryption is the job of the io layer. */
 export type Backup = {
   format: typeof BACKUP_FORMAT;
-  version: 1;
+  version: 2;
   createdOn: DateKey;
   rules: RulesConfig;
   mandates: Mandate[];
+  persons: Person[];
+  auditClosings: AuditClosing[];
 };
 
 type Obj = Record<string, unknown>;
@@ -22,7 +32,15 @@ const FORBIDDEN_KEYS = ['__proto__', 'constructor'];
 const sortById = (ms: readonly Mandate[]): Mandate[] =>
   [...ms].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-/** JSON with a fixed key order and mandates sorted by id (equal data gives equal text). */
+const byKey =
+  <T>(key: (x: T) => string) =>
+  (a: T, b: T) => {
+    const x = key(a);
+    const y = key(b);
+    return x < y ? -1 : x > y ? 1 : 0;
+  };
+
+/** JSON with a fixed key order and mandates sorted by id, persons by mandate and id, closings by cut-off date (equal data gives equal text). */
 export function serializeBackup(b: Backup): string {
   const r = b.rules;
   const out = {
@@ -63,6 +81,19 @@ export function serializeBackup(b: Backup): string {
       lastCheckOn: m.lastCheckOn,
       endedOn: m.endedOn,
     })),
+    persons: [...b.persons]
+      .sort((a, c) => byKey<Person>((p) => p.mandateId)(a, c) || byKey<Person>((p) => p.id)(a, c))
+      .map((p) => ({
+        id: p.id,
+        mandateId: p.mandateId,
+        role: p.role,
+        lastName: p.lastName,
+        firstName: p.firstName,
+        birth: p.birth,
+      })),
+    auditClosings: [...b.auditClosings]
+      .sort(byKey<AuditClosing>((c) => c.stichtag))
+      .map((c) => ({ stichtag: c.stichtag, closedOn: c.closedOn, by: c.by, note: c.note })),
   };
   return JSON.stringify(out, null, 2) + '\n';
 }
@@ -197,6 +228,22 @@ const MANDATE_SPEC: Record<string, Kind> = {
   endedOn: 'string|null',
 };
 
+const PERSON_SPEC: Record<string, Kind> = {
+  id: 'string',
+  mandateId: 'string',
+  role: 'string',
+  lastName: 'string',
+  firstName: 'string',
+  birth: 'string|null',
+};
+
+const CLOSING_SPEC: Record<string, Kind> = {
+  stichtag: 'string',
+  closedOn: 'string',
+  by: 'string',
+  note: 'string',
+};
+
 /** Strict, all-or-nothing reader: the first problem fails the whole file, nothing is dropped. */
 export function parseBackup(text: string): Result<Backup, Reason> {
   let raw: unknown;
@@ -213,9 +260,16 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     return bad('version');
   }
   if (raw.version > BACKUP_VERSION) return fail('unsupported-version', 'version');
+  const v1: Record<string, Kind> = {
+    format: 'string',
+    version: 'number',
+    createdOn: 'string',
+    rules: 'any',
+    mandates: 'any',
+  };
   const top = shape(
     raw,
-    { format: 'string', version: 'number', createdOn: 'string', rules: 'any', mandates: 'any' },
+    raw.version === 1 ? v1 : { ...v1, persons: 'any', auditClosings: 'any' },
     'root',
   );
   if (!top.ok) return top;
@@ -238,11 +292,45 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     seen.add(m.id);
     mandates.push(m);
   }
+  const persons: Person[] = [];
+  const closings: AuditClosing[] = [];
+  if (raw.version === 2) {
+    const rawPersons = list(raw.persons, 'persons');
+    if (!rawPersons.ok) return rawPersons;
+    const seenPersons = new Set<string>();
+    for (const [i, item] of rawPersons.value.entries()) {
+      const where = `persons[${i}]`;
+      const s = shape(item, PERSON_SPEC, where);
+      if (!s.ok) return s;
+      const p = s.value as unknown as Person;
+      const c = checkPerson(p, mandates);
+      if (!c.ok) return fail(c.reason, where);
+      if (seenPersons.has(p.id)) return fail('duplicate-id', `${where}.id`);
+      seenPersons.add(p.id);
+      persons.push(p);
+    }
+    const rawClosings = list(raw.auditClosings, 'auditClosings');
+    if (!rawClosings.ok) return rawClosings;
+    const seenDays = new Set<string>();
+    for (const [i, item] of rawClosings.value.entries()) {
+      const where = `auditClosings[${i}]`;
+      const s = shape(item, CLOSING_SPEC, where);
+      if (!s.ok) return s;
+      const a = s.value as unknown as AuditClosing;
+      const c = checkAuditClosing(a);
+      if (!c.ok) return fail(c.reason, where);
+      if (seenDays.has(a.stichtag)) return fail('duplicate-id', `${where}.stichtag`);
+      seenDays.add(a.stichtag);
+      closings.push(a);
+    }
+  }
   return ok({
     format: BACKUP_FORMAT,
-    version: 1,
+    version: 2,
     createdOn: raw.createdOn as string,
     rules: rules.value,
     mandates,
+    persons,
+    auditClosings: closings,
   });
 }

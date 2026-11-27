@@ -5,3 +5,4 @@ export * from './review.ts';
 export * from './dunning.ts';
 export * from './retention.ts';
 export * from './validate.ts';
+export * from './person.ts';

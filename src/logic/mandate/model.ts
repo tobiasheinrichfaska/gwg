@@ -56,6 +56,29 @@ export interface Mandate {
   endedOn: DateKey | null;
 }
 
+export const PERSON_ROLES = [
+  'inhaber',
+  'geschaeftsfuehrer',
+  'gesellschafter',
+  'wirtschaftlich-berechtigter',
+  'vertreter',
+  'sonstige',
+] as const;
+export type PersonRole = (typeof PERSON_ROLES)[number];
+
+/** A natural person connected to a mandate (owner, managing director, beneficial owner ...). */
+export interface Person {
+  id: string;
+  /** Client number of the `Mandate` the person belongs to (n : 1). */
+  mandateId: string;
+  role: PersonRole;
+  lastName: string;
+  /** May be empty. */
+  firstName: string;
+  /** 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD'; null = unknown (same shape as the sanctions logic's partial date). */
+  birth: string | null;
+}
+
 export type SanctionClass = 'gruen' | 'gelb' | 'rot';
 
 /** Error codes; the data-model page lists every one (checked by a test). */
@@ -68,6 +91,9 @@ export type Reason =
   | 'bad-status'
   | 'bad-end'
   | 'bad-config'
+  | 'bad-person'
+  | 'unknown-mandate'
+  | 'bad-closing'
   | 'bad-backup'
   | 'unsupported-version'
   | 'duplicate-id'

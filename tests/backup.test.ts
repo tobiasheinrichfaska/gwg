@@ -1,12 +1,41 @@
-import { DEFAULT_RULES, parseBackup, serializeBackup, type Backup } from '../src/logic/index.ts';
+import {
+  DEFAULT_RULES,
+  parseBackup,
+  serializeBackup,
+  type AuditClosing,
+  type Backup,
+  type Person,
+} from '../src/logic/index.ts';
 import { mandate } from './helpers.ts';
 
+const person = (over: Partial<Person> = {}): Person => ({
+  id: 'p1',
+  mandateId: '10001',
+  role: 'geschaeftsfuehrer',
+  lastName: 'Muster',
+  firstName: 'Max',
+  birth: '1970-05-01',
+  ...over,
+});
+const closing = (over: Partial<AuditClosing> = {}): AuditClosing => ({
+  stichtag: '2026-11-30',
+  closedOn: '2026-12-01',
+  by: 'Dr. Beispiel',
+  note: '',
+  ...over,
+});
 const base = (): Backup => ({
   format: 'gwg-backup',
-  version: 1,
+  version: 2,
   createdOn: '2026-11-26',
   rules: DEFAULT_RULES,
   mandates: [mandate({ id: '10002', name: 'Zweite GmbH' }), mandate({ id: '10001' })],
+  persons: [
+    person({ id: 'p3', mandateId: '10002' }),
+    person({ id: 'p2' }),
+    person({ id: 'p1', birth: null }),
+  ],
+  auditClosings: [closing({ stichtag: '2026-11-30' }), closing({ stichtag: '2025-11-30' })],
 });
 const obj = (b: Backup = base()): any => JSON.parse(serializeBackup(b));
 const parse = (o: unknown) => parseBackup(JSON.stringify(o));
@@ -23,15 +52,34 @@ describe('backup round trip', () => {
     const r = parseBackup(serializeBackup(b));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value).toEqual({ ...b, mandates: [b.mandates[1], b.mandates[0]] });
+    expect(r.value).toEqual({
+      ...b,
+      mandates: [b.mandates[1], b.mandates[0]],
+      persons: [b.persons[2], b.persons[1], b.persons[0]],
+      auditClosings: [b.auditClosings[1], b.auditClosings[0]],
+    });
     expect(serializeBackup(r.value)).toBe(serializeBackup(b));
   });
   it('has a stable key order', () => {
-    expect(Object.keys(obj())).toEqual(['format', 'version', 'createdOn', 'rules', 'mandates']);
+    expect(Object.keys(obj())).toEqual([
+      'format',
+      'version',
+      'createdOn',
+      'rules',
+      'mandates',
+      'persons',
+      'auditClosings',
+    ]);
+    expect(obj().version).toBe(2);
+    expect(obj().persons.map((p: Person) => p.id)).toEqual(['p1', 'p2', 'p3']);
+    expect(obj().auditClosings.map((c: AuditClosing) => c.stichtag)).toEqual([
+      '2025-11-30',
+      '2026-11-30',
+    ]);
     expect(obj().mandates[0].id).toBe('10001');
   });
   it('accepts an empty mandate list', () => {
-    expect(parseBackup(serializeBackup({ ...base(), mandates: [] })).ok).toBe(true);
+    expect(parseBackup(serializeBackup({ ...base(), mandates: [], persons: [] })).ok).toBe(true);
   });
 });
 
@@ -45,8 +93,8 @@ describe('backup reader: whole-file errors', () => {
   it('rejects a wrong format marker', () => {
     fails(parse({ ...obj(), format: 'other' }), 'bad-backup', 'format');
   });
-  it('rejects version 2 as unsupported', () => {
-    fails(parse({ ...obj(), version: 2 }), 'unsupported-version');
+  it('rejects version 3 as unsupported', () => {
+    fails(parse({ ...obj(), version: 3 }), 'unsupported-version');
   });
   it.each([0, 1.5, '1', null])('rejects bad version %j', (v) => {
     fails(parse({ ...obj(), version: v }), 'bad-backup', 'version');
@@ -112,6 +160,105 @@ describe('backup reader: mandates', () => {
     const o = obj();
     o.mandates[1].id = o.mandates[0].id;
     fails(parse(o), 'duplicate-id', 'mandates[1].id');
+  });
+});
+
+describe('backup reader: version 1 migration', () => {
+  const v1 = () => {
+    const o = obj();
+    delete o.persons;
+    delete o.auditClosings;
+    o.version = 1;
+    return o;
+  };
+  it('reads a version 1 file and migrates it to version 2 without persons and closings', () => {
+    const r = parse(v1());
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.version).toBe(2);
+    expect(r.value.persons).toEqual([]);
+    expect(r.value.auditClosings).toEqual([]);
+    expect(r.value.mandates).toHaveLength(2);
+    expect(JSON.parse(serializeBackup(r.value)).version).toBe(2);
+  });
+  it('stays strict: persons in a version 1 file are an unknown key', () => {
+    fails(parse({ ...v1(), persons: [] }), 'bad-backup', 'root.persons');
+  });
+  it('rejects a version 2 file without persons or closings', () => {
+    const o = obj();
+    delete o.persons;
+    fails(parse(o), 'bad-backup', 'root.persons');
+    const p = obj();
+    delete p.auditClosings;
+    fails(parse(p), 'bad-backup', 'root.auditClosings');
+  });
+});
+
+describe('backup reader: persons', () => {
+  it('rejects non-arrays, unknown keys, missing keys', () => {
+    fails(parse({ ...obj(), persons: {} }), 'bad-backup', 'persons');
+    const o = obj();
+    o.persons[0].extra = 1;
+    fails(parse(o), 'bad-backup', 'persons[0].extra');
+    const p = obj();
+    delete p.persons[1].birth;
+    fails(parse(p), 'bad-backup', 'persons[1].birth');
+  });
+  const wrong: [string, unknown][] = [
+    ['id', 5],
+    ['mandateId', null],
+    ['role', 1],
+    ['lastName', null],
+    ['firstName', 2],
+    ['birth', 1970],
+  ];
+  it.each(wrong)('rejects a wrong type in %s', (field, value) => {
+    const o = obj();
+    o.persons[0][field] = value;
+    fails(parse(o), 'bad-backup', `persons[0].${field}`);
+  });
+  it('passes checkPerson errors through with the place', () => {
+    const o = obj();
+    o.persons[0].role = 'chef';
+    fails(parse(o), 'bad-person', 'persons[0]');
+    const p = obj();
+    p.persons[2].birth = '1970-02-30';
+    fails(parse(p), 'bad-person', 'persons[2]');
+    const q = obj();
+    q.persons[1].mandateId = '99999';
+    fails(parse(q), 'unknown-mandate', 'persons[1]');
+  });
+  it('rejects a duplicate person id', () => {
+    const o = obj();
+    o.persons[1].id = o.persons[0].id;
+    fails(parse(o), 'duplicate-id', 'persons[1].id');
+  });
+});
+
+describe('backup reader: audit closings', () => {
+  it('rejects non-arrays, unknown keys, wrong types', () => {
+    fails(parse({ ...obj(), auditClosings: 1 }), 'bad-backup', 'auditClosings');
+    const o = obj();
+    o.auditClosings[0].extra = 1;
+    fails(parse(o), 'bad-backup', 'auditClosings[0].extra');
+    for (const f of ['stichtag', 'closedOn', 'by', 'note']) {
+      const p = obj();
+      p.auditClosings[1][f] = 5;
+      fails(parse(p), 'bad-backup', `auditClosings[1].${f}`);
+    }
+  });
+  it('passes checkAuditClosing errors through with the place', () => {
+    const o = obj();
+    o.auditClosings[0].closedOn = '2025-01-01';
+    fails(parse(o), 'bad-closing', 'auditClosings[0]');
+    const p = obj();
+    p.auditClosings[1].by = ' ';
+    fails(parse(p), 'bad-closing', 'auditClosings[1]');
+  });
+  it('rejects two closings for one cut-off date', () => {
+    const o = obj();
+    o.auditClosings[1].stichtag = o.auditClosings[0].stichtag;
+    fails(parse(o), 'duplicate-id', 'auditClosings[1].stichtag');
   });
 });
 

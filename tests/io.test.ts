@@ -11,10 +11,12 @@ import { mandate } from './helpers.ts';
 
 const backup = (): Backup => ({
   format: 'gwg-backup',
-  version: 1,
+  version: 2,
   createdOn: '2026-11-27',
   rules: DEFAULT_RULES,
   mandates: [mandate({ id: '10002', name: 'Zweite GmbH' }), mandate({ id: '10001' })],
+  persons: [],
+  auditClosings: [],
 });
 
 describe('memory store', () => {

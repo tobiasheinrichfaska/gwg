@@ -23,6 +23,11 @@ export const REASON_TEXTS: Record<Reason, string> = {
   'bad-end':
     'Beendigungsdatum und „Aktiv“ passen nicht zusammen: Ein aktives Mandat hat kein Ende, ein inaktives braucht eines.',
   'bad-config': 'Die Einstellungen (Fristen, Mahnstufen) sind ungültig.',
+  'bad-person':
+    'Die Person ist ungültig: Nachname, Rolle und Geburtsdatum (JJJJ, JJJJ-MM oder JJJJ-MM-TT) prüfen.',
+  'unknown-mandate': 'Das Mandat dieser Person gibt es nicht.',
+  'bad-closing':
+    'Der Abschluss des Jahresaudits ist ungültig: Datum, Name der abschließenden Person oder Notiz prüfen.',
   'bad-backup': 'Die Datei ist keine gültige Sicherung.',
   'unsupported-version': 'Diese Sicherung hat ein unbekanntes Format oder eine unbekannte Version.',
   'duplicate-id': 'Diese Mandatsnummer gibt es schon.',

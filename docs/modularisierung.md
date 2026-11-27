@@ -80,6 +80,10 @@ diese auf.
   kann „config importiert aus `mandate/model` nur Typen“ nicht erzwungen werden.
 - (c) `dunningStage` liefert `string` statt `DunningStage` (`mandate/dunning.ts`).
 
+**Notiz T1 (2026-11-27):** `Person` (+ `PersonRole`) liegt in `mandate/model.ts`, `checkPerson` in `mandate/person.ts`;
+`AuditClosing` und `checkAuditClosing` in `audit/closing.ts`. `backup` hängt damit auch an `audit` (Lint-Block
+ergänzt: Wurzelimport erlaubt, Tiefimport verboten). Sicherungsformat 2; Format 1 wird beim Lesen migriert.
+
 ## Bewusst nicht modularisiert
 
 - Kein eigenes Paket/Workspace je Modul: ein Build, eine Datei, ein Repo reichen; Ordnergrenzen mit Lint genügen.

@@ -16,10 +16,12 @@ afterEach(cleanup);
 const clock = () => new Date(2026, 10, 27, 12, 0, 0);
 const backupOf = (mandates: Mandate[]): Backup => ({
   format: 'gwg-backup',
-  version: 1,
+  version: 2,
   createdOn: '2026-11-27',
   rules: DEFAULT_RULES,
   mandates,
+  persons: [],
+  auditClosings: [],
 });
 
 function setup(mandates: Mandate[] = [], store?: AppStore) {

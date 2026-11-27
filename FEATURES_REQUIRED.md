@@ -20,7 +20,7 @@
 - [x] **Aufgabenliste (Bildschirm):** wer ist fällig, wer mahnt, wer eskaliert; „Erste Anforderung heute gesendet“, „Prüfung heute abgeschlossen“ mit Bestätigung, nicht prüfbare Mandate gemeldet (`tests/ui/tasks-audit.test.tsx`, `manual_tests/04_aufgaben_audit.md`)
 - [x] **Navigation** mit `rad-navi` (Rahmen und Bereiche; alle fünf Bereiche gebaut)
 - [x] **Jahresaudit-Assistent (Anzeige):** vier Listen mit Zahl, Stichtag, „abschließbar“ nur ohne Auffälligkeiten, Stichtagsliste als Textdatei; der Zeitraum 1.–30. November wird nur genannt, nicht erzwungen. Offen: der Abschluss wird nicht gespeichert (keine Abschluss-Persistenz)
-- [x] **Sicherungsdatei (Logik):** Format 1, `serializeBackup`/`parseBackup` (streng, `tests/backup.test.ts`)
+- [x] **Sicherungsdatei (Logik):** Format 2 (Personen, Audit-Abschlüsse; Format 1 wird gelesen), `serializeBackup`/`parseBackup` (streng, `tests/backup.test.ts`)
 - [x] **Sicherungsdatei schreiben und streng wieder einlesen** (Bildschirm „Sicherung“, `tests/ui/`); die Datei selbst ist unverschlüsselt (Warnung im Bildschirm)
 
 | Path                                         | Impact                              | Audit Check                        |

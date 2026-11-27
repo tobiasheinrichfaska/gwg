@@ -11,10 +11,12 @@ afterEach(cleanup);
 
 const backup = (n: number): Backup => ({
   format: 'gwg-backup',
-  version: 1,
+  version: 2,
   createdOn: '2026-11-27',
   rules: DEFAULT_RULES,
   mandates: Array.from({ length: n }, (_, i) => mandate({ id: String(10001 + i) })),
+  persons: [],
+  auditClosings: [],
 });
 const clock = () => new Date(2026, 10, 27, 12, 0, 0);
 

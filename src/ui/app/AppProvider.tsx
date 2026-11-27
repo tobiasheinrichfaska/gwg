@@ -18,7 +18,15 @@ type Loaded =
   | { kind: 'damaged'; reason: Reason; where: string | undefined };
 
 function emptyBackup(today: DateKey): Backup {
-  return { format: 'gwg-backup', version: 1, createdOn: today, rules: DEFAULT_RULES, mandates: [] };
+  return {
+    format: 'gwg-backup',
+    version: 2,
+    createdOn: today,
+    rules: DEFAULT_RULES,
+    mandates: [],
+    persons: [],
+    auditClosings: [],
+  };
 }
 
 interface Props {
