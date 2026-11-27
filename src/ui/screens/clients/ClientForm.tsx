@@ -8,6 +8,7 @@ import {
 } from '../../../logic/index.ts';
 import { ID_STATUS_LABELS } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
+import { PersonsSection } from './PersonsSection.tsx';
 
 interface Props {
   rules: RulesConfig;
@@ -233,6 +234,7 @@ export function ClientForm({ rules, initial, takenIds, onSave, onCancel }: Props
           </button>
         </p>
       </form>
+      {editing && <PersonsSection mandateId={start.id} />}
     </section>
   );
 }

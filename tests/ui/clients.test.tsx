@@ -58,12 +58,13 @@ describe('list', () => {
     const row = (await screen.findByText('Muster GmbH')).closest('tr')!;
     const cells = within(row).getAllByRole('cell');
     expect(within(row).getByRole('rowheader').textContent).toBe('10001');
-    expect(cells.map((c) => c.textContent).slice(0, 6)).toEqual([
+    expect(cells.map((c) => c.textContent).slice(0, 7)).toEqual([
       'Muster GmbH',
       'GmbH',
       'normal',
       'vollständig',
       '15.01.2028',
+      '0 Keine Vertreter/wirtschaftlich Berechtigten erfasst',
       'Ja',
     ]);
     const empty = screen.getByText('Neu GmbH').closest('tr')!;

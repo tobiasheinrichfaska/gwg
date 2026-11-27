@@ -12,7 +12,7 @@ nur, was eine Person sehen muss.
 ## Stand
 
 Gebaut sind der Rahmen mit Navigation und die Bildschirme „Sicherung“, „Mandanten“, „Aufgaben“, „Audit“ und
-„Übersicht“ (MT-01 bis MT-04).
+„Übersicht“ (MT-01 bis MT-05).
 
 ## Dateien
 
@@ -22,3 +22,4 @@ Gebaut sind der Rahmen mit Navigation und die Bildschirme „Sicherung“, „Ma
 | `02_sicherung.md`      | Sicherung speichern, ansehen, einspielen, kaputte Datei   |
 | `03_mandanten.md`      | Mandanten anlegen, suchen, bearbeiten, löschen            |
 | `04_aufgaben_audit.md` | Aufgabenliste, Aktionen, Audit, Stichtagsliste, Übersicht |
+| `05_personen.md`       | Personen je Mandat anlegen, bearbeiten, löschen           |

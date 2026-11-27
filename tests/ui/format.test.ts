@@ -1,4 +1,4 @@
-import { formatDate, NONE } from '../../src/ui/format.ts';
+import { formatBirth, formatDate, NONE } from '../../src/ui/format.ts';
 
 describe('formatDate', () => {
   it('shows a stored date as DD.MM.YYYY', () => {
@@ -13,5 +13,17 @@ describe('formatDate', () => {
   it('does not hide a value that is not a date', () => {
     expect(formatDate('2026-02-30')).toBe('2026-02-30');
     expect(formatDate('gestern')).toBe('gestern');
+  });
+});
+
+describe('formatBirth', () => {
+  it('shows day, month and year, month and year, or year only', () => {
+    expect(formatBirth('1975-03-09')).toBe('09.03.1975');
+    expect(formatBirth('1975-03')).toBe('03.1975');
+    expect(formatBirth('1975')).toBe('1975');
+  });
+  it('shows a dash for unknown and does not hide a value that is not a date', () => {
+    expect(formatBirth(null)).toBe(NONE);
+    expect(formatBirth('1975-13')).toBe('1975-13');
   });
 });

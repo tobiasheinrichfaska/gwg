@@ -4,13 +4,15 @@ import { retentionSentence } from '../../messages.ts';
 
 interface Props {
   mandate: Mandate;
+  /** Persons of the mandate; they are deleted with it. */
+  personCount: number;
   rules: RulesConfig;
   today: DateKey;
   onConfirm(): void;
   onCancel(): void;
 }
 
-export function DeleteDialog({ mandate, rules, today, onConfirm, onCancel }: Props) {
+export function DeleteDialog({ mandate, personCount, rules, today, onConfirm, onCancel }: Props) {
   const uid = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -31,7 +33,13 @@ export function DeleteDialog({ mandate, rules, today, onConfirm, onCancel }: Pro
         Mandant {mandate.id} {mandate.name} löschen?
       </h3>
       <p id={`${uid}-d`}>
-        {retentionSentence(mandate, rules, today)} Das Löschen kann nicht rückgängig gemacht werden.
+        {retentionSentence(mandate, rules, today)}{' '}
+        {personCount === 0
+          ? 'Es sind keine Personen erfasst.'
+          : personCount === 1
+            ? '1 erfasste Person wird mitgelöscht.'
+            : `${personCount} erfasste Personen werden mitgelöscht.`}{' '}
+        Das Löschen kann nicht rückgängig gemacht werden.
       </p>
       <button type="button" ref={cancelRef} onClick={onCancel}>
         Abbrechen

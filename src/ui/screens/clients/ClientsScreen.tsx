@@ -1,5 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { effectiveRiskClass, nextReviewDate, type Mandate } from '../../../logic/index.ts';
+import {
+  checkTypeOf,
+  effectiveRiskClass,
+  nextReviewDate,
+  type Mandate,
+} from '../../../logic/index.ts';
 import { useApp } from '../../app/context.ts';
 import { formatDate, ID_STATUS_LABELS, NONE, RISK_CLASS_LABELS } from '../../format.ts';
 import { reasonText } from '../../messages.ts';
@@ -58,7 +63,11 @@ export function ClientsScreen() {
   }
 
   async function remove(m: Mandate) {
-    const r = await replace({ ...backup, mandates: mandates.filter((x) => x.id !== m.id) });
+    const r = await replace({
+      ...backup,
+      mandates: mandates.filter((x) => x.id !== m.id),
+      persons: backup.persons.filter((p) => p.mandateId !== m.id),
+    });
     setToDelete(null);
     if (r.ok) backToList(`Mandant ${m.id} ${m.name} gelöscht.`);
     else setNotice(null);
@@ -138,6 +147,7 @@ export function ClientsScreen() {
                     <th scope="col">Risikoklasse</th>
                     <th scope="col">Status</th>
                     <th scope="col">Nächste Prüfung</th>
+                    <th scope="col">Personen</th>
                     <th scope="col">Aktiv</th>
                     <th scope="col">Aktionen</th>
                   </tr>
@@ -145,6 +155,7 @@ export function ClientsScreen() {
                 <tbody>
                   {rows.map((m) => {
                     const cls = effectiveRiskClass(m, rules);
+                    const personCount = backup.persons.filter((p) => p.mandateId === m.id).length;
                     return (
                       <tr key={m.id}>
                         <th scope="row">{m.id}</th>
@@ -156,6 +167,15 @@ export function ClientsScreen() {
                         <td>{cls === null ? NONE : RISK_CLASS_LABELS[cls]}</td>
                         <td>{ID_STATUS_LABELS[m.idStatus]}</td>
                         <td>{formatDate(nextReviewDate(m, rules))}</td>
+                        <td>
+                          {personCount}
+                          {personCount === 0 && checkTypeOf(m.legalForm, rules) === 'C' && (
+                            <span className="hint">
+                              {' '}
+                              Keine Vertreter/wirtschaftlich Berechtigten erfasst
+                            </span>
+                          )}
+                        </td>
                         <td>{m.active ? 'Ja' : 'Nein'}</td>
                         <td>
                           <button
@@ -188,6 +208,7 @@ export function ClientsScreen() {
       {toDelete !== null && (
         <DeleteDialog
           mandate={toDelete}
+          personCount={backup.persons.filter((p) => p.mandateId === toDelete.id).length}
           rules={rules}
           today={today}
           onConfirm={() => void remove(toDelete)}
