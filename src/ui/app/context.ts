@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { AppStore, ListNote } from '../../io/index.ts';
 import type {
+  AuditClosing,
   Backup,
   ClosingCheck,
   DateKey,
@@ -21,6 +22,8 @@ export interface ScreeningResult {
   unscreenableMandates: UnscreenableMandate[];
   ranOn: DateKey;
   listFetchedOn: DateKey;
+  /** In-memory counter of the list the run used (`listVersion`): another list with the same date differs. */
+  listVersion: number;
   /** Fingerprint of the persons and mandates the run saw; a change makes the run outdated. */
   signature: string;
 }
@@ -61,6 +64,12 @@ export interface AppState {
    * `await`: building it from the `backup` of an old render would drop edits made in between.
    */
   update(change: (latest: Backup) => Backup): Promise<Result<void>>;
+  /**
+   * Adds the closing of the yearly audit. The only action with a guard: the blockers are computed inside
+   * the save queue from the newest data, list and hits, and `closing-blocked` is returned while any stand.
+   * `replace`/`update` never block (a restore of a backup with closings must always work).
+   */
+  closeAudit(closing: AuditClosing): Promise<Result<void>>;
   /** Set when the last save failed. */
   saveError: Reason | null;
   /** Where `checkBackup` found the problem, when it was the check that refused the save. */

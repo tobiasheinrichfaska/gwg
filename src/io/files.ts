@@ -11,6 +11,11 @@ export function backupFileName(today: DateKey): string {
   return `gwg-sicherung-${today}.gwg.json`;
 }
 
+/** Some browsers read the blob only after `click()` returns: revoke the URL a second later. */
+function revokeLater(url: string): void {
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** Hands the text to the browser as a download. Pure browser API, kept in this one function. */
 export function downloadBackup(text: string, fileName: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -20,7 +25,7 @@ export function downloadBackup(text: string, fileName: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  revokeLater(url);
 }
 
 /** Reads a chosen file as text; the content is checked later by `parseBackup`. */
@@ -45,7 +50,7 @@ export function downloadText(text: string, fileName: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  revokeLater(url);
 }
 
 export function auditFileName(today: DateKey): string {

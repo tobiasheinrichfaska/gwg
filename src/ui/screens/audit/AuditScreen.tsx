@@ -18,7 +18,7 @@ import { AUDIT_LISTS, auditText, countFindings } from './export.ts';
 import { Modal } from '../../components/Modal.tsx';
 
 export function AuditScreen() {
-  const { backup, today, update, closing: closingCheck } = useApp();
+  const { backup, today, update, closeAudit, closing: closingCheck } = useApp();
   const uid = useId();
   const [stichtag, setStichtag] = useState<DateKey>(() => defaultStichtag(today));
   const [dialog, setDialog] = useState<'close' | 'reopen' | null>(null);
@@ -48,7 +48,7 @@ export function AuditScreen() {
   async function close(by: string, note: string) {
     const c = checkAuditClosing({ stichtag, closedOn: today, by: by.trim(), note });
     if (!c.ok) return setError(describeFailure(c.reason, c.where));
-    const r = await update((b) => ({ ...b, auditClosings: [...b.auditClosings, c.value] }));
+    const r = await closeAudit(c.value);
     if (!r.ok) return setError(describeFailure(r.reason, r.where));
     setError(null);
     setDialog(null);

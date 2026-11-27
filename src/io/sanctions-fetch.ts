@@ -92,6 +92,8 @@ export async function fetchSanctionsList(o: FetchOptions): Promise<Result<Fetche
       readGenerationDate(xml) ??
       (isDateKey(header) ? header : null) ??
       o.today;
+    // A state after today is a wrong date or clock: it would never turn stale.
+    if (fetchedOn > o.today) return fail('relay-bad-response');
     const parsed = parseEuSanctionsXml(xml, fetchedOn);
     if (!parsed.ok) return parsed;
     return ok({

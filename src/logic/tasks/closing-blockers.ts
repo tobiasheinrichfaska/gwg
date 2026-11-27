@@ -7,6 +7,8 @@ import type { Task } from './tasks.ts';
 export type ClosingBlocker =
   | { kind: 'red-hits'; count: number }
   | { kind: 'pep-approvals'; count: number }
+  /** Persons/mandates whose name cannot be compared (never silently green). */
+  | { kind: 'unscreenable'; count: number }
   | {
       kind: 'screening-missing';
       /** No list loaded, the run is outdated, or no run in this session (hits live in memory only). */
@@ -25,7 +27,7 @@ export interface ClosingCheck {
 }
 
 export interface ClosingBlockersInput {
-  /** Task list of today (only the `pep-approval` kind is read). */
+  /** Task list of today (only the `pep-approval` and `sanction-unscreenable` kinds are read). */
   tasks: readonly Task[];
   /** Hits of the last run (live ones), with the saved decisions, persons and mandates. */
   hits: readonly Hit[];
@@ -49,6 +51,8 @@ export function closingBlockers(input: ClosingBlockersInput): ClosingCheck {
   if (red > 0) blockers.push({ kind: 'red-hits', count: red });
   const pep = input.tasks.filter((t) => t.kind === 'pep-approval').length;
   if (pep > 0) blockers.push({ kind: 'pep-approvals', count: pep });
+  const unscreenable = input.tasks.filter((t) => t.kind === 'sanction-unscreenable').length;
+  if (unscreenable > 0) blockers.push({ kind: 'unscreenable', count: unscreenable });
   const s = input.screening;
   if (!s.hasList) blockers.push({ kind: 'screening-missing', why: 'no-list' });
   else if (s.ranOn === null) blockers.push({ kind: 'screening-missing', why: 'never-run' });

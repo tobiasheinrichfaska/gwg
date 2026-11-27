@@ -177,10 +177,14 @@ export function listAgeDays(fetchedOn: DateKey, today: DateKey): number {
   return Math.max(0, daysBetween(fetchedOn, today));
 }
 
-/** No list at all counts as stale; otherwise stale when older than `maxAgeDays`. */
+/**
+ * No list at all counts as stale; otherwise stale when older than `maxAgeDays`. A state after today
+ * (negative age: wrong clock or wrong date) never counts as fresh.
+ */
 export function isListStale(index: ListIndex | null, today: DateKey, maxAgeDays: number): boolean {
   if (index === null) return true;
-  return listAgeDays(index.fetchedOn, today) > maxAgeDays;
+  const age = daysBetween(index.fetchedOn, today);
+  return age < 0 || age > maxAgeDays;
 }
 
 /** A new list with fewer than this share of the stored list's entries is suspicious (cut-off or wrong file). */

@@ -8,6 +8,7 @@ export const TASK_GROUPS: readonly { kind: TaskKind; title: string }[] = [
     kind: 'sanction-confirmed',
     title: 'Bestätigter Treffer: Meldung/Sperre durch die Leitung entscheiden',
   },
+  { kind: 'sanction-unscreenable', title: 'Name nicht prüfbar: Daten ergänzen' },
   { kind: 'pep-approval', title: 'Freigabe der Führungsebene' },
   { kind: 'retention-due', title: 'Löschen fällig' },
   { kind: 'dunning-threat', title: 'Androhung senden' },

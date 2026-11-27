@@ -28,6 +28,7 @@ export {
 } from './list.ts';
 export {
   currentSnapshot,
+  unscreenableSubjects,
   screenAll,
   screenMandates,
   screenPerson,

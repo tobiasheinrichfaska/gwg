@@ -3,6 +3,7 @@ import { addDays, daysBetween, isDateKey } from '../core/index.ts';
 import {
   confirmedHits,
   openHits,
+  unscreenableSubjects,
   type Hit,
   type ScreeningDecision,
   type SubjectKind,
@@ -28,6 +29,7 @@ export type TaskKind =
   | 'pep-approval'
   | 'sanction-clear'
   | 'sanction-confirmed'
+  | 'sanction-unscreenable'
   | 'request-missing'
   | 'retention-due'
   | 'unclassified';
@@ -64,6 +66,7 @@ const PRIORITY: Record<TaskKind, number> = {
   'dunning-escalate': 0,
   'sanction-clear': 1, // red hits; yellow ones rank `YELLOW_PRIORITY`
   'sanction-confirmed': 2,
+  'sanction-unscreenable': 2.5,
   'pep-approval': 3,
   'retention-due': 4,
   'dunning-threat': 5,
@@ -190,6 +193,31 @@ export function buildTasks(
       subjectId: h.subjectId,
       entryId: h.entryId,
       klasse: h.klasse,
+    });
+  }
+
+  // Names the screening cannot compare: never silently green, so a task each (data to complete).
+  const noName = unscreenableSubjects(persons, mandates);
+  for (const p of noName.persons) {
+    if (!active.has(p.mandateId)) continue;
+    tasks.push({
+      mandateId: p.mandateId,
+      kind: 'sanction-unscreenable',
+      dueOn: null,
+      daysOverdue: 0,
+      subjectKind: 'person',
+      subjectId: p.id,
+    });
+  }
+  for (const m of noName.mandates) {
+    if (!active.has(m.id)) continue;
+    tasks.push({
+      mandateId: m.id,
+      kind: 'sanction-unscreenable',
+      dueOn: null,
+      daysOverdue: 0,
+      subjectKind: 'mandate',
+      subjectId: m.id,
     });
   }
 

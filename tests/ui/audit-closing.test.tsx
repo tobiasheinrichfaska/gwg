@@ -304,17 +304,15 @@ describe('closing blockers (T9b / U1)', () => {
     expect(screen.getByRole('dialog').textContent).toContain('1 offener gelber Treffer');
   });
 
-  it('the provider refuses to save a new closing while blockers stand', async () => {
+  it('closeAudit refuses to save a new closing while blockers stand', async () => {
     function Sneak() {
-      const { backup, replace } = useApp();
+      const { closeAudit } = useApp();
       const [msg, setMsg] = useState('');
       return (
         <button
           type="button"
           onClick={() =>
-            void replace({ ...backup, auditClosings: [closed] }).then((r) =>
-              setMsg(r.ok ? 'gespeichert' : r.reason),
-            )
+            void closeAudit(closed).then((r) => setMsg(r.ok ? 'gespeichert' : r.reason))
           }
         >
           {msg === '' ? 'Sneak' : msg}

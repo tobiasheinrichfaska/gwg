@@ -7,6 +7,8 @@ import { Modal } from '../../components/Modal.tsx';
 
 interface Props {
   file: EuListFile;
+  /** "Today" of the app: a list state after it is refused (it would never turn stale). */
+  today: DateKey;
   /** State date of the list now stored, if any. */
   currentOn: DateKey | null;
   /** Entries of the list now stored, if any. */
@@ -19,6 +21,7 @@ interface Props {
 /** The date read from the file is only a proposal: a person confirms or corrects it before saving. */
 export function ListImportDialog({
   file,
+  today,
   currentOn,
   currentCount,
   error,
@@ -34,7 +37,8 @@ export function ListImportDialog({
   const [confirmed, setConfirmed] = useState(false);
   const got = file.index.entries.length;
   const shrunk = currentCount !== null && shrankTooMuch(currentCount, got);
-  const valid = isDateKey(on) && (!shrunk || confirmed);
+  const future = isDateKey(on) && on > today;
+  const valid = isDateKey(on) && !future && (!shrunk || confirmed);
   return (
     <Modal role="alertdialog" labelledBy={`${uid}-t`} onClose={onCancel}>
       <h3 id={`${uid}-t`}>Liste einlesen?</h3>
@@ -93,6 +97,12 @@ export function ListImportDialog({
           Angezeigt: {isDateKey(on) ? formatDate(on) : 'ungültiges Datum'}.
         </span>
       </p>
+      {future && (
+        <p role="alert">
+          Der Stand {formatDate(on)} liegt nach heute ({formatDate(today)}): Bitte das Datum
+          korrigieren.
+        </p>
+      )}
       {error !== null && <p role="alert">{error}</p>}
       <button type="button" onClick={onCancel}>
         Abbrechen

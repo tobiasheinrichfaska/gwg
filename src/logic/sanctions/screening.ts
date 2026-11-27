@@ -208,6 +208,22 @@ export function screenMandates(
   return { hits: hits.sort(compare), unscreenable };
 }
 
+/**
+ * Persons and mandates of ACTIVE mandates that the screening cannot compare (name empty after
+ * normalization, or a mandate name of legal-form words only). They are never silently green: tasks and
+ * the closing blockers use this, independent of whether a run happened.
+ */
+export function unscreenableSubjects(
+  persons: readonly Person[],
+  mandates: readonly Mandate[],
+): { persons: Person[]; mandates: Mandate[] } {
+  const active = new Set(mandates.filter((m) => m.active).map((m) => m.id));
+  return {
+    persons: persons.filter((p) => active.has(p.mandateId) && !canScreen(p)),
+    mandates: mandates.filter((m) => m.active && subjectOfMandate(m).empty),
+  };
+}
+
 /** Snapshot of the subject of a hit as it is now, or null when the person/mandate no longer exists. */
 export function currentSnapshot(
   kind: SubjectKind,

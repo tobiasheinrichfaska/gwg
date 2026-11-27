@@ -6,7 +6,8 @@ import { normalizeName } from './normalize.ts';
 export const MAX_DECISION_REASON = 500;
 export const MAX_DECIDER_LENGTH = 100;
 const MAX_ID = 200;
-const MAX_SNAPSHOT = 600;
+/** A snapshot is a 64-bit hash as hex (16 characters); the limit leaves room, but refuses old long texts. */
+const MAX_SNAPSHOT = 64;
 
 export const DECISIONS = ['kein-treffer', 'treffer-bestaetigt'] as const;
 export type DecisionKind = (typeof DECISIONS)[number];
@@ -57,14 +58,17 @@ const goodText = (s: unknown, max: number, allowEmpty: boolean): boolean =>
 const goodLine = (s: unknown, max: number): boolean =>
   typeof s === 'string' && s.length <= max && s.trim() !== '' && !CONTROL.test(s);
 
-/** Name + '|' + birth of a person, as stored in a decision. */
+/** Fingerprint (64-bit hash, hex) of the normalized name and birth of a person, as stored in a decision. */
 export const personSnapshot = (p: Person): string =>
-  `${normalizeName(`${p.firstName} ${p.lastName}`)}|${p.birth ?? ''}`;
-/** Normalized name of a mandate. */
-export const mandateSnapshot = (m: Mandate): string => normalizeName(m.name);
+  hash64(`${normalizeName(`${p.firstName} ${p.lastName}`)}|${p.birth ?? ''}`);
+/** Fingerprint (64-bit hash, hex) of the normalized name of a mandate. */
+export const mandateSnapshot = (m: Mandate): string => hash64(normalizeName(m.name));
 
-/** Cheap 53-bit string hash (cyrb53); no security purpose, only change detection. */
-function hash(text: string): string {
+/**
+ * Synchronous deterministic 64-bit string hash (two cyrb53-style 32-bit lanes with different seeds), as
+ * 16 hex characters. No security purpose, only change detection; long names stay short in the backup.
+ */
+function hash64(text: string): string {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
   for (let i = 0; i < text.length; i++) {
@@ -74,14 +78,14 @@ function hash(text: string): string {
   }
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+  return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
 }
 
 /** Fingerprint of an entry: normalized names and birth dates, order-independent. */
 export function entrySnapshot(e: Pick<ListEntry, 'names' | 'births'>): string {
   const names = e.names.map(normalizeName).sort().join('\u0001');
   const births = [...e.births].sort().join('\u0001');
-  return hash(`${names}\u0002${births}`);
+  return hash64(`${names}\u0002${births}`);
 }
 
 const SUBJECT_KINDS: readonly string[] = ['person', 'mandate'];

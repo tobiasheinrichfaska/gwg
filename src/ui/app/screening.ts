@@ -1,9 +1,13 @@
 import {
+  buildTasks,
+  closingBlockers,
   currentSnapshot,
   isListStale,
   listAgeDays,
   mandateSnapshot,
   personSnapshot,
+  type Backup,
+  type ClosingCheck,
   type DateKey,
   type Hit,
   type LastScreening,
@@ -82,6 +86,7 @@ export function statusOf(
   signature: string,
   settings: ListSettings,
   today: DateKey,
+  listVersion: number,
 ): ScreeningStatus {
   if (list === null) {
     return {
@@ -108,9 +113,47 @@ export function statusOf(
         `Personen oder Mandate wurden seit dem Abgleich vom ${formatDate(result.ranOn)} geändert.`,
       );
     }
-    if (result.listFetchedOn !== list.fetchedOn) {
+    // Another list with the SAME state date is another list too: the version counts every load/save.
+    if (result.listFetchedOn !== list.fetchedOn || result.listVersion !== listVersion) {
       reasons.push('Seit dem Abgleich wurde eine andere Liste geladen.');
     }
   }
   return { state: reasons.length === 0 ? 'ok' : 'stale', reasons };
+}
+
+/**
+ * What blocks or warns about closing the audit, from one consistent state. The screen shows it, and
+ * `closeAudit` calls it again inside the save queue with the newest data (never with an old render's).
+ */
+export function closingOf(
+  backup: Backup,
+  list: ListIndex | null,
+  screening: ScreeningResult | null,
+  settings: ListSettings,
+  today: DateKey,
+  listVersion: number,
+): ClosingCheck {
+  const { persons, mandates, rules, screeningDecisions: decisions } = backup;
+  const hits = liveHitsOf(screening, persons, mandates);
+  const status = statusOf(
+    list,
+    screening,
+    backup.lastScreening,
+    subjectsSignature(persons, mandates),
+    settings,
+    today,
+    listVersion,
+  );
+  return closingBlockers({
+    tasks: buildTasks(mandates, persons, today, rules, hits, decisions).tasks,
+    hits,
+    decisions,
+    persons,
+    mandates,
+    screening: {
+      hasList: list !== null,
+      stale: status.state !== 'ok',
+      ranOn: screening?.ranOn ?? null,
+    },
+  });
 }

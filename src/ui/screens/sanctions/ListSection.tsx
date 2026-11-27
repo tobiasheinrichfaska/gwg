@@ -220,6 +220,7 @@ export function ListSection() {
       {pending !== null && (
         <ListImportDialog
           file={pending}
+          today={today}
           currentOn={list?.fetchedOn ?? null}
           currentCount={list?.entries.length ?? null}
           error={saveError}

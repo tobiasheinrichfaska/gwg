@@ -7,6 +7,7 @@ ist ohne Änderung in ein eigenes Repo verschiebbar (kein Import aus `src/`).
 ## Was es tut
 
 - `GET /liste` liefert die Datei der festen `upstreamUrl`; `OPTIONS /liste` beantwortet den Preflight.
+- Gecacht wird nur ein vollständiger Export (mindestens ein `sanctionEntity`, schließendes `</export>`, nicht unter 50 % der Bytes der letzten Kopie); sonst Rückfall auf die letzte Kopie mit `X-Stale`.
 - Cache mit Mindestabstand `minRefetchSeconds` zum Upstream; bei Upstream-Fehler die letzte gute Kopie mit
   `X-Stale: 1` und `Age`. Header `X-Fetched-At` (UTC, Abrufzeit des Relays, nicht der Stand der Liste) und `Last-Modified` des Upstreams werden weitergereicht.
 - CORS nur für `allowedOrigin` (`Vary: Origin`); `Cache-Control: public, max-age=3600`, `nosniff`, keine Cookies.

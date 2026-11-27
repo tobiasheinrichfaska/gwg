@@ -9,6 +9,8 @@ function blockerText(b: ClosingBlocker): string {
       return `${hits(b.count)} aus dem Sanktionsabgleich: Entscheiden Sie ${b.count === 1 ? 'ihn' : 'sie'} im Bereich „Abgleich“ (Treffer öffnen).`;
     case 'pep-approvals':
       return `${b.count === 1 ? '1 PEP-Freigabe fehlt' : `${b.count} PEP-Freigaben fehlen`}: Erfassen Sie sie bei der Person im Bereich „Mandanten“ oder in den Aufgaben (Bereich „Aufgaben“).`;
+    case 'unscreenable':
+      return `${b.count === 1 ? '1 Name ist' : `${b.count} Namen sind`} nicht prüfbar (zum Beispiel nur ein Strich oder nur Rechtsform): Ergänzen Sie die Daten im Bereich „Mandanten“ (siehe Aufgabe „Name nicht prüfbar“).`;
     case 'screening-missing':
       return b.why === 'no-list'
         ? 'Es ist keine Sanktionsliste geladen: Ohne Abgleich lässt sich nicht sagen, ob Treffer offen sind. Laden Sie die Liste im Bereich „Abgleich“.'

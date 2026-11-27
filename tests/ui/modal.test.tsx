@@ -161,6 +161,7 @@ describe('every dialog: start focus, Escape, focus trap, focus back', () => {
               suggestedOn: '2026-11-20',
               suggestedFrom: 'generationDate',
             }}
+            today="2026-11-27"
             currentOn={null}
             currentCount={null}
             error={null}

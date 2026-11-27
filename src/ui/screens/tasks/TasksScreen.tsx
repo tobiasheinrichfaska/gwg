@@ -74,6 +74,13 @@ export function TasksScreen() {
         );
 
   function sanctionLabel(t: Task): string {
+    if (t.kind === 'sanction-unscreenable') {
+      const p =
+        t.subjectKind === 'person' ? backup.persons.find((x) => x.id === t.subjectId) : undefined;
+      return p === undefined
+        ? ' – Mandatsname enthält keinen prüfbaren Namen'
+        : ` – Person ${p.id}: ${`${p.firstName} ${p.lastName}`.trim()}`;
+    }
     const hit = hitOf(t);
     if (hit === undefined) return '';
     const who = describeSubject(hit, backup)?.name ?? '';

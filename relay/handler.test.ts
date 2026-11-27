@@ -4,6 +4,8 @@ import { handle, type CachedList, type RelayCache, type RelayEnv } from './handl
 
 const ORIGIN = 'https://app.example.org';
 const BASE = 'https://relay.example.org';
+/** Smallest export the relay accepts as complete: one entry and the closing tag. */
+const OK_XML = '<export><sanctionEntity/></export>';
 const T0 = Date.parse('2026-11-27T10:00:00Z');
 
 const env: RelayEnv = {
@@ -41,7 +43,7 @@ function setup(fetchImpl?: typeof fetch, clock = { t: T0 }) {
     calls.push({ url, ...(init ? { init } : {}) });
     return fetchImpl
       ? fetchImpl(url, init)
-      : new Response('<export/>', {
+      : new Response(OK_XML, {
           headers: {
             'Last-Modified': 'Wed, 25 Nov 2026 08:00:00 GMT',
             'Content-Type': 'application/xml',
@@ -130,7 +132,7 @@ describe('Antwort und Cache', () => {
     const { run } = setup();
     const res = await run(get());
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe('<export/>');
+    expect(await res.text()).toBe(OK_XML);
     expect(res.headers.get('X-Fetched-At')).toBe('2026-11-27T10:00:00.000Z');
     expect(res.headers.get('Last-Modified')).toBe('Wed, 25 Nov 2026 08:00:00 GMT');
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=3600');
@@ -155,18 +157,18 @@ describe('Antwort und Cache', () => {
     const { run, clock } = setup((async () =>
       fail
         ? new Response('x', { status: 500 })
-        : new Response('<export>alt</export>')) as typeof fetch);
+        : new Response('<export><sanctionEntity>alt</sanctionEntity></export>')) as typeof fetch);
     await run(get());
     fail = true;
     clock.t += 4000_000;
     const res = await run(get());
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe('<export>alt</export>');
+    expect(await res.text()).toBe('<export><sanctionEntity>alt</sanctionEntity></export>');
     expect(res.headers.get('X-Stale')).toBe('1');
     expect(res.headers.get('Age')).toBe('4000');
   });
   it('eine HTML-Fehlerseite mit 200 überschreibt die gute Kopie nicht', async () => {
-    let page = '<?xml version="1.0"?><export>gut</export>';
+    let page = '<?xml version="1.0"?><export><sanctionEntity>gut</sanctionEntity></export>';
     let type = 'application/xml';
     const { run, clock, mem } = setup(
       (async () => new Response(page, { headers: { 'Content-Type': type } })) as typeof fetch,
@@ -177,7 +179,9 @@ describe('Antwort und Cache', () => {
     clock.t += 4000_000;
     const res = await run(get());
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe('<?xml version="1.0"?><export>gut</export>');
+    expect(await res.text()).toBe(
+      '<?xml version="1.0"?><export><sanctionEntity>gut</sanctionEntity></export>',
+    );
     expect(res.headers.get('X-Stale')).toBe('1');
     expect((await mem.cache.getList())?.fetchedAt).toBe(T0);
   });
@@ -186,19 +190,19 @@ describe('Antwort und Cache', () => {
       ['<html></html>', 'application/xml'],
       ['<other/>', 'application/xml'],
       ['<?xml version="1.0"?><html/>', 'text/html'],
-      ['<export/>', 'text/html'],
+      [OK_XML, 'text/html'],
     ] as const) {
       const { run } = setup(
         (async () => new Response(body, { headers: { 'Content-Type': type } })) as typeof fetch,
       );
-      const expected = body === '<export/>' ? 200 : 502;
+      const expected = body === OK_XML ? 200 : 502;
       expect((await run(get())).status).toBe(expected);
     }
   });
   it('akzeptiert BOM und Leerraum vor der XML-Deklaration, auch ohne XML-Content-Type', async () => {
     const { run } = setup(
       (async () =>
-        new Response('\uFEFF \n<?xml version="1.0"?>\n<export/>', {
+        new Response(`\uFEFF \n<?xml version="1.0"?>\n${OK_XML}`, {
           headers: { 'Content-Type': 'application/octet-stream' },
         })) as typeof fetch,
     );
@@ -242,8 +246,7 @@ describe('Upstream-Aufruf', () => {
   });
   it('bricht bei zu großem Content-Length ab', async () => {
     const { run } = setup(
-      (async () =>
-        new Response('<export/>', { headers: { 'Content-Length': '5000' } })) as typeof fetch,
+      (async () => new Response(OK_XML, { headers: { 'Content-Length': '5000' } })) as typeof fetch,
     );
     expect((await run(get())).status).toBe(502);
   });
@@ -267,7 +270,10 @@ describe('Upstream-Aufruf', () => {
   });
   it('akzeptiert genau maxBytes', async () => {
     const { run } = setup(
-      (async () => new Response(`<export>${' '.repeat(1000 - 17)}</export>`)) as typeof fetch,
+      (async () =>
+        new Response(
+          `<export><sanctionEntity>${' '.repeat(1000 - 17 - 33)}</sanctionEntity></export>`,
+        )) as typeof fetch,
     );
     expect((await run(get())).status).toBe(200);
   });
@@ -320,5 +326,51 @@ describe('Trennung von src', () => {
       );
     expect(bad('relay', /(^|\/)src(\/|$)/)).toEqual([]);
     expect(bad('src', /(^|\/)relay(\/|$)/)).toEqual([]);
+  });
+});
+
+describe('Nachaudit N3: nur ein vollständiger Export wird gecacht', () => {
+  const big = { ...env, maxBytes: 1_000_000 };
+  const entity = (i: number) =>
+    `<sanctionEntity logicalId="${i}"><nameAlias wholeName="N ${i}"/></sanctionEntity>`;
+  const good = `<?xml version="1.0"?><export>${Array.from({ length: 40 }, (_, i) => entity(i)).join('')}</export>`;
+  const seed = (mem: ReturnType<typeof memCache>) =>
+    mem.seed({
+      body: new TextEncoder().encode(good).buffer as ArrayBuffer,
+      fetchedAt: T0 - 7_200_000,
+      lastModified: null,
+      contentType: 'application/xml',
+    });
+  const upstream = (body: string) =>
+    (async () =>
+      new Response(body, {
+        headers: { 'Content-Type': 'application/xml' },
+      })) as unknown as typeof fetch;
+
+  for (const [name, body] of [
+    ['leerer Export', '<?xml version="1.0"?><export/>'],
+    ['ohne Schlusstag', `<?xml version="1.0"?><export>${entity(1)}`],
+    ['ohne Eintrag', '<?xml version="1.0"?><export></export>'],
+    ['unter 50 % der letzten Kopie', `<?xml version="1.0"?><export>${entity(1)}</export>`],
+  ] as const) {
+    it(`${name}: alte Kopie mit X-Stale, nichts überschrieben`, async () => {
+      const { run, mem } = setup(upstream(body));
+      seed(mem);
+      const res = await run(get(), big);
+      expect(res.headers.get('X-Stale')).toBe('1');
+      expect(await res.text()).toBe(good);
+      const kept = await mem.cache.getList();
+      expect(kept === null ? null : new TextDecoder().decode(kept.body)).toBe(good);
+    });
+  }
+  it('ohne alte Kopie: 502', async () => {
+    const { run } = setup(upstream('<?xml version="1.0"?><export/>'));
+    expect((await run(get(), big)).status).toBe(502);
+  });
+  it('ein vollständiger Export wird gecacht', async () => {
+    const { run, mem } = setup(upstream(good));
+    const res = await run(get(), big);
+    expect(res.headers.get('X-Stale')).toBeNull();
+    expect(await mem.cache.getList()).not.toBeNull();
   });
 });

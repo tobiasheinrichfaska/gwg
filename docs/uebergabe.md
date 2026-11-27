@@ -10,7 +10,7 @@ lokal, **kein `device-sync`**. Mandantendaten verlassen das Gerät nie. Optional
 die öffentliche Sanktionsliste über ein Relay; die Anfrage enthält keine Daten. Stufe 1: nur Listen und Fristen,
 keine Schreiben/PDF. Das Werkzeug entscheidet nichts rechtlich; ein Mensch zeichnet ab.
 
-## Was steht (`npm test`: 466 Tests in 29 Dateien grün)
+## Was steht (`npm test`: 567 Tests in 36 Dateien grün)
 
 - **Logik** `src/logic/` (UI-frei, „heute“ ist Parameter, Fehler sind Codes): `core`, `mandate` (`model.ts` nur
   Typen, `values.ts` Werte; Rechtsform, Risiko, Prüftermin, Mahnleiter, Löschfrist, Person, PEP), `audit`

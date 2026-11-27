@@ -17,13 +17,12 @@ import {
   isListStale,
   repairOrphanDecisions,
   ok,
-  buildTasks,
-  closingBlockers,
   screenAll,
   screenMandates,
   shrankTooMuch,
   todayKey,
   emptyLastScreening,
+  type AuditClosing,
   type Backup,
   type OrphanRepair,
   type DateKey,
@@ -42,6 +41,7 @@ import { AppContext, type AppState, type FetchNote, type ScreeningResult } from 
 import { describeFailure } from './messages.ts';
 import {
   CHUNK,
+  closingOf,
   liveHitsOf,
   screeningSubjects,
   sortHits,
@@ -57,7 +57,9 @@ class Latest {
   running = false;
   /** Tail of the save queue: saves run one after the other, each on the newest data set. */
   queue: Promise<unknown> = Promise.resolve();
-  closing: ClosingCheck = { blockers: [], warnings: [] };
+  /** Result of the last run and list version, set synchronously (the guard of `closeAudit` reads them). */
+  screening: ScreeningResult | null = null;
+  listVersion = 0;
   autoFetched = false;
   setBackup(b: Backup | null): void {
     this.backup = b;
@@ -70,8 +72,10 @@ class Latest {
   setRunning(v: boolean): void {
     this.running = v;
   }
-  setClosing(c: ClosingCheck): void {
-    this.closing = c;
+  /** A list was loaded or saved: it is a different list from now on, even with the same state date. */
+  setList(list: ListIndex): number {
+    this.list = list;
+    return ++this.listVersion;
   }
   markAutoFetched(): void {
     this.autoFetched = true;
@@ -152,6 +156,7 @@ export function AppProvider({
   );
 
   const [list, setList] = useState<ListIndex | null>(null);
+  const [listVersion, setListVersion] = useState(0);
   const [listLoaded, setListLoaded] = useState(false);
   const [listError, setListError] = useState<Reason | null>(null);
   const [settings, setSettings] = useState<ListSettings>(DEFAULT_LIST_SETTINGS);
@@ -173,8 +178,10 @@ export function AppProvider({
     let cancelled = false;
     void listStore.load('sanktion').then((r) => {
       if (cancelled) return;
-      if (r.ok) setList(r.value);
-      else setListError(r.reason);
+      if (r.ok) {
+        if (r.value !== null) setListVersion(live.setList(r.value));
+        setList(r.value);
+      } else setListError(r.reason);
       setListLoaded(true);
     });
     void settingsStore.load().then((r) => {
@@ -186,7 +193,7 @@ export function AppProvider({
     return () => {
       cancelled = true;
     };
-  }, [listStore, settingsStore]);
+  }, [listStore, settingsStore, live]);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,11 +233,7 @@ export function AppProvider({
         const data = next;
         // Never write a data set that `parseBackup` would refuse on the next start.
         const checked = checkBackup(data);
-        // Defence in depth: a NEW audit closing is refused while blockers stand (the screen disables the button).
-        const had = new Set(live.backup?.auditClosings.map((c) => c.stichtag));
-        const newClosing = data.auditClosings.some((c) => !had.has(c.stichtag));
-        const blocked = checked.ok && newClosing && live.closing.blockers.length > 0;
-        const r = blocked ? fail('closing-blocked') : checked.ok ? await store.save(data) : checked;
+        const r = checked.ok ? await store.save(data) : checked;
         if (!r.ok) {
           setSaveError(r.reason);
           setSaveErrorWhere(r.where);
@@ -257,6 +260,28 @@ export function AppProvider({
     [commit],
   );
 
+  /**
+   * Adds an audit closing. Unlike `replace`/`update` this one is guarded: inside the queue (newest data
+   * set, current list and hits, not those of the last render) the blockers must be empty.
+   */
+  const closeAudit = useCallback(
+    (closing: AuditClosing) =>
+      commit((latest) => {
+        if (latest === null) return fail('bad-list');
+        const check = closingOf(
+          latest,
+          live.list,
+          live.screening,
+          live.settings,
+          today,
+          live.listVersion,
+        );
+        if (check.blockers.length > 0) return fail('closing-blocked');
+        return { ...latest, auditClosings: [...latest.auditClosings, closing] };
+      }),
+    [commit, live, today],
+  );
+
   const saveSettings = useCallback(
     async (next: unknown): Promise<Result<ListSettings>> => {
       const checked = checkListSettings(next);
@@ -274,11 +299,12 @@ export function AppProvider({
     async (index: ListIndex): Promise<Result<void>> => {
       const r = await listStore.save(index);
       if (!r.ok) return r;
+      setListVersion(live.setList(index));
       setList(index);
       setListError(null);
       return r;
     },
-    [listStore],
+    [listStore, live],
   );
 
   const fetchList = useCallback(
@@ -345,6 +371,7 @@ export function AppProvider({
     const index = live.list;
     if (data === null || index === null) return fail('bad-list');
     if (live.running) return ok(undefined);
+    const version = live.listVersion;
     live.setRunning(true);
     try {
       const thresholds = data.rules.sanctionThresholds;
@@ -379,8 +406,10 @@ export function AppProvider({
         unscreenableMandates,
         ranOn: today,
         listFetchedOn: index.fetchedOn,
+        listVersion: version,
         signature: subjectsSignature(data.persons, data.mandates),
       };
+      live.screening = result;
       setScreening(result);
       const run = checkScreeningRun(
         {
@@ -420,34 +449,20 @@ export function AppProvider({
         persons === null || mandates === null ? '' : subjectsSignature(persons, mandates),
         settings,
         today,
+        listVersion,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [list, screening, lastScreening.sanktion, persons, mandates, settings, today],
+    [list, screening, lastScreening.sanktion, persons, mandates, settings, today, listVersion],
   );
 
-  const rules = loaded.kind === 'ready' ? loaded.backup.rules : null;
-  const decisions = loaded.kind === 'ready' ? loaded.backup.screeningDecisions : null;
-  const closing = useMemo<ClosingCheck>(() => {
-    if (persons === null || mandates === null || rules === null || decisions === null) {
-      return { blockers: [{ kind: 'screening-missing', why: 'no-list' }], warnings: [] };
-    }
-    return closingBlockers({
-      tasks: buildTasks(mandates, persons, today, rules, liveHits, decisions).tasks,
-      hits: liveHits,
-      decisions,
-      persons,
-      mandates,
-      screening: {
-        hasList: list !== null,
-        stale: screeningStatus.state !== 'ok',
-        ranOn: screening?.ranOn ?? null,
-      },
-    });
-  }, [persons, mandates, rules, decisions, today, liveHits, list, screeningStatus, screening]);
-  // Latest blockers for `replace` (defence in depth), which must not change identity with them.
-  useLayoutEffect(() => {
-    live.setClosing(closing);
-  }, [live, closing]);
+  const currentBackup = loaded.kind === 'ready' ? loaded.backup : null;
+  const closing = useMemo<ClosingCheck>(
+    () =>
+      currentBackup === null
+        ? { blockers: [{ kind: 'screening-missing', why: 'no-list' }], warnings: [] }
+        : closingOf(currentBackup, list, screening, settings, today, listVersion),
+    [currentBackup, list, screening, settings, today, listVersion],
+  );
 
   const value = useMemo<AppState | null>(
     () =>
@@ -458,6 +473,7 @@ export function AppProvider({
             today,
             replace,
             update,
+            closeAudit,
             saveError,
             saveErrorWhere,
             lockSettings,
@@ -489,6 +505,7 @@ export function AppProvider({
       today,
       replace,
       update,
+      closeAudit,
       saveError,
       saveErrorWhere,
       lockSettings,
