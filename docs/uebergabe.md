@@ -15,7 +15,7 @@ keine Schreiben/PDF. Das Werkzeug entscheidet nichts rechtlich; ein Mensch zeich
 - **Logik** `src/logic/` (UI-frei, „heute“ ist Parameter, Fehler sind Codes): `core`, `mandate` (`model.ts` nur
   Typen, `values.ts` Werte; Rechtsform, Risiko, Prüftermin, Mahnleiter, Löschfrist, Person, PEP), `audit`
   (vier Ausnahmelisten, Abschluss), `sanctions` (Namensabgleich, Ampel, Listenindex, Treffer, Entscheidungen),
-  `backup` (Format 2, liest Format 1), `tasks` (Aufgabenliste), `config.ts` (alle Zahlen als Daten).
+  `backup` (Format 3, liest Format 1 und 2; Entscheidungen älterer Formate werden mit Notiz verworfen), `tasks` (Aufgabenliste), `config.ts` (alle Zahlen als Daten).
 - **io** `src/io/`: Tresor (`local-vault`, Slot `bestand`), Einstellungen, Sicherungsdatei, EU-Listen-XML,
   Listenspeicher (IndexedDB), Abruf über das Relay.
 - **Relay** `relay/`: anbieterneutrales Referenz-Relay (Weg A), getestet; Hoster nicht gewählt.

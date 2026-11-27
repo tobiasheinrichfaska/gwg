@@ -35,7 +35,7 @@ const backupOf = (
   screeningDecisions: ScreeningDecision[] = [],
 ): Backup => ({
   format: 'gwg-backup',
-  version: 2,
+  version: 3,
   createdOn: '2026-12-05',
   rules: DEFAULT_RULES,
   mandates,

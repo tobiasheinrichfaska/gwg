@@ -23,7 +23,7 @@ afterEach(cleanup);
 const clock = () => new Date(2026, 10, 27, 12, 0, 0);
 const data: Backup = {
   format: 'gwg-backup',
-  version: 2,
+  version: 3,
   createdOn: '2026-11-27',
   rules: DEFAULT_RULES,
   mandates: Array.from({ length: 30 }, (_, i) =>

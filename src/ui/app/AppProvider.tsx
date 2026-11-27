@@ -15,6 +15,7 @@ import {
   DEFAULT_RULES,
   fail,
   isListStale,
+  parseBackupWithNotes,
   repairOrphanDecisions,
   ok,
   screenAll,
@@ -24,6 +25,7 @@ import {
   emptyLastScreening,
   type AuditClosing,
   type Backup,
+  type BackupNote,
   type OrphanRepair,
   type DateKey,
   type ClosingCheck,
@@ -39,6 +41,7 @@ import { OrphanRepairSection } from '../screens/backup/OrphanRepairSection.tsx';
 import { RestoreBackup } from '../screens/backup/RestoreBackup.tsx';
 import { AppContext, type AppState, type FetchNote, type ScreeningResult } from './context.ts';
 import { describeFailure } from './messages.ts';
+import { describeNotes } from '../messages.ts';
 import {
   CHUNK,
   closingOf,
@@ -102,7 +105,7 @@ type Loaded =
 function emptyBackup(today: DateKey): Backup {
   return {
     format: 'gwg-backup',
-    version: 2,
+    version: 3,
     createdOn: today,
     rules: DEFAULT_RULES,
     mandates: [],
@@ -142,6 +145,7 @@ export function AppProvider({
 }: Props) {
   const [today] = useState(() => todayKey(now ? now() : new Date()));
   const [loaded, setLoaded] = useState<Loaded>({ kind: 'loading' });
+  const [notes, setNotes] = useState<BackupNote[]>([]);
   const [saveError, setSaveError] = useState<Reason | null>(null);
   const [saveErrorWhere, setSaveErrorWhere] = useState<string | undefined>(undefined);
   const [requestedClientId, requestClient] = useState<string | null>(null);
@@ -211,6 +215,16 @@ export function AppProvider({
       if (!r.ok) setLoaded({ kind: 'damaged', reason: r.reason, where: r.where, repair });
       else {
         const first = r.value ?? emptyBackup(today);
+        // An older stored data set was migrated on read: say what was dropped and store format 3.
+        if (r.value !== null) {
+          const text = await store.loadText?.();
+          const again = text?.ok && text.value !== null ? parseBackupWithNotes(text.value) : null;
+          if (again?.ok && again.value.notes.length > 0) {
+            await store.save(first);
+            if (cancelled) return;
+            setNotes(again.value.notes);
+          }
+        }
         live.setBackup(first);
         setLoaded({ kind: 'ready', backup: first });
       }
@@ -548,6 +562,7 @@ export function AppProvider({
         )}
         <RestoreBackup
           currentCount={null}
+          onNotes={setNotes}
           onRestore={async (b) => {
             const r = await replace(b);
             return r;
@@ -557,6 +572,13 @@ export function AppProvider({
     );
   }
   return value === null ? null : (
-    <AppContext.Provider value={value}>{children}</AppContext.Provider>
+    <AppContext.Provider value={value}>
+      {describeNotes(notes).map((t) => (
+        <p key={t} role="status">
+          {t}
+        </p>
+      ))}
+      {children}
+    </AppContext.Provider>
   );
 }

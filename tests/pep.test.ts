@@ -203,7 +203,7 @@ describe('buildTasks: pep', () => {
 describe('backup format 2: pep', () => {
   const base = (persons: Person[]): Backup => ({
     format: 'gwg-backup',
-    version: 2,
+    version: 3,
     createdOn: TODAY,
     rules,
     mandates: [mandate()],
@@ -244,7 +244,7 @@ describe('backup format 2: pep', () => {
     delete o.screeningDecisions;
     delete o.lastScreening;
     const r = parseBackup(JSON.stringify(o));
-    expect(r.ok && r.value.version).toBe(2);
+    expect(r.ok && r.value.version).toBe(3);
     expect(r.ok && r.value.persons).toEqual([]);
   });
   it('is strict about pep', () => {

@@ -13,6 +13,7 @@ import {
   isListStale,
   mandateSnapshot,
   parseBackup,
+  parseBackupWithNotes,
   personSnapshot,
   serializeBackup,
   type Backup,
@@ -110,11 +111,11 @@ describe('N2: snapshots are short hashes', () => {
     expect(mandateSnapshot(mandate({ name: 'ß'.repeat(200) })).length).toBeLessThanOrEqual(32);
     expect(personSnapshot(person())).not.toBe(personSnapshot(person({ birth: '1970-05-13' })));
   });
-  it('parseBackup refuses an old long snapshot with a clear place', () => {
+  it('parseBackup refuses a format 3 file with a long snapshot, with a clear place', () => {
     const p = person();
     const b: Backup = {
       format: 'gwg-backup',
-      version: 2,
+      version: 3,
       createdOn: '2026-11-27',
       rules: DEFAULT_RULES,
       mandates: [m],
@@ -126,6 +127,115 @@ describe('N2: snapshots are short hashes', () => {
     expect(checkBackup(b).ok).toBe(false);
     const r = parseBackup(serializeBackup(b));
     expect(r).toMatchObject({ ok: false, reason: 'bad-decision' });
+  });
+});
+
+describe('F1 (T11): old formats with old decisions migrate to format 3', () => {
+  const m = mandate();
+  const p = person();
+  const oldDecision = {
+    subjectKind: 'person',
+    subjectId: p.id,
+    entryId: 'E1',
+    listKind: 'sanktion',
+    listFetchedOn: '2026-11-20',
+    decision: 'kein-treffer',
+    reason: 'andere Person',
+    decidedOn: '2026-11-27',
+    decidedBy: 'A',
+    subjectSnapshot: 'ivan petrov|1970-05-12'.padEnd(300, 'x'),
+    entrySnapshot: '4503599627370495',
+    actionNote: '',
+  };
+  const current = (): Backup => ({
+    format: 'gwg-backup',
+    version: 3,
+    createdOn: '2026-11-27',
+    rules: DEFAULT_RULES,
+    mandates: [m],
+    persons: [p],
+    auditClosings: [],
+    screeningDecisions: [],
+    lastScreening: emptyLastScreening(),
+  });
+  const asV2 = (decisions: unknown[]) => ({
+    ...JSON.parse(serializeBackup(current())),
+    version: 2,
+    screeningDecisions: decisions,
+  });
+
+  it('serializeBackup writes version 3; version 4 is unsupported', () => {
+    expect(JSON.parse(serializeBackup(current())).version).toBe(3);
+    const o = { ...JSON.parse(serializeBackup(current())), version: 4 };
+    expect(parseBackup(JSON.stringify(o))).toMatchObject({
+      ok: false,
+      reason: 'unsupported-version',
+    });
+  });
+  it('format 2 with old decisions: ok, decisions dropped, note with the count', () => {
+    const text = JSON.stringify(asV2([oldDecision, { ...oldDecision, entryId: 'E2' }]));
+    const r = parseBackupWithNotes(text);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.backup.version).toBe(3);
+    expect(r.value.backup.screeningDecisions).toEqual([]);
+    expect(r.value.backup.persons).toHaveLength(1);
+    expect(r.value.notes).toEqual([{ kind: 'decisions-dropped', count: 2 }]);
+    expect(parseBackup(text).ok).toBe(true);
+  });
+  it('format 2 with valid-looking hash decisions is dropped as well', () => {
+    const r = parseBackupWithNotes(
+      JSON.stringify(
+        asV2([
+          {
+            ...oldDecision,
+            subjectSnapshot: '0123456789abcdef',
+            entrySnapshot: 'fedcba9876543210',
+          },
+        ]),
+      ),
+    );
+    expect(r.ok && r.value.notes).toEqual([{ kind: 'decisions-dropped', count: 1 }]);
+  });
+  it('format 2 without decisions: no note', () => {
+    const r = parseBackupWithNotes(JSON.stringify(asV2([])));
+    expect(r.ok && r.value.notes).toEqual([]);
+  });
+  it('format 1 migrates to 3 (no persons, no decisions, no note)', () => {
+    const o = JSON.parse(serializeBackup(current()));
+    const v1 = {
+      format: o.format,
+      version: 1,
+      createdOn: o.createdOn,
+      rules: o.rules,
+      mandates: o.mandates,
+    };
+    const r = parseBackupWithNotes(JSON.stringify(v1));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.backup.version).toBe(3);
+    expect(r.value.backup.persons).toEqual([]);
+    expect(r.value.notes).toEqual([]);
+  });
+  it('format 1 with a stray screeningDecisions key stays strict (unknown key)', () => {
+    const o = JSON.parse(serializeBackup(current()));
+    const v1 = {
+      format: o.format,
+      version: 1,
+      createdOn: o.createdOn,
+      rules: o.rules,
+      mandates: o.mandates,
+      screeningDecisions: [oldDecision],
+    };
+    expect(parseBackup(JSON.stringify(v1)).ok).toBe(false);
+  });
+  it('format 3 round-trips without notes', () => {
+    const text = serializeBackup(current());
+    const r = parseBackupWithNotes(text);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.notes).toEqual([]);
+    expect(serializeBackup(r.value.backup)).toBe(text);
   });
 });
 
@@ -143,5 +253,30 @@ describe('N5: the object URL is revoked later', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('T11 small: the unscreenable blocker disappears after the data is corrected', () => {
+  const TODAY = '2026-11-27';
+  const m = mandate({ lastCheckOn: '2026-11-01' });
+  const blockersFor = (p: Person) => {
+    const tasks = buildTasks([m], [p], TODAY, rules, [], []).tasks;
+    return closingBlockers({
+      tasks,
+      hits: [],
+      decisions: [],
+      persons: [p],
+      mandates: [m],
+      screening: { hasList: true, stale: false, ranOn: TODAY },
+    }).blockers;
+  };
+  it('blocks with a dash as name, is free after the name was corrected', () => {
+    expect(blockersFor(person({ lastName: '-' }))).toContainEqual({
+      kind: 'unscreenable',
+      count: 1,
+    });
+    expect(blockersFor(person({ lastName: 'Petrov' })).some((b) => b.kind === 'unscreenable')).toBe(
+      false,
+    );
   });
 });

@@ -351,7 +351,6 @@ describe('Nachaudit N3: nur ein vollständiger Export wird gecacht', () => {
     ['leerer Export', '<?xml version="1.0"?><export/>'],
     ['ohne Schlusstag', `<?xml version="1.0"?><export>${entity(1)}`],
     ['ohne Eintrag', '<?xml version="1.0"?><export></export>'],
-    ['unter 50 % der letzten Kopie', `<?xml version="1.0"?><export>${entity(1)}</export>`],
   ] as const) {
     it(`${name}: alte Kopie mit X-Stale, nichts überschrieben`, async () => {
       const { run, mem } = setup(upstream(body));
@@ -363,6 +362,16 @@ describe('Nachaudit N3: nur ein vollständiger Export wird gecacht', () => {
       expect(kept === null ? null : new TextDecoder().decode(kept.body)).toBe(good);
     });
   }
+  it('eine legitim geschrumpfte Liste (40 auf 15 Einträge) wird nach dem Mindestabstand geliefert', async () => {
+    const small = `<?xml version="1.0"?><export>${Array.from({ length: 15 }, (_, i) => entity(i)).join('')}</export>`;
+    const { run, mem } = setup(upstream(small));
+    seed(mem);
+    const res = await run(get(), big);
+    expect(res.headers.get('X-Stale')).toBeNull();
+    expect(await res.text()).toBe(small);
+    const kept = await mem.cache.getList();
+    expect(kept === null ? null : new TextDecoder().decode(kept.body)).toBe(small);
+  });
   it('ohne alte Kopie: 502', async () => {
     const { run } = setup(upstream('<?xml version="1.0"?><export/>'));
     expect((await run(get(), big)).status).toBe(502);

@@ -51,7 +51,7 @@ function setup(
 ) {
   const b: Backup = {
     format: 'gwg-backup',
-    version: 2,
+    version: 3,
     createdOn: '2026-11-27',
     rules: DEFAULT_RULES,
     mandates,

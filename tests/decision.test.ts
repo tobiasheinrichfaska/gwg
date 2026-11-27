@@ -268,7 +268,7 @@ describe('backup with decisions', () => {
   const e = entry();
   const base = (): Backup => ({
     format: 'gwg-backup',
-    version: 2,
+    version: 3,
     createdOn: TODAY,
     rules: DEFAULT_RULES,
     mandates: ms,

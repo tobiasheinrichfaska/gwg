@@ -1,5 +1,6 @@
 import {
   retentionDueFrom,
+  type BackupNote,
   type DateKey,
   type Mandate,
   type Reason,
@@ -63,4 +64,12 @@ export function retentionSentence(m: Mandate, rules: RulesConfig, today: DateKey
   return today >= due
     ? `${base} Die Frist ist abgelaufen.`
     : `${base} Die Frist läuft noch: Löschen vorher ist rechtlich zu klären.`;
+}
+
+/** One plain sentence per note of reading an older backup. */
+export function describeNotes(notes: readonly BackupNote[]): string[] {
+  return notes.map(
+    (n) =>
+      `${n.count} Entscheidungen aus einer älteren Sicherung konnten nicht übernommen werden; die zugehörigen Treffer sind wieder offen und müssen neu entschieden werden.`,
+  );
 }

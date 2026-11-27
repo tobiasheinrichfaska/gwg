@@ -117,21 +117,18 @@ function looksLikeExportXml(body: ArrayBuffer, contentType: string): boolean {
 }
 
 /**
- * A copy is only cached when it is complete: at least one entry, the closing tag, and not less than half
- * of the bytes of the last good copy (a cut-off or emptied export must not replace it).
+ * A copy is only cached when it is complete: at least one entry and the closing tag (a cut-off or emptied
+ * export must not replace the last copy). There is no size rule against the last copy: a list may shrink
+ * legitimately, and the app asks a person before it takes over a list that lost most of its entries.
  */
-function looksComplete(body: ArrayBuffer, previous: CachedList | null): boolean {
+function looksComplete(body: ArrayBuffer): boolean {
   const text = new TextDecoder('utf-8').decode(body);
   if (!/<(?:[\w.-]+:)?sanctionEntity[\s>/]/.test(text)) return false;
   if (!/<\/(?:[\w.-]+:)?export\s*>\s*$/.test(text)) return false;
-  return previous === null || body.byteLength >= previous.body.byteLength * 0.5;
+  return true;
 }
 
-async function fetchUpstream(
-  env: RelayEnv,
-  deps: RelayDeps,
-  previous: CachedList | null,
-): Promise<CachedList> {
+async function fetchUpstream(env: RelayEnv, deps: RelayDeps): Promise<CachedList> {
   let res: Response;
   try {
     // Weder Header noch Daten des Aufrufers: nur die feste Adresse, keine Weiterleitung.
@@ -158,7 +155,7 @@ async function fetchUpstream(
   const body = await readLimited(res, env.maxBytes);
   const contentType = res.headers.get('Content-Type') ?? '';
   if (!looksLikeExportXml(body, contentType)) throw new UpstreamError('not-xml');
-  if (!looksComplete(body, previous)) throw new UpstreamError('incomplete');
+  if (!looksComplete(body)) throw new UpstreamError('incomplete');
   return {
     body,
     fetchedAt: deps.now(),
@@ -218,7 +215,7 @@ export async function handle(request: Request, env: RelayEnv, deps: RelayDeps): 
     return listResponse(cached, now, false, headers);
 
   try {
-    const fresh = await fetchUpstream(env, deps, cached);
+    const fresh = await fetchUpstream(env, deps);
     await deps.cache.setList(fresh);
     return listResponse(fresh, deps.now(), false, headers);
   } catch (e) {

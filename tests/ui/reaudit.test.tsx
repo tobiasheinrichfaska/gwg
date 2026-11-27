@@ -68,7 +68,7 @@ const decisionFor = (p: Person): ScreeningDecision => ({
 });
 const backupOf = (persons: Person[], decisions: ScreeningDecision[] = []): Backup => ({
   format: 'gwg-backup',
-  version: 2,
+  version: 3,
   createdOn: '2026-12-05',
   rules: DEFAULT_RULES,
   mandates: [clean],
@@ -210,5 +210,51 @@ describe('M2: the import dialog refuses a state after today', () => {
     fireEvent.change(screen.getByLabelText(/Stand der Liste/), { target: { value: '2027-01-01' } });
     expect(save.disabled).toBe(true);
     expect(screen.getByRole('alert').textContent).toContain('liegt nach heute');
+  });
+});
+
+describe('F1 (T11): an old stored data set with old decisions opens, with a note', () => {
+  const oldText = () => {
+    const o = JSON.parse(serializeBackup(backupOf([quelle], [decisionFor(quelle)])));
+    o.version = 2;
+    o.screeningDecisions[0].subjectSnapshot = 'zorin quelle|1965-12-12'.padEnd(300, 'x');
+    o.screeningDecisions[0].entrySnapshot = '4503599627370495';
+    return JSON.stringify(o);
+  };
+  it('start: no locked page, a status note, the stored data set is rewritten as format 3', async () => {
+    const store = createMemoryStore(oldText());
+    render(
+      <AppProvider store={store} now={clock}>
+        <span>inhalt</span>
+      </AppProvider>,
+    );
+    expect(await screen.findByText('inhalt')).toBeTruthy();
+    const note = await screen.findByText(/1 Entscheidungen aus einer älteren Sicherung/);
+    expect(note.getAttribute('role')).toBe('status');
+    expect(note.textContent).toContain(
+      'die zugehörigen Treffer sind wieder offen und müssen neu entschieden werden',
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+    const text = await store.loadText?.();
+    const saved = JSON.parse(text?.ok && text.value !== null ? text.value : '{}');
+    expect(saved.version).toBe(3);
+    expect(saved.screeningDecisions).toEqual([]);
+  });
+  it('restore: the note appears after confirming a format 2 file', async () => {
+    const store = createMemoryStore('kaputt');
+    render(
+      <AppProvider store={store} now={clock}>
+        <span>inhalt</span>
+      </AppProvider>,
+    );
+    await screen.findByRole('alert');
+    fireEvent.change(screen.getByLabelText(/Sicherung einspielen/), {
+      target: { files: [new File([oldText()], 'x.gwg.json')] },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Ersetzen' }));
+    expect(await screen.findByText(/1 Entscheidungen aus einer älteren Sicherung/)).toBeTruthy();
+    const again = await stored(store);
+    expect(again.version).toBe(3);
+    expect(again.screeningDecisions).toEqual([]);
   });
 });

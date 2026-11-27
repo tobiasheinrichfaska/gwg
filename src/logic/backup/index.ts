@@ -1,6 +1,8 @@
 export {
   serializeBackup,
   parseBackup,
+  parseBackupWithNotes,
+  type BackupNote,
   checkBackup,
   BACKUP_FORMAT,
   BACKUP_VERSION,

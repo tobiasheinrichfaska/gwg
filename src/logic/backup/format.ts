@@ -21,12 +21,15 @@ import {
 } from '../mandate/index.ts';
 
 export const BACKUP_FORMAT = 'gwg-backup';
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
-/** Stored form, version 2 (version 1 files are migrated on read: no persons, no closings). Pure data: encryption is the job of the io layer. */
+/**
+ * Stored form, version 3 (decisions with hash snapshots). Versions 1 and 2 are migrated on read: version 1 has
+ * no persons and no closings, and the decisions of version 1/2 are dropped (their snapshots are another format).
+ * Pure data: encryption is the job of the io layer. */
 export type Backup = {
   format: typeof BACKUP_FORMAT;
-  version: 2;
+  version: 3;
   createdOn: DateKey;
   rules: RulesConfig;
   mandates: Mandate[];
@@ -157,7 +160,7 @@ export function serializeBackup(b: Backup): string {
  * data set is never written. Pure; the first problem fails, with `where`.
  */
 export function checkBackup(b: Backup): R<Backup> {
-  if (b.format !== BACKUP_FORMAT || b.version !== 2) return bad('format');
+  if (b.format !== BACKUP_FORMAT || b.version !== BACKUP_VERSION) return bad('format');
   if (typeof b.createdOn !== 'string' || !isDateKey(b.createdOn)) return bad('createdOn');
   const rules = checkRules(b.rules);
   if (!rules.ok) return fail(rules.reason, 'rules');
@@ -372,8 +375,23 @@ const CLOSING_SPEC: Record<string, Kind> = {
   note: 'string',
 };
 
-/** Strict, all-or-nothing reader: the first problem fails the whole file, nothing is dropped. */
+/** What reading an older file left out; the UI says it in plain words. */
+export type BackupNote = { kind: 'decisions-dropped'; count: number };
+
+/** Strict, all-or-nothing reader (short form of `parseBackupWithNotes`: the notes are ignored). */
 export function parseBackup(text: string): Result<Backup, Reason> {
+  const r = parseBackupWithNotes(text);
+  return r.ok ? ok(r.value.backup) : r;
+}
+
+/**
+ * Strict reader: the first problem fails the whole file. The one exception is by design: the screening
+ * decisions of a format 1 or 2 file are NOT taken over (their snapshots are an older kind), so the hits
+ * are open again; `notes` says how many were dropped. A format 3 file is read without dropping anything.
+ */
+export function parseBackupWithNotes(
+  text: string,
+): Result<{ backup: Backup; notes: BackupNote[] }, Reason> {
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -395,9 +413,9 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     rules: 'any',
     mandates: 'any',
   };
-  // The screening keys are optional in version 2 (missing = empty): default them before the strict shape check.
+  // The screening keys are optional from version 2 on (missing = empty): default them before the strict shape check.
   const src: Obj =
-    raw.version === 2
+    raw.version >= 2
       ? {
           ...raw,
           ...(Object.hasOwn(raw, 'screeningDecisions') ? {} : { screeningDecisions: [] }),
@@ -433,7 +451,8 @@ export function parseBackup(text: string): Result<Backup, Reason> {
   const closings: AuditClosing[] = [];
   const decisions: ScreeningDecision[] = [];
   let lastScreening = emptyLastScreening();
-  if (raw.version === 2) {
+  const notes: BackupNote[] = [];
+  if (raw.version >= 2) {
     const rawPersons = list(raw.persons, 'persons');
     if (!rawPersons.ok) return rawPersons;
     for (const [i, item] of rawPersons.value.entries()) {
@@ -458,11 +477,18 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     }
     const rawDecisions = list(src.screeningDecisions, 'screeningDecisions');
     if (!rawDecisions.ok) return rawDecisions;
-    for (const [i, item] of rawDecisions.value.entries()) {
-      const where = `screeningDecisions[${i}]`;
-      const s = shape(item, DECISION_SPEC, where);
-      if (!s.ok) return s;
-      decisions.push(s.value as unknown as ScreeningDecision);
+    if (raw.version === 2) {
+      // Old snapshots cannot be compared with the new hashes: drop the rulings, report them.
+      if (rawDecisions.value.length > 0) {
+        notes.push({ kind: 'decisions-dropped', count: rawDecisions.value.length });
+      }
+    } else {
+      for (const [i, item] of rawDecisions.value.entries()) {
+        const where = `screeningDecisions[${i}]`;
+        const s = shape(item, DECISION_SPEC, where);
+        if (!s.ok) return s;
+        decisions.push(s.value as unknown as ScreeningDecision);
+      }
     }
     const ls = shape(src.lastScreening, { sanktion: 'any', pep: 'any' }, 'lastScreening');
     if (!ls.ok) return ls;
@@ -476,9 +502,9 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     }
   }
   // Every cross-reference and value rule lives in `checkBackup`, the same check the save runs.
-  return checkBackup({
+  const checked = checkBackup({
     format: BACKUP_FORMAT,
-    version: 2,
+    version: BACKUP_VERSION,
     createdOn: raw.createdOn as string,
     rules: rules.value,
     mandates,
@@ -487,4 +513,5 @@ export function parseBackup(text: string): Result<Backup, Reason> {
     screeningDecisions: decisions,
     lastScreening,
   });
+  return checked.ok ? ok({ backup: checked.value, notes }) : checked;
 }

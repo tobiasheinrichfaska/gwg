@@ -27,7 +27,7 @@
 
     <h2>1 Gespeicherte Form (Wurzel)</h2>
     <p>
-      Die Sicherungsdatei hat das <strong>Format 2</strong> (reine Logik in <code>src/logic/backup/</code>;
+      Die Sicherungsdatei hat das <strong>Format 3</strong> (reine Logik in <code>src/logic/backup/</code>;
       Speicher und Dateizugriff in <code>src/io/</code>). Die Datei ist <strong>unverschlüsselt</strong> (Entscheidung
       Tobias): sie enthält Mandantennamen im Klartext, die Oberfläche zeigt dazu einen Warnhinweis
       (<code>BACKUP_WARNING</code>). Der Browserspeicher dagegen liegt im local-vault (Gerätemodus, optional mit
@@ -36,7 +36,7 @@
     <table>
       <tr><th>Feld</th><th>Typ</th><th>Inhalt</th></tr>
       <tr><td>format</td><td>string</td><td>immer <code>gwg-backup</code></td></tr>
-      <tr><td>version</td><td>Zahl</td><td>immer <code>2</code>; größer als 2 ergibt unsupported-version; Dateien des Formats 1 werden beim Lesen übernommen (ohne Personen, ohne Abschlüsse)</td></tr>
+      <tr><td>version</td><td>Zahl</td><td>immer <code>3</code>; größer als 3 ergibt unsupported-version; Dateien des Formats 1 (ohne Personen, ohne Abschlüsse) und 2 werden beim Lesen übernommen, ihre <code>screeningDecisions</code> aber nicht (ältere Momentaufnahmen, siehe parseBackupWithNotes)</td></tr>
       <tr><td>createdOn</td><td>DateKey</td><td>Erstellungstag, gültiges Kalenderdatum</td></tr>
       <tr><td>rules</td><td>RulesConfig</td><td>Die Konfiguration (Abschnitt 3), von <code>checkRules</code> geprüft</td></tr>
       <tr><td>mandates</td><td>Mandate[]</td><td>Mandanten nach Nummer sortiert, jeder von <code>checkMandate</code> geprüft</td></tr>
@@ -113,7 +113,7 @@
       <tr><td>decision</td><td>kein-treffer | treffer-bestaetigt</td><td>ja</td><td>Ausschluss oder bestätigter Treffer</td></tr>
       <tr><td>reason</td><td>Text, 1 bis 500 Zeichen</td><td>ja, auch bei kein-treffer</td><td>Begründung (Ausschlussgrund); Zeilenumbruch erlaubt, sonst keine Steuerzeichen</td></tr>
       <tr><td>decidedBy</td><td>Text, höchstens 100 Zeichen</td><td>ja</td><td>Wer entschieden hat; eine Zeile</td></tr>
-      <tr><td>subjectSnapshot</td><td>Text, höchstens 64 Zeichen</td><td>ja</td><td>64-Bit-Hash (16 Hexzeichen) über Person: normalisierter Name, „|“, Geburtsangabe; Mandat: normalisierter Name. Ändert sich der Name, verfällt die Entscheidung. Ältere, längere Werte lehnt parseBackup mit bad-decision (Ort screeningDecisions[n].subjectSnapshot) ab</td></tr>
+      <tr><td>subjectSnapshot</td><td>Text, höchstens 64 Zeichen</td><td>ja</td><td>64-Bit-Hash (16 Hexzeichen) über Person: normalisierter Name, „|“, Geburtsangabe; Mandat: normalisierter Name. Ändert sich der Name, verfällt die Entscheidung. In Format 3 lehnt parseBackup längere Werte mit bad-decision (Ort screeningDecisions[n].subjectSnapshot) ab; Entscheidungen aus Format 1/2 mit älteren Momentaufnahmen werden beim Lesen verworfen (Treffer wieder offen)</td></tr>
       <tr><td>entrySnapshot</td><td>Text, höchstens 64 Zeichen</td><td>ja</td><td>Fingerabdruck des Eintrags zum Zeitpunkt der Entscheidung; ein neuer Listenstand mit unverändertem Eintrag lässt die Entscheidung gelten</td></tr>
       <tr><td>actionNote</td><td>Text, höchstens 500 Zeichen</td><td>ja (leer erlaubt)</td><td>Nur bei treffer-bestaetigt: Vermerk, dass Meldung/Sperre dokumentiert ist; leer = Aufgabe sanction-confirmed bleibt offen</td></tr>
     </table>
@@ -193,13 +193,14 @@
       <tr><td>checkPerson</td><td>(p, mandates) =&gt; Result&lt;Person&gt;</td><td>Prüft eine Person (Namen, Rolle, Geburtsdatum): bad-person; PEP-Angaben: bad-pep; Mandant fehlt: unknown-mandate</td></tr>
       <tr><td>checkAuditClosing</td><td>(c) =&gt; Result&lt;AuditClosing&gt;</td><td>Prüft einen Abschluss des Jahresaudits; liefert bad-closing</td></tr>
       <tr><td>checkRules</td><td>(r: RulesConfig) =&gt; Result&lt;RulesConfig&gt;</td><td>Prüft eine Konfiguration; liefert bad-config</td></tr>
-      <tr><td>serializeBackup</td><td>(b: Backup) =&gt; string</td><td>Schreibt immer Format 2: feste Schlüsselreihenfolge, Mandate nach Nummer, Personen nach Mandantennummer und Id, Abschlüsse nach Stichtag sortiert</td></tr>
+      <tr><td>serializeBackup</td><td>(b: Backup) =&gt; string</td><td>Schreibt immer Format 3: feste Schlüsselreihenfolge, Mandate nach Nummer, Personen nach Mandantennummer und Id, Abschlüsse nach Stichtag sortiert</td></tr>
       <tr><td>checkBackup</td><td>(b: Backup) =&gt; Result&lt;Backup&gt;</td><td>Prüft den ganzen Bestand: Regeln, Mandate (<code>checkMandate</code>: Nummer höchstens 50, Name höchstens 200 Zeichen, je eine Zeile ohne Steuer- und Zeilenumbruchzeichen), Personen, Abschlüsse, Entscheidungen, letzte Abgleiche; Duplikate und verwaiste Personen/Entscheidungen (unknown-mandate); mit Stelle in where. <code>parseBackup</code> benutzt sie; die App ruft sie vor jedem Speichern und vor jedem Download der Sicherung auf, ein ungültiger Bestand wird nie geschrieben</td></tr>
       <tr><td>removePerson</td><td>(b: Backup, personId) =&gt; Backup</td><td>Löscht die Person und im selben Schritt ihre screeningDecisions (subjectKind person); der Bestand bleibt gültig</td></tr>
       <tr><td>removeMandate</td><td>(b: Backup, mandateId) =&gt; Backup</td><td>Löscht das Mandat, seine Personen und die Entscheidungen des Mandats und seiner Personen</td></tr>
       <tr><td>repairOrphanDecisions</td><td>(text) =&gt; Result&lt;{ backup, removed }&gt;</td><td>Für einen gespeicherten Text, den parseBackup ablehnt: entfernt verwaiste screeningDecisions und liest erneut; gelingt nur, wenn das der einzige Fehler war (sonst Fehler des normalen Lesens); die Sperrseite bietet das mit Anzahl und Bestätigung an</td></tr>
       <tr><td>shrankTooMuch</td><td>(stored, incoming) =&gt; boolean</td><td>Neue Liste hat weniger als 50 % der Einträge der gespeicherten (SHRINK_LIMIT); der Abruf ersetzt dann nicht, der Dateiimport verlangt eine Bestätigung mit beiden Zahlen</td></tr>
-      <tr><td>parseBackup</td><td>(text) =&gt; Result&lt;Backup&gt;</td><td>Strenger Leser (Abschnitt 1) für Format 1 (wird übernommen) und 2; Schachtelung über 64 Ebenen: bad-backup (Stelle nesting); liefert bad-backup, unsupported-version, duplicate-id oder den Fehler von checkMandate/checkPerson/checkAuditClosing/checkRules, mit Stelle in where</td></tr>
+      <tr><td>parseBackup</td><td>(text) =&gt; Result&lt;Backup&gt;</td><td>Kurzform von parseBackupWithNotes (Notizen werden ignoriert); strenger Leser (Abschnitt 1) für Format 1, 2 (jeweils ohne Entscheidungen) und 3; Schachtelung über 64 Ebenen: bad-backup (Stelle nesting); liefert bad-backup, unsupported-version, duplicate-id oder den Fehler von checkMandate/checkPerson/checkAuditClosing/checkRules, mit Stelle in where</td></tr>
+      <tr><td>parseBackupWithNotes</td><td>(text) =&gt; Result&lt;{ backup: Backup; notes: BackupNote[] }&gt;</td><td>Wie parseBackup, liefert zusätzlich Notizen; <code>BackupNote = { kind: 'decisions-dropped'; count }</code>: so viele Entscheidungen einer Datei im Format 1/2 wurden nicht übernommen (die Treffer sind wieder offen); die Oberfläche sagt das beim Start und beim Einspielen in einfachen Sätzen und speichert den Bestand im Format 3</td></tr>
       <tr><td>auditExceptions</td><td>(mandates, persons, today, rules) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified (auch unbekannte Gruppe), unidentified, stalled, overdue (auch „vollständig“ ohne gültiges Prüfdatum)</td></tr>
       <tr><td>auditIsClean</td><td>(e) =&gt; boolean</td><td>Alle vier Listen leer</td></tr>
       <tr><td>closingBlockers</td><td>({ tasks, hits, decisions, persons, mandates, screening: { hasList, stale, ranOn } }) =&gt; { blockers: ClosingBlocker[]; warnings: ClosingWarning[] }</td><td>Was das Abschließen des Jahresaudits sperrt (Entscheidung Tobias): red-hits (Anzahl roter Treffer ohne gültige Entscheidung laut openHits), pep-approvals (Anzahl Aufgaben pep-approval), unscreenable (Anzahl Aufgaben sanction-unscreenable: Namen, die nicht prüfbar sind), screening-missing (keine Liste, Abgleich in dieser Sitzung nie gelaufen oder veraltet, auch bei einer anderen Liste mit gleichem Stand; Treffer liegen nur im Speicher) – Reihenfolge in dieser Folge; Warnung yellow-hits (Anzahl offener gelber Treffer) sperrt nicht. Rein; <code>checkAuditClosing</code> bleibt unverändert. Die App sperrt den Knopf; nur die Provider-Aktion <code>closeAudit</code> verweigert das Speichern eines neuen Abschlusses mit closing-blocked (Blocker aus dem Stand innerhalb der Speicherwarteschlange); Wiederherstellen und Ersetzen (<code>replace</code>, <code>update</code>) sind nie gesperrt</td></tr>
@@ -220,7 +221,7 @@
       <tr><td>checkScreeningRun</td><td>(r: ScreeningRun, kind: ListKind) =&gt; Result&lt;ScreeningRun&gt;</td><td>Prüft die Notiz zum letzten Abgleich (Daten, Listenart)</td></tr>
       <tr><td>decisionKey</td><td>({ subjectKind, subjectId, entryId, listKind }) =&gt; string</td><td>Schlüssel einer Entscheidung zu einem Treffer (Gegenstand und Listeneintrag)</td></tr>
       <tr><td>personSnapshot, mandateSnapshot, currentSnapshot</td><td>(p) / (m) / (kind, id, persons, mandates) =&gt; string | null</td><td>Momentaufnahme (64-Bit-Hash als Hex) des Namens beim Entscheiden; ändert sich der Name, ist die Entscheidung veraltet</td></tr>
-      <tr><td>unscreenableSubjects</td><td>(persons, mandates) =&gt; { persons: Person[]; mandates: Mandate[] }</td><td>Personen und Mandate aktiver Mandate, die der Abgleich nicht vergleichen kann (Nachname ohne Buchstaben, Mandatsname nur aus Rechtsform); Grundlage der Aufgabe sanction-unscreenable</td></tr>
+      <tr><td>unscreenableSubjects</td><td>(persons, mandates) =&gt; { persons: Person[]; mandates: Mandate[] }</td><td>Personen und Mandate aktiver Mandate, die der Abgleich nicht vergleichen kann (Nachname oder Mandatsname ohne Buchstaben und Ziffern, Mandatsname nur aus Rechtsform); Grundlage der Aufgabe sanction-unscreenable</td></tr>
       <tr><td>emptyLastScreening</td><td>() =&gt; LastScreening</td><td>Standard: noch kein Abgleich (sanktion und pep null)</td></tr>
       <tr><td>emptyPep</td><td>() =&gt; PepDisclosure</td><td>Standard der PEP-Selbstauskunft: alles null oder leer</td></tr>
       <tr><td>parseSettings, serializeSettings, isRelayUrl</td><td>(text) =&gt; Result&lt;ListSettings&gt; / (s) =&gt; string / (s) =&gt; boolean</td><td>Listen-Einstellungen (Relay-Adresse, Abruf, Höchstalter) strikt lesen und schreiben; leere Adresse = aus</td></tr>

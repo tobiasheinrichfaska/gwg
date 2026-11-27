@@ -11,7 +11,7 @@ afterEach(cleanup);
 
 const backup = (n: number): Backup => ({
   format: 'gwg-backup',
-  version: 2,
+  version: 3,
   createdOn: '2026-11-27',
   rules: DEFAULT_RULES,
   mandates: Array.from({ length: n }, (_, i) => mandate({ id: String(10001 + i) })),

@@ -33,7 +33,7 @@ const closing = (over: Partial<AuditClosing> = {}): AuditClosing => ({
 });
 const base = (): Backup => ({
   format: 'gwg-backup',
-  version: 2,
+  version: 3,
   createdOn: '2026-11-26',
   rules: DEFAULT_RULES,
   mandates: [mandate({ id: '10002', name: 'Zweite GmbH' }), mandate({ id: '10001' })],
@@ -81,7 +81,7 @@ describe('backup round trip', () => {
       'screeningDecisions',
       'lastScreening',
     ]);
-    expect(obj().version).toBe(2);
+    expect(obj().version).toBe(3);
     expect(obj().persons.map((p: Person) => p.id)).toEqual(['p1', 'p2', 'p3']);
     expect(obj().auditClosings.map((c: AuditClosing) => c.stichtag)).toEqual([
       '2025-11-30',
@@ -104,8 +104,8 @@ describe('backup reader: whole-file errors', () => {
   it('rejects a wrong format marker', () => {
     fails(parse({ ...obj(), format: 'other' }), 'bad-backup', 'format');
   });
-  it('rejects version 3 as unsupported', () => {
-    fails(parse({ ...obj(), version: 3 }), 'unsupported-version');
+  it('rejects version 4 as unsupported', () => {
+    fails(parse({ ...obj(), version: 4 }), 'unsupported-version');
   });
   it.each([0, 1.5, '1', null])('rejects bad version %j', (v) => {
     fails(parse({ ...obj(), version: v }), 'bad-backup', 'version');
@@ -184,15 +184,15 @@ describe('backup reader: version 1 migration', () => {
     o.version = 1;
     return o;
   };
-  it('reads a version 1 file and migrates it to version 2 without persons and closings', () => {
+  it('reads a version 1 file and migrates it to version 3 without persons and closings', () => {
     const r = parse(v1());
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.version).toBe(2);
+    expect(r.value.version).toBe(3);
     expect(r.value.persons).toEqual([]);
     expect(r.value.auditClosings).toEqual([]);
     expect(r.value.mandates).toHaveLength(2);
-    expect(JSON.parse(serializeBackup(r.value)).version).toBe(2);
+    expect(JSON.parse(serializeBackup(r.value)).version).toBe(3);
   });
   it('stays strict: persons in a version 1 file are an unknown key', () => {
     fails(parse({ ...v1(), persons: [] }), 'bad-backup', 'root.persons');
