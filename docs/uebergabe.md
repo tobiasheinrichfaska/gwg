@@ -54,6 +54,7 @@ keine Schreiben/PDF. Das Werkzeug entscheidet nichts rechtlich; ein Mensch zeich
 6. **Offene Entscheidungen:**
    - aktiv + `gekuendigt` erscheint in keiner Audit-Liste: fünfte Liste oder zulässiger Übergang?
    - Audit-Abschluss ist erst ab dem Stichtag möglich: gewollt?
+   - Einzelwort-Regel im Firmenabgleich bestätigen (T9a, Audit M2).
    - Das Ergebnis eines Abgleichs lebt nur im Speicher (nach dem Neuladen „Abgleich veraltet“): so lassen?
    - Der Git-Verlauf enthält in Commit `5250e2a` den Namen eines privaten Repos; Umschreiben des Verlaufs oder
      bewusst belassen.

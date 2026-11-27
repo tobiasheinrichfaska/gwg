@@ -1,3 +1,5 @@
+import { SANCTION_THRESHOLDS } from '../config.ts';
+import { stripLegalWords } from './legal-words.ts';
 import { normalizeLoose, normalizeName } from './normalize.ts';
 
 export function levenshtein(a: string, b: string): number {
@@ -185,4 +187,84 @@ export function preparedSimilarity(a: PreparedName, b: PreparedName, floor = 0):
  */
 export function nameSimilarity(a: string, b: string): number {
   return preparedSimilarity(prepareName(a), prepareName(b));
+}
+
+/** Shortest single remaining word (letters) that flags a company on its own, see `companySimilarity`. */
+const SINGLE_WORD_MIN = 6;
+
+/**
+ * A company name prepared for repeated comparison: the name as given plus the name without its
+ * legal-form words (`stripped` is null when nothing is left: the name is not comparable).
+ */
+export type PreparedCompany = {
+  name: PreparedName;
+  stripped: PreparedName | null;
+  /** The only remaining word, if the stripped name has exactly one of at least 6 letters (strict, loose spelling). */
+  single: { strict: string | null; loose: string | null };
+};
+
+const strippedTokens = (s: string): string[] => stripLegalWords(s.split(' ').filter(Boolean));
+const singleOf = (t: string[]): string | null =>
+  t.length === 1 && (t[0]?.length ?? 0) >= SINGLE_WORD_MIN ? (t[0] as string) : null;
+
+export function prepareCompany(name: string): PreparedCompany {
+  const full = prepareName(name);
+  const st = strippedTokens(full.strict.s);
+  const lt = strippedTokens(full.loose.s);
+  if (st.length === 0 || lt.length === 0) {
+    return { name: full, stripped: null, single: { strict: null, loose: null } };
+  }
+  const strict = variantOf(st.join(' '));
+  const loose = variantOf(lt.join(' '));
+  return {
+    name: full,
+    stripped: { strict, loose: loose.s === strict.s ? strict : loose },
+    single: { strict: singleOf(st), loose: singleOf(lt) },
+  };
+}
+
+/** True when a name has nothing but legal-form words left (or nothing at all): it cannot be compared. */
+export const isCompanyEmpty = (c: PreparedCompany): boolean => c.stripped === null;
+
+const hasWord = (v: Variant, w: string | null): boolean => w !== null && v.tokens.includes(w);
+
+/**
+ * Company counterpart of `preparedSimilarity` (same lossless `floor` contract). 0 when either side has
+ * only legal-form words. Otherwise the better of the comparison as given and without the legal-form
+ * words; plus: if one side has exactly one word of at least 6 letters left and the other side contains
+ * that word, the result is at least `thresholds.possible` (yellow, and never reaches `strong`).
+ */
+export function preparedCompanySimilarity(
+  a: PreparedCompany,
+  b: PreparedCompany,
+  thresholds: { possible: number; strong: number },
+  floor = 0,
+): number {
+  if (a.stripped === null || b.stripped === null) return 0;
+  let best = Math.max(
+    preparedSimilarity(a.name, b.name, floor),
+    preparedSimilarity(a.stripped, b.stripped, floor),
+  );
+  if (thresholds.possible < thresholds.strong) {
+    const hit =
+      hasWord(b.stripped.strict, a.single.strict) ||
+      hasWord(b.stripped.loose, a.single.loose) ||
+      hasWord(a.stripped.strict, b.single.strict) ||
+      hasWord(a.stripped.loose, b.single.loose);
+    if (hit) best = Math.max(best, thresholds.possible);
+  }
+  return best;
+}
+
+/**
+ * Similarity of two COMPANY names (mandates): legal-form words ('GmbH', 'Ltd', 'OOO' ...) are removed
+ * on both sides first, so 'Sovcomflot GmbH' meets 'Sovcomflot'. Industry words ('Oil', 'Bank') stay.
+ * Person names keep using `nameSimilarity`.
+ */
+export function companySimilarity(
+  a: string,
+  b: string,
+  thresholds: { possible: number; strong: number } = SANCTION_THRESHOLDS,
+): number {
+  return preparedCompanySimilarity(prepareCompany(a), prepareCompany(b), thresholds);
 }

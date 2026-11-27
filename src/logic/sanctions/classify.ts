@@ -3,9 +3,13 @@ import type { SanctionClass } from '../mandate/model.ts';
 import { normalizeName } from './normalize.ts';
 import type { ListEntry } from './list.ts';
 import {
+  isCompanyEmpty,
   nameSimilarity,
+  prepareCompany,
   prepareName,
+  preparedCompanySimilarity,
   preparedSimilarity,
+  type PreparedCompany,
   type PreparedName,
 } from './similarity.ts';
 
@@ -85,11 +89,21 @@ function classifyBirth(
 }
 
 /** Entry with its names prepared once (see `prepareName`); used by the screening to avoid re-normalizing. */
-export type PreparedEntry = { entry: ListEntry; names: PreparedName[]; empty: boolean[] };
+export type PreparedEntry = {
+  entry: ListEntry;
+  names: PreparedName[];
+  empty: boolean[];
+  /** The names prepared for the company comparison; built on first use (see `companyNames`). */
+  companies: PreparedCompany[] | null;
+};
 
 export function prepareEntry(entry: ListEntry): PreparedEntry {
   const names = entry.names.map(prepareName);
-  return { entry, names, empty: entry.names.map((n) => normalizeName(n) === '') };
+  return { entry, names, empty: entry.names.map((n) => normalizeName(n) === ''), companies: null };
+}
+
+function companyNames(pe: PreparedEntry): PreparedCompany[] {
+  return (pe.companies ??= pe.entry.names.map(prepareCompany));
 }
 
 const CLASSES: SanctionClass[] = ['gruen', 'gelb', 'rot'];
@@ -123,20 +137,78 @@ export function classifyPrepared(
   thresholds: RulesConfig['sanctionThresholds'],
   floor: number,
 ): EntryMatch | null {
+  return classifyBy(
+    pe,
+    clientBirth,
+    thresholds,
+    floor,
+    clientEmpty,
+    (i) => pe.empty[i] === true,
+    (i) => {
+      const pn = pe.names[i];
+      return pn === undefined ? 0 : preparedSimilarity(client, pn, floor);
+    },
+  );
+}
+
+/**
+ * Same for a COMPANY (mandate): legal-form words are removed before the comparison (`companySimilarity`).
+ * A client name with nothing but legal-form words is "empty" (yellow, not comparable); a list name
+ * like that is skipped, or every company would hit it.
+ */
+export function classifyPreparedCompany(
+  client: PreparedCompany,
+  clientBirth: PartialDate,
+  pe: PreparedEntry,
+  thresholds: RulesConfig['sanctionThresholds'],
+  floor: number,
+): EntryMatch | null {
+  const list = companyNames(pe);
+  return classifyBy(
+    pe,
+    clientBirth,
+    thresholds,
+    floor,
+    isCompanyEmpty(client),
+    (i) => pe.empty[i] === true,
+    (i) => {
+      const pn = list[i];
+      return pn === undefined ? 0 : preparedCompanySimilarity(client, pn, thresholds, floor);
+    },
+    (i) => {
+      const pn = list[i];
+      return pn !== undefined && isCompanyEmpty(pn);
+    },
+  );
+}
+
+function classifyBy(
+  pe: PreparedEntry,
+  clientBirth: PartialDate,
+  thresholds: RulesConfig['sanctionThresholds'],
+  floor: number,
+  clientEmpty: boolean,
+  nameEmpty: (i: number) => boolean,
+  similarity: (i: number) => number,
+  skipped: (i: number) => boolean = () => false,
+): EntryMatch | null {
   const names = pe.entry.names;
   let bestRank = 0;
   let bestSim = -1;
   let bestAt = 0;
   for (let i = 0; i < names.length; i++) {
-    const pn = pe.names[i];
     let rank = 1;
     let sim = 0;
-    if (!clientEmpty && !pe.empty[i] && pn !== undefined) {
-      sim = preparedSimilarity(client, pn, floor);
-      rank =
-        sim >= thresholds.possible
-          ? rankOfBirths(sim, clientBirth, pe.entry.births, thresholds)
-          : 0;
+    if (!clientEmpty && !nameEmpty(i)) {
+      if (skipped(i)) {
+        rank = 0;
+      } else {
+        sim = similarity(i);
+        rank =
+          sim >= thresholds.possible
+            ? rankOfBirths(sim, clientBirth, pe.entry.births, thresholds)
+            : 0;
+      }
     }
     if (rank > bestRank || (rank === bestRank && sim > bestSim)) {
       bestRank = rank;
@@ -159,20 +231,32 @@ export function classifyPrepared(
  *   birth years are known and differ (span 'A/B': the client's year lies outside it);
  * - rot as in `classifyMatch` (name >= strong and the same FULL date), gelb otherwise;
  * - an entry without birth date counts as unknown (gelb on a name match); an empty client name is gelb.
+ * With `subject` 'company' (a mandate) the name is compared as a company name: legal-form words are
+ * removed on both sides first, and a name of legal-form words only counts as empty.
  */
 export function classifyEntry(
   clientName: string,
   clientBirth: PartialDate,
   entry: ListEntry,
   thresholds: RulesConfig['sanctionThresholds'],
+  subject: 'person' | 'company' = 'person',
 ): EntryMatch {
-  const m = classifyPrepared(
-    prepareName(clientName),
-    normalizeName(clientName) === '',
-    clientBirth,
-    prepareEntry(entry),
-    thresholds,
-    0,
-  );
+  const m =
+    subject === 'company'
+      ? classifyPreparedCompany(
+          prepareCompany(clientName),
+          clientBirth,
+          prepareEntry(entry),
+          thresholds,
+          0,
+        )
+      : classifyPrepared(
+          prepareName(clientName),
+          normalizeName(clientName) === '',
+          clientBirth,
+          prepareEntry(entry),
+          thresholds,
+          0,
+        );
   return m ?? { klasse: 'gruen', besterName: entry.names[0] ?? '', aehnlichkeit: 0 };
 }

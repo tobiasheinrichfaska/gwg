@@ -1,10 +1,21 @@
 import type { RulesConfig } from '../config.ts';
 import type { Mandate, Person, Reason, SanctionClass } from '../mandate/model.ts';
 import { entrySnapshot, mandateSnapshot, personSnapshot, type SubjectKind } from './decision.ts';
-import { classifyPrepared, prepareEntry, type PreparedEntry } from './classify.ts';
+import {
+  classifyPrepared,
+  classifyPreparedCompany,
+  prepareEntry,
+  type PreparedEntry,
+} from './classify.ts';
 import type { ListIndex, ListKind } from './list.ts';
 import { normalizeName } from './normalize.ts';
-import { prepareName, type PreparedName } from './similarity.ts';
+import {
+  isCompanyEmpty,
+  prepareCompany,
+  prepareName,
+  type PreparedCompany,
+  type PreparedName,
+} from './similarity.ts';
 
 /** A possible match of a person with a list entry; green is never a hit. */
 export interface Hit {
@@ -55,6 +66,8 @@ type Subject = {
   mandateId: string;
   birth: string | null;
   client: PreparedName;
+  /** Set for a mandate: compared as a company name (legal-form words removed). */
+  company?: PreparedCompany;
   empty: boolean;
 };
 const subjectOf = (p: Person): Subject => {
@@ -68,14 +81,18 @@ const subjectOf = (p: Person): Subject => {
     empty: normalizeName(name) === '',
   };
 };
-const subjectOfMandate = (m: Mandate): Subject => ({
-  kind: 'mandate',
-  id: m.id,
-  mandateId: m.id,
-  birth: null,
-  client: prepareName(m.name),
-  empty: normalizeName(m.name) === '',
-});
+const subjectOfMandate = (m: Mandate): Subject => {
+  const company = prepareCompany(m.name);
+  return {
+    kind: 'mandate',
+    id: m.id,
+    mandateId: m.id,
+    birth: null,
+    client: company.name,
+    company,
+    empty: normalizeName(m.name) === '' || isCompanyEmpty(company),
+  };
+};
 
 function addHits(
   out: Hit[],
@@ -89,7 +106,9 @@ function addHits(
   for (let i = from; i < to; i++) {
     const pe = entries[i];
     if (pe === undefined) continue;
-    const m = classifyPrepared(s.client, s.empty, s.birth, pe, t, floor);
+    const m = s.company
+      ? classifyPreparedCompany(s.company, s.birth, pe, t, floor)
+      : classifyPrepared(s.client, s.empty, s.birth, pe, t, floor);
     if (m === null || m.klasse === 'gruen') continue;
     out.push({
       subjectKind: s.kind,
@@ -161,14 +180,18 @@ export interface UnscreenableMandate {
 
 /**
  * Screens the names of the ACTIVE mandates against the list. A mandate has no birth date (unknown), so
- * a name match is at most yellow, never red. Mandates with an empty normalized name are reported.
+ * a name match is at most yellow, never red. Names are compared as company names (legal-form words
+ * removed on both sides). Mandates whose name is empty after normalization or consists of legal-form
+ * words only are reported.
  */
 export function screenMandates(
   mandates: readonly Mandate[],
   index: ListIndex,
   thresholds: Thresholds,
+  options: { bruteForce?: boolean } = {},
 ): { hits: Hit[]; unscreenable: UnscreenableMandate[] } {
   const entries = preparedEntries(index);
+  const floor = options.bruteForce ? 0 : thresholds.possible;
   const hits: Hit[] = [];
   const unscreenable: UnscreenableMandate[] = [];
   const subjects: Subject[] = [];
@@ -180,7 +203,7 @@ export function screenMandates(
   }
   for (let from = 0; from < entries.length; from += BLOCK) {
     const to = Math.min(entries.length, from + BLOCK);
-    for (const s of subjects) addHits(hits, s, entries, from, to, thresholds, thresholds.possible);
+    for (const s of subjects) addHits(hits, s, entries, from, to, thresholds, floor);
   }
   return { hits: hits.sort(compare), unscreenable };
 }

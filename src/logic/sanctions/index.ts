@@ -1,5 +1,6 @@
 export { normalizeName } from './normalize.ts';
-export { levenshtein, nameSimilarity } from './similarity.ts';
+export { levenshtein, nameSimilarity, companySimilarity } from './similarity.ts';
+export { LEGAL_FORM_WORDS, LEGAL_FORM_SEQUENCES } from './legal-words.ts';
 export {
   classifyEntry,
   classifyMatch,
