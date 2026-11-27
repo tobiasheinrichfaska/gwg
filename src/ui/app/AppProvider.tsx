@@ -55,8 +55,18 @@ class Latest {
   list: ListIndex | null = null;
   backup: Backup | null = null;
   running = false;
+  /** Tail of the save queue: saves run one after the other, each on the newest data set. */
+  queue: Promise<unknown> = Promise.resolve();
   closing: ClosingCheck = { blockers: [], warnings: [] };
   autoFetched = false;
+  setBackup(b: Backup | null): void {
+    this.backup = b;
+  }
+  enqueue<T>(run: () => Promise<T>): Promise<T> {
+    const job = this.queue.then(run, run);
+    this.queue = job.catch(() => undefined);
+    return job;
+  }
   setRunning(v: boolean): void {
     this.running = v;
   }
@@ -66,10 +76,9 @@ class Latest {
   markAutoFetched(): void {
     this.autoFetched = true;
   }
-  sync(settings: ListSettings, list: ListIndex | null, backup: Backup | null): void {
+  sync(settings: ListSettings, list: ListIndex | null): void {
     this.settings = settings;
     this.list = list;
-    this.backup = backup;
   }
 }
 
@@ -157,8 +166,8 @@ export function AppProvider({
   // Layout effect: the commit that shows a new list/backup also updates `live`, so a click right after
   // it never reads stale values (a passive effect could still be pending and make the run fail).
   useLayoutEffect(() => {
-    live.sync(settings, list, loaded.kind === 'ready' ? loaded.backup : null);
-  }, [live, settings, list, loaded]);
+    live.sync(settings, list);
+  }, [live, settings, list]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,33 +202,59 @@ export function AppProvider({
       }
       if (cancelled) return;
       if (!r.ok) setLoaded({ kind: 'damaged', reason: r.reason, where: r.where, repair });
-      else setLoaded({ kind: 'ready', backup: r.value ?? emptyBackup(today) });
+      else {
+        const first = r.value ?? emptyBackup(today);
+        live.setBackup(first);
+        setLoaded({ kind: 'ready', backup: first });
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [store, today]);
+  }, [store, today, live]);
 
-  const replace = useCallback(
-    async (next: Backup): Promise<Result<void>> => {
-      // Never write a data set that `parseBackup` would refuse on the next start.
-      const checked = checkBackup(next);
-      // Defence in depth: a NEW audit closing is refused while blockers stand (the screen disables the button).
-      const had = new Set(live.backup?.auditClosings.map((c) => c.stichtag));
-      const newClosing = next.auditClosings.some((c) => !had.has(c.stichtag));
-      const blocked = checked.ok && newClosing && live.closing.blockers.length > 0;
-      const r = blocked ? fail('closing-blocked') : checked.ok ? await store.save(next) : checked;
-      if (!r.ok) {
-        setSaveError(r.reason);
-        setSaveErrorWhere(r.where);
+  /**
+   * Saves one change. Saves run strictly one after the other (a queue), and `compute` always gets the
+   * NEWEST data set (not the one of an old render), so a change made while another save or a screening
+   * run was under way is never overwritten (lost update).
+   */
+  const commit = useCallback(
+    (compute: (latest: Backup | null) => Backup | Result<never>): Promise<Result<void>> => {
+      const run = async (): Promise<Result<void>> => {
+        const next = compute(live.backup);
+        if ('ok' in next) return next;
+        const data = next;
+        // Never write a data set that `parseBackup` would refuse on the next start.
+        const checked = checkBackup(data);
+        // Defence in depth: a NEW audit closing is refused while blockers stand (the screen disables the button).
+        const had = new Set(live.backup?.auditClosings.map((c) => c.stichtag));
+        const newClosing = data.auditClosings.some((c) => !had.has(c.stichtag));
+        const blocked = checked.ok && newClosing && live.closing.blockers.length > 0;
+        const r = blocked ? fail('closing-blocked') : checked.ok ? await store.save(data) : checked;
+        if (!r.ok) {
+          setSaveError(r.reason);
+          setSaveErrorWhere(r.where);
+          return r;
+        }
+        setSaveError(null);
+        setSaveErrorWhere(undefined);
+        live.setBackup(data);
+        setLoaded({ kind: 'ready', backup: data });
         return r;
-      }
-      setSaveError(null);
-      setSaveErrorWhere(undefined);
-      setLoaded({ kind: 'ready', backup: next });
-      return r;
+      };
+      return live.enqueue(run);
     },
     [store, live],
+  );
+
+  /** Replaces the whole data set (restore from a backup file, repair). */
+  const replace = useCallback((next: Backup) => commit(() => next), [commit]);
+
+  /** Applies a change to the newest data set; `change` must be pure and fast. */
+  const update = useCallback(
+    (change: (latest: Backup) => Backup) =>
+      commit((latest) => (latest === null ? fail('bad-list') : change(latest))),
+    [commit],
   );
 
   const saveSettings = useCallback(
@@ -357,16 +392,16 @@ export function AppProvider({
         'sanktion',
       );
       if (!run.ok) return run;
-      const latest = live.backup ?? data;
-      return await replace({
+      // Only `lastScreening` goes into the NEWEST data set; edits made during the run stay.
+      return await update((latest) => ({
         ...latest,
         lastScreening: { ...latest.lastScreening, sanktion: run.value },
-      });
+      }));
     } finally {
       live.setRunning(false);
       setProgress(null);
     }
-  }, [today, replace, live]);
+  }, [today, update, live]);
 
   const persons = loaded.kind === 'ready' ? loaded.backup.persons : null;
   const mandates = loaded.kind === 'ready' ? loaded.backup.mandates : null;
@@ -422,6 +457,7 @@ export function AppProvider({
             store,
             today,
             replace,
+            update,
             saveError,
             saveErrorWhere,
             lockSettings,
@@ -452,6 +488,7 @@ export function AppProvider({
       store,
       today,
       replace,
+      update,
       saveError,
       saveErrorWhere,
       lockSettings,

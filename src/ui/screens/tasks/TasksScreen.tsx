@@ -14,7 +14,7 @@ import { CheckDialog } from './CheckDialog.tsx';
 import { TASK_GROUPS } from './groups.ts';
 
 export function TasksScreen() {
-  const { backup, today, replace, saveError, saveErrorWhere, liveHits } = useApp();
+  const { backup, today, update, saveError, saveErrorWhere, liveHits } = useApp();
   const uid = useId();
   const { tasks, invalid } = useMemo(
     () =>
@@ -47,10 +47,10 @@ export function TasksScreen() {
       setProblem(`Nicht gespeichert. ${reasonText(checked.reason)}`);
       return;
     }
-    const r = await replace({
-      ...backup,
-      mandates: backup.mandates.map((x) => (x.id === m.id ? next : x)),
-    });
+    const r = await update((b) => ({
+      ...b,
+      mandates: b.mandates.map((x) => (x.id === m.id ? next : x)),
+    }));
     if (!r.ok) {
       setNotice(null);
       setProblem(`Nicht gespeichert. ${describeFailure(r.reason)}`);

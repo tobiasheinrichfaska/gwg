@@ -28,6 +28,9 @@ keine Schreiben/PDF. Das Werkzeug entscheidet nichts rechtlich; ein Mensch zeich
 - Schichtregeln: ESLint (Tiefimporte verboten) und `tests/model-types-only.test.ts` (außerhalb von `mandate/`
   nur `import type` aus `mandate/model`). Die Restschuld aus `modularisierung.md` ist damit erledigt.
 
+T9c (erledigt): verlorene Aktualisierung beim Abgleich behoben (`update(fn)` + Speicher-Warteschlange im Provider), gemeinsames `Modal`
+für alle Dialoge (N4), CSP per Meta im Build mit Skript-Hashes (N5, `tools/csp-plugin.ts`; Dev-Meta lockerer).
+
 ## Entscheidungen von Tobias
 
 1. **Speicher:** `local-vault` im Gerätemodus mit optionaler App-Sperre; ohne Sperre öffnet die App ohne Passwort.

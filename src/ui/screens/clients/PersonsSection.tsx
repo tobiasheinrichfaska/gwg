@@ -15,13 +15,14 @@ import { reasonText } from '../../messages.ts';
 import { nextPersonId } from '../../persons.ts';
 import { hasPepDuty, needsApproval, pepSummary } from '../../pep.ts';
 import { PepApproval, PepFlow } from '../../components/PepFlow.tsx';
+import { Modal } from '../../components/Modal.tsx';
 
 type Edit = { kind: 'none' } | { kind: 'form'; person: Person | null };
 type PepOpen = { personId: string; kind: 'ask' | 'approval' } | null;
 
 /** The persons of one mandate (edit form only). Each change is saved at once, apart from the mandate. */
 export function PersonsSection({ mandateId }: { mandateId: string }) {
-  const { backup, replace } = useApp();
+  const { backup, update } = useApp();
   const uid = useId();
   const [pepOpen, setPepOpen] = useState<PepOpen>(null);
   const [edit, setEdit] = useState<Edit>({ kind: 'none' });
@@ -29,20 +30,16 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const mine = backup.persons.filter((p) => p.mandateId === mandateId);
 
-  async function persist(persons: Person[]): Promise<string | null> {
-    return persistBackup({ ...backup, persons });
-  }
-
-  async function persistBackup(next: Backup): Promise<string | null> {
-    const r = await replace(next);
+  async function persistBackup(change: (b: Backup) => Backup): Promise<string | null> {
+    const r = await update(change);
     return r.ok ? null : describeFailure(r.reason, r.where);
   }
 
   async function save(p: Person, isNew: boolean): Promise<string | null> {
-    const next = isNew
-      ? [...backup.persons, p]
-      : backup.persons.map((x) => (x.id === p.id ? p : x));
-    const problem = await persist(next);
+    const problem = await persistBackup((b) => ({
+      ...b,
+      persons: isNew ? [...b.persons, p] : b.persons.map((x) => (x.id === p.id ? p : x)),
+    }));
     if (problem === null) {
       setEdit({ kind: 'none' });
       setNotice(`Person ${p.lastName} gespeichert.`);
@@ -52,7 +49,7 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
 
   async function remove(p: Person) {
     // The person's screening decisions go in the same save; otherwise the stored data would not load again.
-    const problem = await persistBackup(removePerson(backup, p.id));
+    const problem = await persistBackup((b) => removePerson(b, p.id));
     setToDelete(null);
     setNotice(problem ?? `Person ${p.lastName} gelöscht.`);
   }
@@ -146,8 +143,8 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
           );
         })()}
       {toDelete !== null && (
-        <div role="alertdialog" aria-modal="true" aria-label="Person löschen" className="dialog">
-          <p>
+        <Modal role="alertdialog" labelledBy={`${uid}-dt`} onClose={() => setToDelete(null)}>
+          <p id={`${uid}-dt`}>
             Person {toDelete.firstName} {toDelete.lastName} löschen? Das kann nicht rückgängig
             gemacht werden.
           </p>
@@ -157,7 +154,7 @@ export function PersonsSection({ mandateId }: { mandateId: string }) {
           <button type="button" onClick={() => void remove(toDelete)}>
             Person endgültig löschen
           </button>
-        </div>
+        </Modal>
       )}
       {edit.kind === 'form' ? (
         <PersonForm

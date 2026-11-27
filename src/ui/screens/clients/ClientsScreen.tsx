@@ -16,7 +16,7 @@ import { DeleteDialog } from './DeleteDialog.tsx';
 type View = { kind: 'list' } | { kind: 'form'; editId: string | null };
 
 export function ClientsScreen() {
-  const { backup, today, replace, saveError, saveErrorWhere, requestedClientId, requestClient } =
+  const { backup, today, update, saveError, saveErrorWhere, requestedClientId, requestClient } =
     useApp();
   const { rules, mandates } = backup;
   const uid = useId();
@@ -59,8 +59,10 @@ export function ClientsScreen() {
   }
 
   async function save(m: Mandate, isNew: boolean): Promise<string | null> {
-    const next = isNew ? [...mandates, m] : mandates.map((x) => (x.id === m.id ? m : x));
-    const r = await replace({ ...backup, mandates: next });
+    const r = await update((b) => ({
+      ...b,
+      mandates: isNew ? [...b.mandates, m] : b.mandates.map((x) => (x.id === m.id ? m : x)),
+    }));
     if (!r.ok) return describeFailure(r.reason, r.where);
     backToList(`Mandant ${m.id} ${m.name} gespeichert.`);
     return null;
@@ -68,7 +70,7 @@ export function ClientsScreen() {
 
   async function remove(m: Mandate) {
     // Persons and the decisions about the mandate and its persons go in the same save.
-    const r = await replace(removeMandate(backup, m.id));
+    const r = await update((b) => removeMandate(b, m.id));
     setToDelete(null);
     if (r.ok) backToList(`Mandant ${m.id} ${m.name} gelöscht.`);
     else setNotice(null);

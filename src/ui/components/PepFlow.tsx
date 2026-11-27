@@ -12,6 +12,7 @@ import { describeFailure } from '../app/messages.ts';
 import { formatDate } from '../format.ts';
 import { reasonText } from '../messages.ts';
 import { needsApproval, PEP_ANSWER_LABELS, pepConsequences } from '../pep.ts';
+import { Modal } from './Modal.tsx';
 
 interface Props {
   person: Person;
@@ -62,7 +63,7 @@ function AnswerRadios({
  * (through `checkPerson`). Cancelling discards; nothing is saved before.
  */
 export function PepFlow({ person, mandate, onClose }: Props) {
-  const { backup, today, replace } = useApp();
+  const { backup, today, update } = useApp();
   const uid = useId();
   const start = person.pep;
   const [step, setStep] = useState(0);
@@ -155,10 +156,10 @@ export function PepFlow({ person, mandate, onClose }: Props) {
       return;
     }
     setBusy(true);
-    const r = await replace({
-      ...backup,
-      persons: backup.persons.map((x) => (x.id === p.id ? p : x)),
-    });
+    const r = await update((b) => ({
+      ...b,
+      persons: b.persons.map((x) => (x.id === p.id ? p : x)),
+    }));
     setBusy(false);
     if (!r.ok) {
       setError(`Nicht gespeichert. ${describeFailure(r.reason)}`);
@@ -170,15 +171,7 @@ export function PepFlow({ person, mandate, onClose }: Props) {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`${uid}-t`}
-      className="dialog"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') cancel();
-      }}
-    >
+    <Modal labelledBy={`${uid}-t`} onClose={cancel}>
       <h3 id={`${uid}-t`} tabIndex={-1} ref={headingRef}>
         PEP-Selbstauskunft: {person.firstName} {person.lastName}
         {mandate ? ` (Mandat ${mandate.id} ${mandate.name})` : ''}
@@ -318,13 +311,13 @@ export function PepFlow({ person, mandate, onClose }: Props) {
           )}
         </p>
       )}
-    </div>
+    </Modal>
   );
 }
 
 /** Second dialog: the management level signs off; a human confirms, the program decides nothing. */
 export function PepApproval({ person, mandate, onClose }: Props) {
-  const { backup, today, replace } = useApp();
+  const { backup, today, update } = useApp();
   const uid = useId();
   const [by, setBy] = useState(person.pep.approvedBy);
   const [error, setError] = useState<string | null>(null);
@@ -356,10 +349,10 @@ export function PepApproval({ person, mandate, onClose }: Props) {
       return;
     }
     setBusy(true);
-    const r = await replace({
-      ...backup,
-      persons: backup.persons.map((x) => (x.id === p.id ? p : x)),
-    });
+    const r = await update((b) => ({
+      ...b,
+      persons: b.persons.map((x) => (x.id === p.id ? p : x)),
+    }));
     setBusy(false);
     if (!r.ok) {
       setError(`Nicht gespeichert. ${describeFailure(r.reason)}`);
@@ -371,15 +364,7 @@ export function PepApproval({ person, mandate, onClose }: Props) {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`${uid}-t`}
-      className="dialog"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') cancel();
-      }}
-    >
+    <Modal labelledBy={`${uid}-t`} onClose={cancel}>
       <h3 id={`${uid}-t`} tabIndex={-1} ref={ref}>
         Freigabe der Führungsebene: {person.firstName} {person.lastName}
         {mandate ? ` (Mandat ${mandate.id} ${mandate.name})` : ''}
@@ -417,6 +402,6 @@ export function PepApproval({ person, mandate, onClose }: Props) {
           </button>
         </p>
       )}
-    </div>
+    </Modal>
   );
 }

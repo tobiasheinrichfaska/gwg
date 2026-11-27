@@ -13,8 +13,9 @@ import { useApp } from '../../app/context.ts';
 import { OpenClient } from '../../components/OpenClient.tsx';
 import { formatDate, NONE } from '../../format.ts';
 import { findCase, type HitCase } from './cases.ts';
-import { describeSubject, formatListBirth, percent } from './subjects.ts';
+import { describeSubject, formatListBirth, percent, sameDecision } from './subjects.ts';
 import { EXCLUSION_REASONS, LIGHT_EXPLANATIONS, LIGHT_LABELS } from './texts.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 export const LEADERSHIP_NOTE =
   'Bereitstellungsverbot und Meldeweg: Entscheidung der Leitung; das Programm meldet nichts selbst.';
@@ -31,7 +32,7 @@ interface Props {
 
 /** Detail page "Treffer klären": the two sides next to each other, then one clear decision. */
 export function HitDetail({ caseKey, onBack }: Props) {
-  const { backup, list, today, replace, liveHits } = useApp();
+  const { backup, list, today, update, liveHits } = useApp();
   const uid = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [by, setBy] = useState('');
@@ -108,16 +109,21 @@ export function HitDetail({ caseKey, onBack }: Props) {
     const checked = checkDecision(decision, backup.persons, backup.mandates);
     if (!checked.ok)
       return setProblem(`Nicht gespeichert. ${describeFailure(checked.reason, checked.where)}`);
-    const others = backup.screeningDecisions.filter(
-      (x) =>
-        !(
-          x.listKind === 'sanktion' &&
-          x.subjectKind === decision.subjectKind &&
-          x.subjectId === decision.subjectId &&
-          x.entryId === decision.entryId
+    const r = await update((b) => ({
+      ...b,
+      screeningDecisions: [
+        ...b.screeningDecisions.filter(
+          (x) =>
+            !(
+              x.listKind === 'sanktion' &&
+              x.subjectKind === decision.subjectKind &&
+              x.subjectId === decision.subjectId &&
+              x.entryId === decision.entryId
+            ),
         ),
-    );
-    const r = await replace({ ...backup, screeningDecisions: [...others, checked.value] });
+        checked.value,
+      ],
+    }));
     if (!r.ok) return setProblem(`Nicht gespeichert. ${describeFailure(r.reason, r.where)}`);
     setProblem(null);
     setNotice(
@@ -149,10 +155,10 @@ export function HitDetail({ caseKey, onBack }: Props) {
     );
     if (!checked.ok)
       return setProblem(`Nicht gespeichert. ${describeFailure(checked.reason, checked.where)}`);
-    const r = await replace({
-      ...backup,
-      screeningDecisions: backup.screeningDecisions.map((x) => (x === d ? checked.value : x)),
-    });
+    const r = await update((b) => ({
+      ...b,
+      screeningDecisions: b.screeningDecisions.map((x) => (sameDecision(x, d) ? checked.value : x)),
+    }));
     if (!r.ok) return setProblem(`Nicht gespeichert. ${describeFailure(r.reason, r.where)}`);
     setProblem(null);
     setNotice('Maßnahme dokumentiert.');
@@ -161,10 +167,10 @@ export function HitDetail({ caseKey, onBack }: Props) {
 
   async function withdraw() {
     if (d === null) return;
-    const r = await replace({
-      ...backup,
-      screeningDecisions: backup.screeningDecisions.filter((x) => x !== d),
-    });
+    const r = await update((b) => ({
+      ...b,
+      screeningDecisions: b.screeningDecisions.filter((x) => !sameDecision(x, d)),
+    }));
     setWithdrawing(false);
     if (!r.ok) return setProblem(`Nicht zurückgenommen. ${describeFailure(r.reason, r.where)}`);
     setProblem(null);
@@ -324,14 +330,10 @@ export function HitDetail({ caseKey, onBack }: Props) {
             </button>
           </p>
           {withdrawing && (
-            <div
+            <Modal
               role="alertdialog"
-              aria-modal="true"
-              aria-labelledby={`${uid}-wt`}
-              className="dialog"
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setWithdrawing(false);
-              }}
+              labelledBy={`${uid}-wt`}
+              onClose={() => setWithdrawing(false)}
             >
               <h3 id={`${uid}-wt`}>Entscheidung zurücknehmen?</h3>
               <p>
@@ -346,7 +348,7 @@ export function HitDetail({ caseKey, onBack }: Props) {
               <button type="button" onClick={() => void withdraw()}>
                 Zurücknahme bestätigen
               </button>
-            </div>
+            </Modal>
           )}
         </section>
       ) : (

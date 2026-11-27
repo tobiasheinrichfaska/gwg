@@ -7,6 +7,7 @@ import {
 } from '../../../logic/index.ts';
 import { formatDate } from '../../format.ts';
 import { retentionSentence } from '../../messages.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 interface Props {
   mandate: Mandate;
@@ -57,16 +58,7 @@ export function DeleteDialog({ mandate, personCount, rules, today, onConfirm, on
         ? 'Das Mandat ist aktiv.'
         : 'Es ist kein Ende des Mandats eingetragen.';
   return (
-    <div
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby={`${uid}-t`}
-      aria-describedby={`${uid}-d`}
-      className="dialog"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onCancel();
-      }}
-    >
+    <Modal role="alertdialog" labelledBy={`${uid}-t`} describedBy={`${uid}-d`} onClose={onCancel}>
       <h3 id={`${uid}-t`}>
         Mandant {mandate.id} {mandate.name} {step === 1 ? 'löschen?' : 'vorzeitig löschen?'}
       </h3>
@@ -125,6 +117,6 @@ export function DeleteDialog({ mandate, personCount, rules, today, onConfirm, on
           </button>
         </>
       )}
-    </div>
+    </Modal>
   );
 }

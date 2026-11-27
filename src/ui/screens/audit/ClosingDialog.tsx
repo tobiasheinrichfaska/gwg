@@ -5,6 +5,7 @@ import {
   type ClosingWarning,
 } from '../../../logic/index.ts';
 import { ClosingWarnings } from './ClosingBlockers.tsx';
+import { Modal } from '../../components/Modal.tsx';
 
 interface Props {
   error: string | null;
@@ -23,16 +24,7 @@ export function ClosingDialog({ error, warnings, onConfirm, onCancel }: Props) {
     byRef.current?.focus();
   }, []);
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`${uid}-t`}
-      aria-describedby={`${uid}-d`}
-      className="dialog"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onCancel();
-      }}
-    >
+    <Modal labelledBy={`${uid}-t`} describedBy={`${uid}-d`} onClose={onCancel}>
       <h3 id={`${uid}-t`}>Audit abschließen</h3>
       <p id={`${uid}-d`}>
         Sie bestätigen, dass die Ausnahmelisten geprüft wurden; das Programm entscheidet nichts
@@ -68,6 +60,6 @@ export function ClosingDialog({ error, warnings, onConfirm, onCancel }: Props) {
       <button type="button" onClick={() => onConfirm(by, note)}>
         Audit abschließen bestätigen
       </button>
-    </div>
+    </Modal>
   );
 }

@@ -6,7 +6,7 @@ import { StatusBanner } from '../../components/StatusBanner.tsx';
 import { formatDate } from '../../format.ts';
 import { checkDecision } from '../../../logic/index.ts';
 import { decidedCases, hitKey } from './cases.ts';
-import { describeSubject, entryMap, percent } from './subjects.ts';
+import { describeSubject, entryMap, percent, sameDecision } from './subjects.ts';
 import { LIGHT_LABELS } from './texts.ts';
 import { LEADERSHIP_NOTE } from './HitDetail.tsx';
 
@@ -17,7 +17,7 @@ const SCREENING_NOT_POSSIBLE_PERSON = {
 
 /** "Abgleich": start button, progress, summary and the list of open hits. */
 export function ScreeningSection({ onOpen }: { onOpen(key: string): void }) {
-  const { backup, list, screening, liveHits, progress, runScreening, replace } = useApp();
+  const { backup, list, screening, liveHits, progress, runScreening, update } = useApp();
   const uid = useId();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -61,10 +61,10 @@ export function ScreeningSection({ onOpen }: { onOpen(key: string): void }) {
     );
     if (!checked.ok)
       return setError(`Nicht gespeichert. ${describeFailure(checked.reason, checked.where)}`);
-    const r = await replace({
-      ...backup,
-      screeningDecisions: backup.screeningDecisions.map((x) => (x === d ? checked.value : x)),
-    });
+    const r = await update((b) => ({
+      ...b,
+      screeningDecisions: b.screeningDecisions.map((x) => (sameDecision(x, d) ? checked.value : x)),
+    }));
     if (!r.ok) return setError(`Nicht gespeichert. ${describeFailure(r.reason, r.where)}`);
     setError(null);
     setNotes((all) => Object.fromEntries(Object.entries(all).filter(([k]) => k !== key)));

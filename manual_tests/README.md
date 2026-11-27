@@ -16,12 +16,13 @@ Gebaut sind der Rahmen mit Navigation und die Bildschirme „Sicherung“, „Ma
 
 ## Dateien
 
-| Datei                  | Inhalt                                                          |
-| ---------------------- | --------------------------------------------------------------- |
-| `01_start.md`          | Start der Anwendung                                             |
-| `02_sicherung.md`      | Sicherung speichern, ansehen, einspielen, kaputte Datei         |
-| `03_mandanten.md`      | Mandanten anlegen, suchen, bearbeiten, löschen                  |
-| `04_aufgaben_audit.md` | Aufgabenliste, Aktionen, Audit, Stichtagsliste, Übersicht       |
-| `05_personen.md`       | Personen je Mandat anlegen, bearbeiten, löschen                 |
-| `06_pep.md`            | PEP-Selbstauskunft in Schritten, Freigabe der Führungsebene     |
-| `07_abgleich.md`       | Liste einlesen/abrufen, Einstellungen, Abgleich, Treffer klären |
+| Datei                    | Inhalt                                                          |
+| ------------------------ | --------------------------------------------------------------- |
+| `01_start.md`            | Start der Anwendung                                             |
+| `02_sicherung.md`        | Sicherung speichern, ansehen, einspielen, kaputte Datei         |
+| `03_mandanten.md`        | Mandanten anlegen, suchen, bearbeiten, löschen                  |
+| `04_aufgaben_audit.md`   | Aufgabenliste, Aktionen, Audit, Stichtagsliste, Übersicht       |
+| `05_personen.md`         | Personen je Mandat anlegen, bearbeiten, löschen                 |
+| `06_pep.md`              | PEP-Selbstauskunft in Schritten, Freigabe der Führungsebene     |
+| `07_abgleich.md`         | Liste einlesen/abrufen, Einstellungen, Abgleich, Treffer klären |
+| `08_dialoge_tastatur.md` | Dialoge mit Tastatur: Fokus, Tab, Esc, Rückkehr                 |

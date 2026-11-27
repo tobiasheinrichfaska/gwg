@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
+    <!--
+      Content-Security-Policy. This is the looser DEV policy (vite dev needs inline scripts and a
+      websocket for hot reload). `vite build` replaces it by the strict one with the script hashes
+      (tools/csp-plugin.ts), so only dist/index.html is locked down.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src https: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; base-uri 'none'; form-action 'none'"
+    />
     <!-- Empty data: icon so browsers never request /favicon.ico -->
     <link rel="icon" href="data:," />
     <title>GwG-Pflege</title>

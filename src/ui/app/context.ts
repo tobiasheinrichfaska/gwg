@@ -55,6 +55,12 @@ export interface AppState {
   today: DateKey;
   /** Saves the new data set and, only if that worked, shows it. A save error is returned. */
   replace(next: Backup): Promise<Result<void>>;
+  /**
+   * Applies a change to the NEWEST data set and saves it (saves are queued, one after the other).
+   * Use this instead of `replace` whenever the new data derives from the current one, above all after an
+   * `await`: building it from the `backup` of an old render would drop edits made in between.
+   */
+  update(change: (latest: Backup) => Backup): Promise<Result<void>>;
   /** Set when the last save failed. */
   saveError: Reason | null;
   /** Where `checkBackup` found the problem, when it was the check that refused the save. */

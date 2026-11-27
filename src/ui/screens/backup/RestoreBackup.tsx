@@ -2,6 +2,7 @@ import { useLayoutEffect, useId, useRef, useState } from 'react';
 import { BACKUP_WARNING, readBackupFile } from '../../../io/index.ts';
 import { parseBackup, type Backup, type Result } from '../../../logic/index.ts';
 import { describeFailure } from '../../app/messages.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 interface Props {
   /** Mandates now in the app; null while the app is locked (nothing to replace that can be read). */
@@ -85,15 +86,7 @@ export function RestoreBackup({ currentCount, onRestore }: Props) {
       {error !== null && <p role="alert">{error}</p>}
       {done !== null && <p role="status">{done}</p>}
       {pending !== null && (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby={`${inputId}-t`}
-          className="dialog"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setPending(null);
-          }}
-        >
+        <Modal role="alertdialog" labelledBy={`${inputId}-t`} onClose={() => setPending(null)}>
           <h3 id={`${inputId}-t`}>Bestand ersetzen?</h3>
           <p>
             Die Sicherung enthält {pending.mandates.length} Mandate (erstellt am {pending.createdOn}
@@ -108,7 +101,7 @@ export function RestoreBackup({ currentCount, onRestore }: Props) {
           <button type="button" onClick={() => setPending(null)}>
             Abbrechen
           </button>
-        </div>
+        </Modal>
       )}
     </section>
   );

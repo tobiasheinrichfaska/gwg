@@ -15,9 +15,10 @@ import { ClosingBlockerList } from './ClosingBlockers.tsx';
 import { ClosingDialog } from './ClosingDialog.tsx';
 import { defaultStichtag } from './stichtag.ts';
 import { AUDIT_LISTS, auditText, countFindings } from './export.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 export function AuditScreen() {
-  const { backup, today, replace, closing: closingCheck } = useApp();
+  const { backup, today, update, closing: closingCheck } = useApp();
   const uid = useId();
   const [stichtag, setStichtag] = useState<DateKey>(() => defaultStichtag(today));
   const [dialog, setDialog] = useState<'close' | 'reopen' | null>(null);
@@ -47,16 +48,16 @@ export function AuditScreen() {
   async function close(by: string, note: string) {
     const c = checkAuditClosing({ stichtag, closedOn: today, by: by.trim(), note });
     if (!c.ok) return setError(describeFailure(c.reason, c.where));
-    const r = await replace({ ...backup, auditClosings: [...backup.auditClosings, c.value] });
+    const r = await update((b) => ({ ...b, auditClosings: [...b.auditClosings, c.value] }));
     if (!r.ok) return setError(describeFailure(r.reason, r.where));
     setError(null);
     setDialog(null);
   }
   async function reopen() {
-    const r = await replace({
-      ...backup,
-      auditClosings: backup.auditClosings.filter((c) => c.stichtag !== stichtag),
-    });
+    const r = await update((b) => ({
+      ...b,
+      auditClosings: b.auditClosings.filter((c) => c.stichtag !== stichtag),
+    }));
     if (!r.ok) return setError(describeFailure(r.reason, r.where));
     setError(null);
     setDialog(null);
@@ -142,13 +143,8 @@ export function AuditScreen() {
         />
       )}
       {dialog === 'reopen' && (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-label="Abschluss zurücknehmen"
-          className="dialog"
-        >
-          <h3>Abschluss vom {formatDate(stichtag)} zurücknehmen?</h3>
+        <Modal role="alertdialog" labelledBy={`${uid}-rt`} onClose={() => setDialog(null)}>
+          <h3 id={`${uid}-rt`}>Abschluss vom {formatDate(stichtag)} zurücknehmen?</h3>
           <p>Der gespeicherte Abschluss wird gelöscht; das Audit gilt danach wieder als offen.</p>
           {error !== null && <p role="alert">{error}</p>}
           <button type="button" onClick={() => setDialog(null)}>
@@ -157,7 +153,7 @@ export function AuditScreen() {
           <button type="button" onClick={() => void reopen()}>
             Abschluss zurücknehmen bestätigen
           </button>
-        </div>
+        </Modal>
       )}
       <p>
         <button

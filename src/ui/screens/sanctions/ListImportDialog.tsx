@@ -3,6 +3,7 @@ import type { EuListFile } from '../../../io/index.ts';
 import { isDateKey, shrankTooMuch, type DateKey, type ListIndex } from '../../../logic/index.ts';
 import { formatDate } from '../../format.ts';
 import { NotesReport } from './NotesReport.tsx';
+import { Modal } from '../../components/Modal.tsx';
 
 interface Props {
   file: EuListFile;
@@ -35,15 +36,7 @@ export function ListImportDialog({
   const shrunk = currentCount !== null && shrankTooMuch(currentCount, got);
   const valid = isDateKey(on) && (!shrunk || confirmed);
   return (
-    <div
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby={`${uid}-t`}
-      className="dialog"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onCancel();
-      }}
-    >
+    <Modal role="alertdialog" labelledBy={`${uid}-t`} onClose={onCancel}>
       <h3 id={`${uid}-t`}>Liste einlesen?</h3>
       <p>
         Die Datei enthält <strong>{file.index.entries.length}</strong> Einträge.
@@ -113,6 +106,6 @@ export function ListImportDialog({
       >
         Liste speichern
       </button>
-    </div>
+    </Modal>
   );
 }

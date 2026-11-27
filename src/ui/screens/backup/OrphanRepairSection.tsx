@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import type { OrphanRepair, Result } from '../../../logic/index.ts';
 import { describeFailure } from '../../app/messages.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 /**
  * Lock screen only, and only when the sole defect of the stored data is screening decisions about persons
@@ -37,15 +38,7 @@ export function OrphanRepairSection({
       </button>
       {error !== null && <p role="alert">{error}</p>}
       {asking && (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby={`${id}-t`}
-          className="dialog"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setAsking(false);
-          }}
-        >
+        <Modal role="alertdialog" labelledBy={`${id}-t`} onClose={() => setAsking(false)}>
           <h3 id={`${id}-t`}>{n} Entscheidungen entfernen?</h3>
           <p>
             {n} Entscheidungen werden endgültig aus dem Bestand entfernt, danach öffnet die
@@ -57,7 +50,7 @@ export function OrphanRepairSection({
           <button type="button" onClick={() => void confirm()}>
             Verwaiste Einträge entfernen
           </button>
-        </div>
+        </Modal>
       )}
     </section>
   );

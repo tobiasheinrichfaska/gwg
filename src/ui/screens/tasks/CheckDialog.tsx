@@ -1,5 +1,6 @@
 import { useLayoutEffect, useId, useRef } from 'react';
 import type { Mandate } from '../../../logic/index.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 interface Props {
   mandate: Mandate;
@@ -15,16 +16,7 @@ export function CheckDialog({ mandate, onConfirm, onCancel }: Props) {
     cancelRef.current?.focus();
   }, []);
   return (
-    <div
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby={`${uid}-t`}
-      aria-describedby={`${uid}-d`}
-      className="dialog"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onCancel();
-      }}
-    >
+    <Modal role="alertdialog" labelledBy={`${uid}-t`} describedBy={`${uid}-d`} onClose={onCancel}>
       <h3 id={`${uid}-t`}>
         Prüfung für {mandate.id} {mandate.name} abschließen?
       </h3>
@@ -39,6 +31,6 @@ export function CheckDialog({ mandate, onConfirm, onCancel }: Props) {
       <button type="button" onClick={onConfirm}>
         Prüfung bestätigen
       </button>
-    </div>
+    </Modal>
   );
 }

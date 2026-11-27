@@ -1,4 +1,11 @@
-import type { Backup, Hit, ListEntry, Person } from '../../../logic/index.ts';
+import {
+  decisionKey,
+  type Backup,
+  type Hit,
+  type ListEntry,
+  type Person,
+  type ScreeningDecision,
+} from '../../../logic/index.ts';
 import { PERSON_ROLE_LABELS, formatBirth } from '../../format.ts';
 
 export interface SubjectInfo {
@@ -55,3 +62,7 @@ export function formatListBirth(b: string): string {
   const span = /^(\d{4})\/(\d{4})$/.exec(b);
   return span ? `${span[1]} bis ${span[2]}` : formatBirth(b);
 }
+
+/** The same decision (same subject, entry and list) in the newest data set, not the same object. */
+export const sameDecision = (a: ScreeningDecision, b: ScreeningDecision): boolean =>
+  decisionKey(a) === decisionKey(b);
