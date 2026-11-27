@@ -1,15 +1,23 @@
 // @vitest-environment jsdom
+import { useEffect, useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryStore, type AppStore } from '../../src/io/index.ts';
+import { createMemoryListStore, createMemoryStore, type AppStore } from '../../src/io/index.ts';
 import {
   auditExceptions,
+  currentSnapshot,
   DEFAULT_RULES,
+  emptyPep,
+  entrySnapshot,
   serializeBackup,
   type AuditClosing,
   type Backup,
+  type ListIndex,
   type Mandate,
+  type Person,
+  type ScreeningDecision,
 } from '../../src/logic/index.ts';
 import { AppProvider } from '../../src/ui/app/AppProvider.tsx';
+import { useApp } from '../../src/ui/app/context.ts';
 import { AuditScreen } from '../../src/ui/screens/audit/AuditScreen.tsx';
 import { auditText } from '../../src/ui/screens/audit/export.ts';
 import { OverviewScreen } from '../../src/ui/screens/overview/OverviewScreen.tsx';
@@ -20,26 +28,64 @@ afterEach(cleanup);
 
 // 2026-12-05: after the default cut-off date (30.11.2026), so closing is possible.
 const clock = () => new Date(2026, 11, 5, 12, 0, 0);
-const backupOf = (mandates: Mandate[], auditClosings: AuditClosing[] = []): Backup => ({
+const backupOf = (
+  mandates: Mandate[],
+  auditClosings: AuditClosing[] = [],
+  persons: Person[] = [],
+  screeningDecisions: ScreeningDecision[] = [],
+): Backup => ({
   format: 'gwg-backup',
   version: 2,
   createdOn: '2026-12-05',
   rules: DEFAULT_RULES,
   mandates,
-  persons: [],
+  persons,
   auditClosings,
-  screeningDecisions: [],
+  screeningDecisions,
   lastScreening: { sanktion: null, pep: null },
 });
-function setup(ui: React.ReactNode, b: Backup) {
+
+// Invented list with one person; a client "Zorin Quelle" born 1965-12-12 is a red hit.
+const LIST: ListIndex = {
+  source: 'EU konsolidierte Finanzsanktionsliste',
+  kind: 'sanktion',
+  fetchedOn: '2026-12-04',
+  entries: [
+    { id: '100', kind: 'sanktion', names: ['Zorin Quelle'], births: ['1965-12-12'], remark: '' },
+  ],
+};
+
+/** Runs the screening once as soon as the list is loaded (the hits live in memory only). */
+function AutoRun() {
+  const { runScreening, list, screening } = useApp();
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    if (list !== null && !started) {
+      setStarted(true);
+      void runScreening();
+    }
+  }, [list, started, runScreening]);
+  return <span data-testid="run">{screening === null ? 'offen' : 'gelaufen'}</span>;
+}
+
+interface Opts {
+  list?: boolean;
+  run?: boolean;
+}
+function setup(ui: React.ReactNode, b: Backup, { list = true, run = true }: Opts = {}) {
   const store = createMemoryStore(serializeBackup(b));
+  const listStore = createMemoryListStore();
+  // The memory store writes synchronously inside save().
+  if (list) void listStore.save(LIST);
   render(
-    <AppProvider store={store} now={clock}>
+    <AppProvider store={store} now={clock} listStore={listStore}>
+      {run && <AutoRun />}
       {ui}
     </AppProvider>,
   );
   return store;
 }
+const ran = () => waitFor(() => expect(screen.getByTestId('run').textContent).toBe('gelaufen'));
 async function stored(s: AppStore): Promise<Backup> {
   const r = await s.load();
   if (!r.ok || r.value === null) throw new Error('nothing stored');
@@ -73,6 +119,7 @@ describe('closing the audit', () => {
 
   it('requires a name, saves the closing and then forbids a second one', async () => {
     const store = setup(<AuditScreen />, backupOf([clean]));
+    await ran();
     fireEvent.click(await screen.findByRole('button', { name: 'Audit abschließen' }));
     expect(screen.getByRole('dialog').textContent).toContain(
       'Sie bestätigen, dass die Ausnahmelisten geprüft wurden; das Programm entscheidet nichts rechtlich.',
@@ -103,6 +150,9 @@ describe('closing the audit', () => {
 
   it('takes a closing back only after confirmation', async () => {
     const store = setup(<AuditScreen />, backupOf([clean], [closed]));
+    await ran();
+    // let the run save its result first (it writes the whole data set)
+    await new Promise((r) => setTimeout(r, 50));
     fireEvent.click(await screen.findByRole('button', { name: 'Abschluss zurücknehmen' }));
     fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
     expect((await stored(store)).auditClosings).toHaveLength(1);
@@ -153,5 +203,130 @@ describe('closing the audit', () => {
     setup(<OverviewScreen />, backupOf([clean], [closed]));
     await screen.findByText(/Audit zum Stichtag 30\.11\.2026/);
     expect(document.body.textContent).toContain('abgeschlossen am 01.12.2026');
+  });
+});
+
+describe('closing blockers (T9b / U1)', () => {
+  const quelle = (over: Partial<Person> = {}): Person => ({
+    id: '10001-P1',
+    mandateId: '10001',
+    role: 'inhaber',
+    lastName: 'Quelle',
+    firstName: 'Zorin',
+    birth: '1965-12-12',
+    pep: emptyPep(),
+    ...over,
+  });
+  const erika = (pep: Person['pep']): Person => ({
+    ...quelle({ id: '10001-P2', lastName: 'Beispiel', firstName: 'Erika', birth: '1980-01-01' }),
+    pep,
+  });
+  const pepYes = {
+    ...emptyPep(),
+    answer: 'ja' as const,
+    askedOn: '2026-11-01' as const,
+    funktion: 'Bürgermeisterin',
+  };
+  const decisionFor = (p: Person): ScreeningDecision => ({
+    subjectKind: 'person',
+    subjectId: p.id,
+    entryId: '100',
+    listKind: 'sanktion',
+    listFetchedOn: '2026-12-04',
+    decision: 'kein-treffer',
+    reason: 'andere Person',
+    decidedOn: '2026-12-05',
+    decidedBy: 'A. Prüfer',
+    actionNote: '',
+    subjectSnapshot: currentSnapshot('person', p.id, [p], [clean]) ?? '',
+    entrySnapshot: entrySnapshot(LIST.entries[0]!),
+  });
+  const closeButton = () =>
+    screen.getByRole('button', { name: 'Audit abschließen' }) as HTMLButtonElement;
+
+  it('disables the button for an open red hit and says how many and where', async () => {
+    setup(<AuditScreen />, backupOf([clean], [], [quelle()]));
+    await ran();
+    await screen.findByText(/Das Audit lässt sich noch nicht abschließen/);
+    expect(closeButton().disabled).toBe(true);
+    expect(screen.getByRole('alert').textContent).toContain('1 offener roter Treffer');
+    expect(screen.getByRole('alert').textContent).toContain('Bereich „Abgleich“');
+  });
+
+  it('can be closed once the red hit has a decision', async () => {
+    const p = quelle();
+    const store = setup(<AuditScreen />, backupOf([clean], [], [p], [decisionFor(p)]));
+    await ran();
+    await waitFor(() => expect(closeButton().disabled).toBe(false));
+    expect(screen.queryByText(/lässt sich noch nicht abschließen/)).toBeNull();
+    fireEvent.click(closeButton());
+    fireEvent.change(screen.getByLabelText('Name der abschließenden Person'), {
+      target: { value: 'A. Prüfer' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Audit abschließen bestätigen' }));
+    await screen.findByText(/Abgeschlossen am/);
+    expect((await stored(store)).auditClosings).toHaveLength(1);
+  });
+
+  it('blocks on an open PEP approval and is free after the approval', async () => {
+    setup(<AuditScreen />, backupOf([clean], [], [erika(pepYes)]));
+    await ran();
+    await screen.findByText(/1 PEP-Freigabe fehlt/);
+    expect(closeButton().disabled).toBe(true);
+    cleanup();
+    const approved = { ...pepYes, approvedOn: '2026-11-20' as const, approvedBy: 'Chef' };
+    setup(<AuditScreen />, backupOf([clean], [], [erika(approved)]));
+    await ran();
+    await waitFor(() => expect(closeButton().disabled).toBe(false));
+    expect(screen.queryByText(/PEP-Freigabe/)).toBeNull();
+  });
+
+  it('blocks without a list, with a clear sentence', async () => {
+    setup(<AuditScreen />, backupOf([clean]), { list: false, run: false });
+    await screen.findByText(/Es ist keine Sanktionsliste geladen/);
+    expect(closeButton().disabled).toBe(true);
+    expect(screen.getByText(/Die Ausnahmelisten sind leer, der Abschluss ist aber noch gesperrt/));
+  });
+
+  it('blocks when no screening ran in this session (hits live in memory only)', async () => {
+    setup(<AuditScreen />, backupOf([clean]), { run: false });
+    await screen.findByText(/noch kein Sanktionsabgleich durchgeführt/);
+    expect(closeButton().disabled).toBe(true);
+  });
+
+  it('warns about open yellow hits in the dialog but still closes', async () => {
+    // Birth year only: same name, year matches, full date unknown: yellow, never red.
+    setup(<AuditScreen />, backupOf([clean], [], [quelle({ birth: '1965' })]));
+    await ran();
+    await waitFor(() => expect(closeButton().disabled).toBe(false));
+    expect(screen.queryByText(/offener gelber Treffer/)).toBeNull();
+    fireEvent.click(closeButton());
+    expect(screen.getByRole('dialog').textContent).toContain('1 offener gelber Treffer');
+  });
+
+  it('the provider refuses to save a new closing while blockers stand', async () => {
+    function Sneak() {
+      const { backup, replace } = useApp();
+      const [msg, setMsg] = useState('');
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            void replace({ ...backup, auditClosings: [closed] }).then((r) =>
+              setMsg(r.ok ? 'gespeichert' : r.reason),
+            )
+          }
+        >
+          {msg === '' ? 'Sneak' : msg}
+        </button>
+      );
+    }
+    const store = setup(<Sneak />, backupOf([clean], [], [quelle()]));
+    await ran();
+    // wait until the red hit is known to the provider
+    await new Promise((r) => setTimeout(r, 50));
+    fireEvent.click(await screen.findByRole('button', { name: 'Sneak' }));
+    await screen.findByRole('button', { name: 'closing-blocked' });
+    expect((await stored(store)).auditClosings).toEqual([]);
   });
 });

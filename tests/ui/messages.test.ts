@@ -16,6 +16,7 @@ const ALL: Record<Reason, true> = {
   'bad-pep': true,
   'unknown-mandate': true,
   'bad-closing': true,
+  'closing-blocked': true,
   'bad-decision': true,
   'bad-backup': true,
   'bad-list': true,

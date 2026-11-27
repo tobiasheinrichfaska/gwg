@@ -17,6 +17,8 @@ import {
   isListStale,
   repairOrphanDecisions,
   ok,
+  buildTasks,
+  closingBlockers,
   screenAll,
   screenMandates,
   shrankTooMuch,
@@ -25,6 +27,7 @@ import {
   type Backup,
   type OrphanRepair,
   type DateKey,
+  type ClosingCheck,
   type Hit,
   type ListIndex,
   type ListSettings,
@@ -52,9 +55,13 @@ class Latest {
   list: ListIndex | null = null;
   backup: Backup | null = null;
   running = false;
+  closing: ClosingCheck = { blockers: [], warnings: [] };
   autoFetched = false;
   setRunning(v: boolean): void {
     this.running = v;
+  }
+  setClosing(c: ClosingCheck): void {
+    this.closing = c;
   }
   markAutoFetched(): void {
     this.autoFetched = true;
@@ -197,7 +204,11 @@ export function AppProvider({
     async (next: Backup): Promise<Result<void>> => {
       // Never write a data set that `parseBackup` would refuse on the next start.
       const checked = checkBackup(next);
-      const r = checked.ok ? await store.save(next) : checked;
+      // Defence in depth: a NEW audit closing is refused while blockers stand (the screen disables the button).
+      const had = new Set(live.backup?.auditClosings.map((c) => c.stichtag));
+      const newClosing = next.auditClosings.some((c) => !had.has(c.stichtag));
+      const blocked = checked.ok && newClosing && live.closing.blockers.length > 0;
+      const r = blocked ? fail('closing-blocked') : checked.ok ? await store.save(next) : checked;
       if (!r.ok) {
         setSaveError(r.reason);
         setSaveErrorWhere(r.where);
@@ -208,7 +219,7 @@ export function AppProvider({
       setLoaded({ kind: 'ready', backup: next });
       return r;
     },
-    [store],
+    [store, live],
   );
 
   const saveSettings = useCallback(
@@ -379,6 +390,30 @@ export function AppProvider({
     [list, screening, lastScreening.sanktion, persons, mandates, settings, today],
   );
 
+  const rules = loaded.kind === 'ready' ? loaded.backup.rules : null;
+  const decisions = loaded.kind === 'ready' ? loaded.backup.screeningDecisions : null;
+  const closing = useMemo<ClosingCheck>(() => {
+    if (persons === null || mandates === null || rules === null || decisions === null) {
+      return { blockers: [{ kind: 'screening-missing', why: 'no-list' }], warnings: [] };
+    }
+    return closingBlockers({
+      tasks: buildTasks(mandates, persons, today, rules, liveHits, decisions).tasks,
+      hits: liveHits,
+      decisions,
+      persons,
+      mandates,
+      screening: {
+        hasList: list !== null,
+        stale: screeningStatus.state !== 'ok',
+        ranOn: screening?.ranOn ?? null,
+      },
+    });
+  }, [persons, mandates, rules, decisions, today, liveHits, list, screeningStatus, screening]);
+  // Latest blockers for `replace` (defence in depth), which must not change identity with them.
+  useLayoutEffect(() => {
+    live.setClosing(closing);
+  }, [live, closing]);
+
   const value = useMemo<AppState | null>(
     () =>
       loaded.kind === 'ready'
@@ -409,6 +444,7 @@ export function AppProvider({
             progress,
             runScreening,
             screeningStatus,
+            closing,
           }
         : null,
     [
@@ -436,6 +472,7 @@ export function AppProvider({
       progress,
       runScreening,
       screeningStatus,
+      closing,
     ],
   );
 

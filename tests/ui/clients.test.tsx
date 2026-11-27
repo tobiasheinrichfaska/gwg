@@ -289,13 +289,69 @@ describe('delete', () => {
     expect(screen.getByText('Muster GmbH')).toBeTruthy();
   });
 
-  it('mentions the retention due date for an ended mandate and deletes after confirmation', async () => {
-    const s = setup([mandate({ active: false, endedOn: '2026-03-31' })]);
+  const ENDED_LONG_AGO = { active: false, endedOn: '2019-03-31' } as const; // due 01.01.2025
+  const reasonInput = () => screen.getByLabelText('Grund für die vorzeitige Löschung');
+  const type = (value: string) => fireEvent.change(reasonInput(), { target: { value } });
+
+  it('after the retention period one confirmation is enough', async () => {
+    const s = setup([mandate(ENDED_LONG_AGO)]);
     fireEvent.click(await screen.findByLabelText('Nur aktive Mandate'));
     await del('Löschen: 10001 Muster GmbH');
-    expect(screen.getByRole('alertdialog').textContent).toContain('01.01.2032');
+    expect(screen.getByRole('alertdialog').textContent).toContain('01.01.2025');
+    expect(screen.queryByRole('button', { name: 'Weiter' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Endgültig löschen' }));
     expect(await screen.findByText('Mandant 10001 Muster GmbH gelöscht.')).toBeTruthy();
     expect(await stored(s)).toEqual([]);
+  });
+
+  it('inside the period a second step asks for a reason of 10 to 200 characters', async () => {
+    const s = setup([mandate({ active: false, endedOn: '2026-03-31' })]);
+    fireEvent.click(await screen.findByLabelText('Nur aktive Mandate'));
+    await del('Löschen: 10001 Muster GmbH');
+    expect(screen.queryByRole('button', { name: 'Endgültig löschen' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog.textContent).toContain('Die Aufbewahrungsfrist läuft noch bis 01.01.2032.');
+    expect(dialog.textContent).toContain(
+      'Der Grund wird nicht gespeichert; halten Sie ihn selbst fest.',
+    );
+    expect(document.activeElement).toBe(reasonInput());
+    const go = screen.getByRole('button', { name: 'Trotzdem löschen' }) as HTMLButtonElement;
+    expect(go.disabled).toBe(true);
+    type('zu kurz');
+    expect(go.disabled).toBe(true);
+    type('   neun   ');
+    expect(go.disabled).toBe(true);
+    type('Doppelt angelegt, siehe Mandat 10002');
+    expect(go.disabled).toBe(false);
+    fireEvent.click(go);
+    expect(await screen.findByText('Mandant 10001 Muster GmbH gelöscht.')).toBeTruthy();
+    expect(await stored(s)).toEqual([]);
+    // the reason is asked for, never saved
+    expect(JSON.stringify(await stored(s))).not.toContain('Doppelt angelegt');
+  });
+
+  it('also asks twice for an active mandate, and says so', async () => {
+    setup([mandate()]);
+    await del('Löschen: 10001 Muster GmbH');
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    expect(screen.getByRole('alertdialog').textContent).toContain('Das Mandat ist aktiv.');
+  });
+
+  it('cancelling in the second step, by button or Escape, changes nothing', async () => {
+    const s = setup([mandate()]);
+    await del('Löschen: 10001 Muster GmbH');
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    type('Ein ausreichender Grund');
+    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Löschen: 10001 Muster GmbH' }),
+    );
+    await del('Löschen: 10001 Muster GmbH');
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(await stored(s)).toHaveLength(1);
   });
 });

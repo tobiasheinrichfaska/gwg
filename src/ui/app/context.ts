@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type { AppStore, ListNote } from '../../io/index.ts';
 import type {
   Backup,
+  ClosingCheck,
   DateKey,
   Hit,
   ListIndex,
@@ -94,6 +95,8 @@ export interface AppState {
   /** Runs the screening in chunks; saves `lastScreening` at the end. */
   runScreening(): Promise<Result<void>>;
   screeningStatus: ScreeningStatus;
+  /** What blocks (or only warns about) closing the yearly audit right now. */
+  closing: ClosingCheck;
 }
 
 export const AppContext = createContext<AppState | null>(null);

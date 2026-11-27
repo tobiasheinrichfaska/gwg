@@ -83,6 +83,13 @@ const type = (label: string | RegExp, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const openEdit = async (name = /Bearbeiten: 10001/) =>
   fireEvent.click(await screen.findByRole('button', { name }));
+const earlyDelete = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+  fireEvent.change(screen.getByLabelText('Grund für die vorzeitige Löschung'), {
+    target: { value: 'Testdaten, angelegt aus Versehen' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Trotzdem löschen' }));
+};
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 
 describe('nextPersonId', () => {
@@ -193,7 +200,7 @@ describe('persons in the clients screen', () => {
       ],
     );
     fireEvent.click(await screen.findByRole('button', { name: /Löschen: 10001/ }));
-    click('Endgültig löschen');
+    earlyDelete();
     await waitFor(() =>
       expect(screen.getByText(/Mandant 10001 Muster GmbH gelöscht/)).toBeTruthy(),
     );
@@ -217,7 +224,7 @@ describe('persons in the clients screen', () => {
     expect(screen.getByRole('alertdialog').textContent).toContain(
       '2 erfasste Personen werden mitgelöscht',
     );
-    click('Endgültig löschen');
+    earlyDelete();
     await waitFor(() =>
       expect(screen.getByText(/Mandant 10001 Muster GmbH gelöscht/)).toBeTruthy(),
     );

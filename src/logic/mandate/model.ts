@@ -100,6 +100,7 @@ export type Reason =
   | 'bad-pep'
   | 'unknown-mandate'
   | 'bad-closing'
+  | 'closing-blocked'
   | 'bad-decision'
   | 'bad-backup'
   | 'bad-list'

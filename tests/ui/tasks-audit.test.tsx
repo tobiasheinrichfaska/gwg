@@ -187,7 +187,7 @@ describe('audit screen', () => {
 
   it('is closable only when all lists are empty', async () => {
     setup(<AuditScreen />, [mandate({ lastCheckOn: '2026-11-01' })]);
-    expect(await screen.findByText('Audit abschließbar: keine Auffälligkeiten.')).toBeTruthy();
+    expect(await screen.findByText(/Die Ausnahmelisten sind leer/)).toBeTruthy();
     expect(screen.queryByText(/Noch \d+ Auffälligkeit/)).toBeNull();
   });
 

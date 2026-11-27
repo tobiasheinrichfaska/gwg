@@ -48,7 +48,7 @@ ist neu (0 Mandate); sonst vorher unter „Sicherung“ eine leere Sicherung ein
   Formular „Mandant bearbeiten“ für `91002`. („Abbrechen“ führt zur Liste.)
 - Schritt 8: Stichtag in der Form TT.MM.JJJJ (heute). „Noch 2 Auffälligkeiten.“: „Nicht identifiziert (1)“ mit
   `91001`, „Identifizierung stockt (1)“ mit `91002`. Der Satz „Audit abschließbar“ fehlt. Die Textdatei zeigt Stichtag, Gesamtzahl und je Liste Nummer;Name.
-- Schritt 9: „Audit abschließbar: keine Auffälligkeiten.“ und alle vier Listen mit „Keine Auffälligkeiten.“.
+- Schritt 9: Alle vier Listen mit „Keine Auffälligkeiten.“. Ohne geladene Sanktionsliste (oder ohne Abgleich in dieser Sitzung) steht „Die Ausnahmelisten sind leer, der Abschluss ist aber noch gesperrt“ und der Knopf „Audit abschließen“ ist deaktiviert (siehe Sperre unten); mit Liste und aktuellem Abgleich steht „Audit abschließbar: keine Auffälligkeiten.“.
 - Schritt 10: „Aktive Mandate: 3 (von 3)“, keine Aufgaben („Keine offenen Aufgaben.“), „Auffälligkeiten zum Stichtag:
   0“.
 - Schritt 11: Der Dialog sagt „Sie bestätigen, dass die Ausnahmelisten geprüft wurden; das Programm entscheidet
@@ -59,4 +59,6 @@ ist neu (0 Mandate); sonst vorher unter „Sicherung“ eine leere Sicherung ein
 - Schritt 13: Das Audit zeigt „Abgeschlossen am …“ und die Warnung „Seit dem Abschluss sind Auffälligkeiten
   entstanden“; der Abschluss bleibt bestehen.
 - Schritt 14: Nach „Abbrechen“ bleibt der Abschluss; nach der Bestätigung ist er weg und die Übersicht zeigt „offen“.
+- Sperre des Abschlusses (Voraussetzung für Schritt 11: Sanktionsliste geladen und im Bereich „Abgleich“ ein Abgleich gestartet): Der Knopf „Audit abschließen“ ist deaktiviert, solange offene rote Treffer, offene PEP-Freigaben bestehen oder der Abgleich fehlt oder veraltet ist. Darunter steht je Grund ein Satz mit Zahl und Verweis (Bereich „Abgleich“, „Mandanten“, „Aufgaben“). Offene gelbe Treffer sperren nicht; der Abschlussdialog nennt sie als Hinweis. Nach Entscheidung der Treffer, Erfassen der Freigabe oder neuem Abgleich ist der Knopf frei.
+- Löschen eines Mandats: Nach Ablauf der Aufbewahrungsfrist genügt „Endgültig löschen“. Läuft die Frist noch, ist das Mandat aktiv oder fehlt das Ende, führt „Weiter“ zu einem zweiten Schritt: Hinweis („Die Aufbewahrungsfrist läuft noch bis …“ / „Das Mandat ist aktiv.“), Pflichtfeld „Grund für die vorzeitige Löschung“ (mindestens 10 Zeichen, eine Zeile, höchstens 200), Hinweis „Der Grund wird nicht gespeichert; halten Sie ihn selbst fest.“. „Trotzdem löschen“ ist erst bei gültigem Grund frei; „Abbrechen“ oder Esc ändert nichts.
 - Nach F5 (Neuladen) bleiben die Änderungen erhalten.

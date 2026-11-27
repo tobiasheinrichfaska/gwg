@@ -11,12 +11,13 @@ import { describeFailure } from '../../app/messages.ts';
 import { useApp } from '../../app/context.ts';
 import { OpenClient } from '../../components/OpenClient.tsx';
 import { formatDate } from '../../format.ts';
+import { ClosingBlockerList } from './ClosingBlockers.tsx';
 import { ClosingDialog } from './ClosingDialog.tsx';
 import { defaultStichtag } from './stichtag.ts';
 import { AUDIT_LISTS, auditText, countFindings } from './export.ts';
 
 export function AuditScreen() {
-  const { backup, today, replace } = useApp();
+  const { backup, today, replace, closing: closingCheck } = useApp();
   const uid = useId();
   const [stichtag, setStichtag] = useState<DateKey>(() => defaultStichtag(today));
   const [dialog, setDialog] = useState<'close' | 'reopen' | null>(null);
@@ -78,7 +79,11 @@ export function AuditScreen() {
         1. bis 30. November vorgesehen; der Zeitraum wird hier nur angezeigt, nicht geprüft.
       </p>
       {clean ? (
-        <p role="status">Audit abschließbar: keine Auffälligkeiten.</p>
+        <p role="status">
+          {closingCheck.blockers.length === 0
+            ? 'Audit abschließbar: keine Auffälligkeiten.'
+            : 'Die Ausnahmelisten sind leer, der Abschluss ist aber noch gesperrt (Gründe unten).'}
+        </p>
       ) : (
         <p role="status">
           Noch {count} {count === 1 ? 'Auffälligkeit' : 'Auffälligkeiten'}. Das Audit ist erst
@@ -111,16 +116,24 @@ export function AuditScreen() {
             {formatDate(stichtag)}.
           </p>
         ) : (
-          <p>
-            <button type="button" onClick={() => setDialog('close')}>
-              Audit abschließen
-            </button>
-          </p>
+          <div>
+            <p>
+              <button
+                type="button"
+                disabled={closingCheck.blockers.length > 0}
+                onClick={() => setDialog('close')}
+              >
+                Audit abschließen
+              </button>
+            </p>
+            <ClosingBlockerList blockers={closingCheck.blockers} />
+          </div>
         )
       ) : null}
       {dialog === 'close' && (
         <ClosingDialog
           error={error}
+          warnings={closingCheck.warnings}
           onConfirm={(by, note) => void close(by, note)}
           onCancel={() => {
             setError(null);

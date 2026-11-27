@@ -1,14 +1,20 @@
 import { useLayoutEffect, useId, useRef, useState } from 'react';
-import { MAX_CLOSING_BY_LENGTH, MAX_CLOSING_NOTE_LENGTH } from '../../../logic/index.ts';
+import {
+  MAX_CLOSING_BY_LENGTH,
+  MAX_CLOSING_NOTE_LENGTH,
+  type ClosingWarning,
+} from '../../../logic/index.ts';
+import { ClosingWarnings } from './ClosingBlockers.tsx';
 
 interface Props {
   error: string | null;
+  warnings: readonly ClosingWarning[];
   onConfirm(by: string, note: string): void;
   onCancel(): void;
 }
 
 /** The program decides nothing legally: a named person confirms that the exception lists were checked. */
-export function ClosingDialog({ error, onConfirm, onCancel }: Props) {
+export function ClosingDialog({ error, warnings, onConfirm, onCancel }: Props) {
   const uid = useId();
   const byRef = useRef<HTMLInputElement>(null);
   const [by, setBy] = useState('');
@@ -32,6 +38,7 @@ export function ClosingDialog({ error, onConfirm, onCancel }: Props) {
         Sie bestätigen, dass die Ausnahmelisten geprüft wurden; das Programm entscheidet nichts
         rechtlich.
       </p>
+      <ClosingWarnings warnings={warnings} />
       <p>
         <label htmlFor={`${uid}-by`}>Name der abschließenden Person</label>
         <br />
