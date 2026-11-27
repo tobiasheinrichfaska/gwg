@@ -11,6 +11,6 @@
 
 **Erwartet:**
 
-- Die Überschrift „GwG-Pflege“ und der Satz „Die Bildschirme sind noch nicht gebaut.“ erscheinen.
-- Nicht offensichtlich: Das ist derzeit der ganze Bildschirm; es fehlt nichts durch einen Fehler.
+- Die Anwendung öffnet ohne Passwortfrage (solange keine App-Sperre eingeschaltet ist) und zeigt die Radnavigation mit den Bereichen Übersicht, Mandanten, Aufgaben, Audit, Sicherung.
+- Nicht offensichtlich: Die Seiten Übersicht, Mandanten, Aufgaben und Audit zeigen nur „Noch nicht gebaut.“; es fehlt nichts durch einen Fehler.
 - Es erscheint keine Fehlermeldung. Es werden keine Daten ins Netz gesendet.

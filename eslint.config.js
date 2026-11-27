@@ -190,7 +190,7 @@ export default defineConfig([
     files: [
       'vite.config.ts',
       'eslint.config.js',
-      'tests/**/*.ts',
+      'tests/**/*.{ts,tsx}',
       'tools/**/*.ts',
       'src/**/*.test.ts',
     ],
@@ -198,7 +198,7 @@ export default defineConfig([
   },
   {
     // Tests index into fixtures and edit parsed JSON freely.
-    files: ['tests/**/*.ts'],
+    files: ['tests/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
@@ -208,7 +208,7 @@ export default defineConfig([
     // Tests use Vitest's globals. An explicit import broke when the shell was started in „c:\…“
     // (lower-case drive): a second copy of 'vitest' without a runner, „Cannot read properties of
     // undefined (reading 'config')“ — the whole file silently did not run (2026-11-11).
-    files: ['tests/**/*.ts', 'src/**/*.test.ts'],
+    files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

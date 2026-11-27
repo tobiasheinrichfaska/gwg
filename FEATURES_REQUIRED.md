@@ -17,10 +17,10 @@
 
 - [ ] **Mandantenliste einlesen** (Export der Kanzleisoftware) und prüfen
 - [ ] **Aufgabenliste (Bildschirm):** wer ist fällig, wer mahnt, wer eskaliert (Logik: `buildTasks`)
-- [ ] **Navigation** mit `rad-navi`
+- [x] **Navigation** mit `rad-navi` (Rahmen und Bereiche; Seiten außer Sicherung noch Platzhalter)
 - [ ] **Jahresaudit-Assistent** 1.–30. November mit Stichtags-Export
 - [x] **Sicherungsdatei (Logik):** Format 1, `serializeBackup`/`parseBackup` (streng, `tests/backup.test.ts`)
-- [ ] **Sicherungsdatei (IO):** schreiben, lesen, Verschlüsselung
+- [x] **Sicherungsdatei schreiben und streng wieder einlesen** (Bildschirm „Sicherung“, `tests/ui/`); die Datei selbst ist unverschlüsselt (Warnung im Bildschirm)
 
 | Path                                         | Impact                              | Audit Check                        |
 | -------------------------------------------- | ----------------------------------- | ---------------------------------- |

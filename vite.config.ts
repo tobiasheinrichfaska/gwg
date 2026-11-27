@@ -7,6 +7,6 @@ export default defineConfig({
   build: { modulePreload: { polyfill: false } },
   test: {
     globals: true,
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
   },
 });

@@ -57,8 +57,9 @@ maths; "today" is always a parameter, errors are codes) and a thin UI `src/ui/`.
 | `tests/io.test.ts`                                                      | io layer tests (memory store, vault store with in-memory vault, files)                                                                                                                                                                       |
 | `src/logic/config.ts`                                                   | All numbers and tables as data: `RulesConfig`, `DEFAULT_RULES`, `checkRules`                                                                                                                                                                 |
 | `src/logic/index.ts`                                                    | Public entry of the logic layer (barrel over the module indexes and `config.ts`)                                                                                                                                                             |
-| `src/ui/App.tsx`, `src/main.tsx`                                        | UI shell (placeholder so far)                                                                                                                                                                                                                |
-| `tests/`                                                                | Vitest: `time`, `rules`, `sanctions`, `config`, `docs`, `lint-boundaries`; `helpers.ts`                                                                                                                                                      |
+| `src/io/`                                                               | `store.ts` (`AppStore`, vault/memory store), `files.ts` (backup download/read, `BACKUP_WARNING`)                                                                                                                                             |
+| `src/ui/`, `src/main.tsx`                                               | `App.tsx`; `app/` (`AppProvider`, `useApp`, `Navigation` with rad-navi, German texts, CSS); `screens/<name>/` (backup built; overview, clients, tasks, audit placeholders); `components/`. `main.tsx` wires `VaultGate` (slot `bestand`)     |
+| `tests/`                                                                | Vitest: `time`, `rules`, `sanctions`, `config`, `docs`, `lint-boundaries`, `io`; `ui/*.test.tsx` (jsdom per file); `helpers.ts`                                                                                                              |
 | `index.html`, `vite.config.ts`                                          | Single-file build (`vite-plugin-singlefile`), dev port 5178                                                                                                                                                                                  |
 | `package.json`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json` | Toolchain                                                                                                                                                                                                                                    |
 | `.github/workflows/tests.yml`                                           | Check "Tests": typecheck, lint, format, tests, build                                                                                                                                                                                         |
@@ -80,10 +81,15 @@ session the model changes.
 
 ## Known Limitations
 
-- Only the logic foundation exists: no screens, no storage, no import of the DATEV master data, no PDF
-  letters, no `local-vault` or `rad-navi` wiring yet. Dunning, audit, retention and sanctions are rules, not workflows.
+- Built: logic, io layer, app frame (vault gate, state provider, rad-navi navigation) and the screen
+  "Sicherung". Overview, clients, tasks and audit are honest placeholders; there is no import of the DATEV
+  master data and no PDF letters. Dunning, audit, retention and sanctions are rules, not workflows.
+- `local-vault` 0.1.0 has the device mode only (no `mode` option); without the app lock the app opens without
+  a password. The lock card is shown on the backup screen. Two tabs can overwrite each other (docs/io-schnittstellen.md, point 4).
+- The backup file is not encrypted (warning shown permanently); file:// behaviour of IndexedDB/crypto was
+  checked only in headless Chromium, not on iOS or other browsers.
 - Storage: `local-vault` in **device mode** with an optional app lock (decision Tobias, 2026-11-27); `io/` has the
-  store, the UI wiring is still missing. Without the app lock the device opens without a password.
+  store, wired in `main.tsx`. Without the app lock the device opens without a password.
 - **The backup file is unencrypted** (decision Tobias, 2026-11-27): plain JSON from `serializeBackup` with client
   names. The UI must show `BACKUP_WARNING` when creating and opening it (not built yet).
 - **No roles or secret vault in a local single file.** The requirements ask for an officer-only area for
