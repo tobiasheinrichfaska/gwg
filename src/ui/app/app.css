@@ -1,0 +1,115 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #555555;
+  --accent: #1d4ed8;
+  --danger: #b00020;
+  --warn-bg: #fff4d6;
+  --border: #888888;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --fg: #ececec;
+    --muted: #b0b0b0;
+    --accent: #8ab4ff;
+    --danger: #ff8a9b;
+    --warn-bg: #3a3220;
+    --border: #777777;
+  }
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+.page {
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+[role='alert'] {
+  color: var(--danger);
+  font-weight: 600;
+}
+.warning {
+  background: var(--warn-bg);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+}
+.dialog {
+  border: 2px solid var(--border);
+  background: var(--bg);
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+}
+button,
+input,
+label {
+  font: inherit;
+}
+button {
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.6rem 0;
+}
+.field input[type='checkbox'] {
+  align-self: flex-start;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  align-items: flex-end;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+input,
+select {
+  padding: 0.3rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

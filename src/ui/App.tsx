@@ -1,9 +1,17 @@
-// Placeholder shell: screens (client list, review tasks, audit) and the rad-navi navigation come next.
-export function App() {
+import { LockSettings, type Vault } from 'local-vault';
+import type { AppStore } from '../io/index.ts';
+import { AppProvider } from './app/AppProvider.tsx';
+import { Navigation } from './app/Navigation.tsx';
+import { VAULT_TEXTS } from './app/texts.ts';
+import './app/app.css';
+
+export function App({ store, vault }: { store: AppStore; vault?: Vault }) {
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', margin: '2rem auto', maxWidth: '40rem' }}>
-      <h1>GwG-Pflege</h1>
-      <p>Die Bildschirme sind noch nicht gebaut. Die Logik ist getestet.</p>
-    </main>
+    <AppProvider
+      store={store}
+      lockSettings={vault ? <LockSettings vault={vault} texts={VAULT_TEXTS} /> : null}
+    >
+      <Navigation />
+    </AppProvider>
   );
 }

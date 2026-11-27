@@ -27,10 +27,26 @@
 
     <h2>1 Gespeicherte Form (Wurzel)</h2>
     <p>
-      Noch nicht festgelegt: Die Speicherung (Browser-Speicher und Sicherungsdatei, ohne Verschlüsselung durch
-      eine Tresor-Bibliothek) ist offen und kommt mit den Bildschirmen. Bis dahin besteht das Modell aus der
-      Mandantenliste (<code>Mandate[]</code>) und der Konfiguration (Abschnitt 3), die als Daten in
-      <code>src/logic/config.ts</code> liegt.
+      Die Sicherungsdatei hat das <strong>Format 1</strong> (reine Logik in <code>src/logic/backup/</code>;
+      Speicher und Dateizugriff in <code>src/io/</code>). Die Datei ist <strong>unverschlüsselt</strong> (Entscheidung
+      Tobias): sie enthält Mandantennamen im Klartext, die Oberfläche zeigt dazu einen Warnhinweis
+      (<code>BACKUP_WARNING</code>). Der Browserspeicher dagegen liegt im local-vault (Gerätemodus, optional mit
+      App-Sperre) als ein Slot mit genau diesem Text. Sie ist ein JSON-Objekt mit genau diesen Feldern:
+    </p>
+    <table>
+      <tr><th>Feld</th><th>Typ</th><th>Inhalt</th></tr>
+      <tr><td>format</td><td>string</td><td>immer <code>gwg-backup</code></td></tr>
+      <tr><td>version</td><td>Zahl</td><td>immer <code>1</code>; größer als 1 ergibt unsupported-version</td></tr>
+      <tr><td>createdOn</td><td>DateKey</td><td>Erstellungstag, gültiges Kalenderdatum</td></tr>
+      <tr><td>rules</td><td>RulesConfig</td><td>Die Konfiguration (Abschnitt 3), von <code>checkRules</code> geprüft</td></tr>
+      <tr><td>mandates</td><td>Mandate[]</td><td>Mandanten nach Nummer sortiert, jeder von <code>checkMandate</code> geprüft</td></tr>
+    </table>
+    <p>
+      <strong>Streng-Regel:</strong> Der Leser ist alles-oder-nichts. Er verwirft nie still etwas: unbekannte
+      Schlüssel auf jeder Ebene, fehlende Felder, falsche Laufzeittypen, die Schlüssel
+      <code>__proto__</code> und <code>constructor</code>, doppelte Mandantennummern und jeder Fehler von
+      <code>checkMandate</code>/<code>checkRules</code> lassen die ganze Datei scheitern. Ein Fehler nennt zusätzlich die
+      Stelle (<code>where</code>, z. B. <code>mandates[3].legalForm</code>).
     </p>
 
     <h2>2 Entitäten</h2>
@@ -85,22 +101,34 @@
       <tr><td>SANCTION_THRESHOLDS.possible</td><td>0.85</td><td>Namensähnlichkeit ab der ein möglicher Treffer vorliegt</td></tr>
       <tr><td>SANCTION_THRESHOLDS.strong</td><td>0.9</td><td>Namensähnlichkeit für „rot“ bei genau gleichem Geburtsdatum</td></tr>
     </table>
+    <p>
+      <code>RulesConfig</code> fasst alle Zahlen und Tabellen dieses Abschnitts zu einem Wert zusammen
+      (<code>reviewIntervalMonths</code>, <code>dunningSteps</code>, <code>retentionYears</code>,
+      <code>discrepancyRecheckDays</code>, <code>sanctionThresholds</code>, <code>legalForms</code>,
+      <code>riskGroups</code>); <code>DEFAULT_RULES</code> ist der Startvorschlag aus den Konstanten oben.
+    </p>
 
     <h2>4 Methoden (reine Logik, ohne Oberfläche)</h2>
     <table>
       <tr><th>Funktion</th><th>Signatur</th><th>Zweck</th></tr>
-      <tr><td>checkTypeOf</td><td>(legalForm: string) =&gt; CheckType | null</td><td>Prüftyp einer Rechtsform</td></tr>
-      <tr><td>needsRegisterLookup</td><td>(legalForm: string) =&gt; boolean</td><td>Gehört ein Registerabruf zur Prüfung dieser Rechtsform</td></tr>
-      <tr><td>effectiveRiskClass</td><td>(m, groups?) =&gt; RiskClass | null</td><td>Klasse der Gruppe; PEP immer hoch</td></tr>
-      <tr><td>nextReviewDate</td><td>(m, groups?) =&gt; DateKey | null</td><td>Letzte Prüfung plus Intervall der Klasse (Monatsende wird begrenzt)</td></tr>
-      <tr><td>dunningStage</td><td>(firstRequestOn, today) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>
-      <tr><td>retentionDueFrom</td><td>(endedOn) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
-      <tr><td>checkMandate</td><td>(m, groups?) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
-      <tr><td>auditExceptions</td><td>(mandates, today, groups?) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified, unidentified, stalled, overdue</td></tr>
+      <tr><td>checkTypeOf</td><td>(legalForm, rules) =&gt; CheckType | null</td><td>Prüftyp einer Rechtsform</td></tr>
+      <tr><td>needsRegisterLookup</td><td>(legalForm, rules) =&gt; boolean</td><td>Gehört ein Registerabruf zur Prüfung dieser Rechtsform</td></tr>
+      <tr><td>effectiveRiskClass</td><td>(m, rules) =&gt; RiskClass | null</td><td>Klasse der Gruppe; PEP immer hoch</td></tr>
+      <tr><td>nextReviewDate</td><td>(m, rules) =&gt; DateKey | null</td><td>Letzte Prüfung plus Intervall der Klasse (Monatsende wird begrenzt)</td></tr>
+      <tr><td>dunningStage</td><td>(firstRequestOn, today, rules) =&gt; DunningStage</td><td>Stufe der Mahnleiter: keine, erinnerung, androhung, eskalation</td></tr>
+      <tr><td>retentionDueFrom</td><td>(endedOn, rules) =&gt; DateKey | null</td><td>Erster Tag der Löschfälligkeit (1. Januar, Beendigungsjahr + 6)</td></tr>
+      <tr><td>checkMandate</td><td>(m, rules) =&gt; Result&lt;Mandate&gt;</td><td>Prüft einen Mandanten; liefert einen Fehlercode</td></tr>
+      <tr><td>checkRules</td><td>(r: RulesConfig) =&gt; Result&lt;RulesConfig&gt;</td><td>Prüft eine Konfiguration; liefert bad-config</td></tr>
+      <tr><td>serializeBackup</td><td>(b: Backup) =&gt; string</td><td>JSON mit fester Schlüsselreihenfolge, Mandate nach Nummer sortiert</td></tr>
+      <tr><td>parseBackup</td><td>(text) =&gt; Result&lt;Backup&gt;</td><td>Strenger Leser (Abschnitt 1); liefert bad-backup, unsupported-version, duplicate-id oder den Fehler von checkMandate/checkRules, mit Stelle in where</td></tr>
+      <tr><td>auditExceptions</td><td>(mandates, today, rules) =&gt; AuditExceptions</td><td>Die vier Ausnahmelisten des Jahresaudits: unclassified (auch unbekannte Gruppe), unidentified, stalled, overdue (auch „vollständig“ ohne gültiges Prüfdatum)</td></tr>
       <tr><td>auditIsClean</td><td>(e) =&gt; boolean</td><td>Alle vier Listen leer</td></tr>
-      <tr><td>normalizeName</td><td>(name) =&gt; string</td><td>Kleinschreibung, Umlaute und ß aufgelöst, Satzzeichen entfernt</td></tr>
-      <tr><td>nameSimilarity</td><td>(a, b) =&gt; number</td><td>0 bis 1, Wortreihenfolge egal (Levenshtein)</td></tr>
-      <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
+      <tr><td>buildTasks</td><td>(mandates, today, rules) =&gt; { tasks: Task[]; invalid: { mandateId, reason }[] }</td><td>Aufgabenliste: review-due, request-missing, dunning-reminder/-threat/-escalate (nur höchste erreichte Stufe), unclassified (nur aktive Mandate), retention-due (nur inaktive); Mandate ohne bestandenes checkMandate stehen in invalid; sortiert nach Art, Verzug absteigend, Mandantennummer</td></tr>
+      <tr><td>normalizeName</td><td>(name) =&gt; string</td><td>Kleinschreibung, Umlaute, ß, ø, æ, ł usw. aufgelöst, Satzzeichen entfernt; Unsichtbare Zeichen entfernt; Buchstaben jeder Schrift bleiben erhalten</td></tr>
+      <tr><td>nameSimilarity</td><td>(a, b) =&gt; number</td><td>0 bis 1, Wortreihenfolge egal (Levenshtein); zusätzliche Namensteile ergeben höchstens 0,89 (gelb, nie rot); ö als „oe“ und als „o“ wird beides versucht</td></tr>
+      <tr><td>classifyNames</td><td>(clientName, listName, clientBirth, listBirth, thresholds) =&gt; SanctionClass</td><td>Einstieg des Abgleichs: Namen vergleichen und Ampel; ein Name ohne vergleichbaren Inhalt wird nie grün, sondern gelb</td></tr>
+      <tr><td>classifyMatch</td><td>(similarity, clientBirth, listBirth, thresholds) =&gt; SanctionClass</td><td>Ampel gruen, gelb, rot; nur ein eindeutig anderes Geburtsjahr entlastet automatisch</td></tr>
+      <tr><td>todayKey (now: Date) =&gt; DateKey</td><td>Heutiger Kalendertag aus lokalen Feldern</td><td>Aufrufen nur io/ui; die Logikschicht ruft nie new Date()</td></tr>
       <tr><td>addDays, addMonths, daysBetween, isDateKey</td><td>Kalenderrechnung</td><td>Ohne Zeitzone; „heute“ ist immer ein Parameter</td></tr>
     </table>
 
@@ -112,8 +140,14 @@
       <tr><td>unknown-legal-form</td><td>Rechtsform nicht in der Tabelle</td></tr>
       <tr><td>unknown-risk-group</td><td>Risikogruppe nicht vorhanden</td></tr>
       <tr><td>bad-risk-reason</td><td>Begründung zu lang oder mit Steuerzeichen</td></tr>
-      <tr><td>bad-status</td><td>„vollstaendig“ ohne Datum der letzten Prüfung</td></tr>
-      <tr><td>bad-end</td><td>Ende eingetragen, aber Mandat noch aktiv</td></tr>
+      <tr><td>bad-status</td><td>Unbekannter Statuswert, oder „vollstaendig“ ohne Datum der letzten Prüfung</td></tr>
+      <tr><td>bad-end</td><td>Ende und Aktivstatus widersprechen sich: aktiv mit Enddatum, oder inaktiv ohne Enddatum (die Aufbewahrungsfrist würde nie starten)</td></tr>
+      <tr><td>bad-config</td><td>Konfiguration ungültig (Zahl &lt;= 0, Mahnstufen nicht aufsteigend, Schwelle possible &gt; strong, doppelte Schlüssel/Ids, Schwellen außerhalb 0..1)</td></tr>
+      <tr><td>bad-backup</td><td>Sicherungsdatei: kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor</td></tr>
+      <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 1</td></tr>
+      <tr><td>duplicate-id</td><td>Mandantennummer kommt in der Sicherungsdatei doppelt vor</td></tr>
+      <tr><td>file-too-large</td><td>Gewählte Sicherungsdatei ist größer als erlaubt (Standard 10 MB); sie wird nicht gelesen (io-Schicht)</td></tr>
+      <tr><td>store-failed</td><td>Tresor lässt sich nicht lesen oder schreiben (geschlossen, Slot unlesbar, Speicher voll); nichts wird überschrieben (io-Schicht)</td></tr>
     </table>
 
     <h2>5 Beziehungen</h2>

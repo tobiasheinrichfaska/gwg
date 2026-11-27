@@ -1,10 +1,20 @@
-/** Dates are calendar days as 'YYYY-MM-DD' (no time zone); "today" is always a parameter. */
-export type DateKey = string;
+import type { DateKey } from '../core/index.ts';
+import type { Result as CoreResult } from '../core/index.ts';
+import { ok as coreOk, fail as coreFail } from '../core/index.ts';
+
+export type { DateKey };
 
 export type RiskClass = 'niedrig' | 'normal' | 'hoch';
 
 /** Identification status as kept in the DATEV master data, plus the two states only this tool sets. */
-export type IdStatus = 'leer' | 'unvollstaendig' | 'vollstaendig' | 'eskalation' | 'gekuendigt';
+export const ID_STATUSES = [
+  'leer',
+  'unvollstaendig',
+  'vollstaendig',
+  'eskalation',
+  'gekuendigt',
+] as const;
+export type IdStatus = (typeof ID_STATUSES)[number];
 
 /** Kind of review a client needs: A natural person / sole trader, B registered sole trader, C company. */
 export type CheckType = 'A' | 'B' | 'C';
@@ -56,9 +66,15 @@ export type Reason =
   | 'unknown-risk-group'
   | 'bad-risk-reason'
   | 'bad-status'
-  | 'bad-end';
+  | 'bad-end'
+  | 'bad-config'
+  | 'bad-backup'
+  | 'unsupported-version'
+  | 'duplicate-id'
+  | 'file-too-large'
+  | 'store-failed';
 
-export type Result<T> = { ok: true; value: T } | { ok: false; reason: Reason };
+export type Result<T> = CoreResult<T, Reason>;
 
-export const ok = <T>(value: T): Result<T> => ({ ok: true, value });
-export const fail = (reason: Reason): Result<never> => ({ ok: false, reason });
+export const ok = <T>(value: T): Result<T> => coreOk(value);
+export const fail = (reason: Reason): Result<never> => coreFail(reason);

@@ -11,11 +11,14 @@ nur, was eine Person sehen muss.
 
 ## Stand
 
-Die Bildschirme sind noch nicht gebaut. Bis dahin gibt es nur den Test MT-01. Neue Fälle kommen mit den
-Bildschirmen (Mandantenliste, Aufgaben, Audit, Sicherung).
+Gebaut sind der Rahmen mit Navigation und die Bildschirme „Sicherung“, „Mandanten“, „Aufgaben“, „Audit“ und
+„Übersicht“ (MT-01 bis MT-04).
 
 ## Dateien
 
-| Datei         | Inhalt              |
-| ------------- | ------------------- |
-| `01_start.md` | Start der Anwendung |
+| Datei                  | Inhalt                                                    |
+| ---------------------- | --------------------------------------------------------- |
+| `01_start.md`          | Start der Anwendung                                       |
+| `02_sicherung.md`      | Sicherung speichern, ansehen, einspielen, kaputte Datei   |
+| `03_mandanten.md`      | Mandanten anlegen, suchen, bearbeiten, löschen            |
+| `04_aufgaben_audit.md` | Aufgabenliste, Aktionen, Audit, Stichtagsliste, Übersicht |

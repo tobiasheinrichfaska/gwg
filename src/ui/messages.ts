@@ -1,0 +1,47 @@
+import {
+  retentionDueFrom,
+  type DateKey,
+  type Mandate,
+  type Reason,
+  type RulesConfig,
+} from '../logic/index.ts';
+import { formatDate } from './format.ts';
+
+/**
+ * One German sentence per error code. The record type makes a missing code a compile error; the
+ * sentences read both in the client form and when a backup file is rejected.
+ */
+export const REASON_TEXTS: Record<Reason, string> = {
+  'bad-date': 'Ein Datum ist ungültig.',
+  'bad-id': 'Mandatsnummer und Name müssen ausgefüllt sein.',
+  'unknown-legal-form': 'Bitte eine Rechtsform aus der Liste wählen.',
+  'unknown-risk-group': 'Die Risikogruppe gibt es in den Regeln nicht.',
+  'bad-risk-reason':
+    'Die Begründung ist zu lang (höchstens 500 Zeichen) oder enthält Steuerzeichen.',
+  'bad-status':
+    'Der Status ist ungültig. Der Status „vollständig“ braucht ein Datum der letzten Prüfung.',
+  'bad-end':
+    'Beendigungsdatum und „Aktiv“ passen nicht zusammen: Ein aktives Mandat hat kein Ende, ein inaktives braucht eines.',
+  'bad-config': 'Die Einstellungen (Fristen, Mahnstufen) sind ungültig.',
+  'bad-backup': 'Die Datei ist keine gültige Sicherung.',
+  'unsupported-version': 'Diese Sicherung hat ein unbekanntes Format oder eine unbekannte Version.',
+  'duplicate-id': 'Diese Mandatsnummer gibt es schon.',
+  'file-too-large': 'Die Datei ist zu groß.',
+  'store-failed': 'Der Speicher des Geräts ist nicht lesbar oder nicht beschreibbar.',
+};
+
+export function reasonText(reason: Reason): string {
+  return REASON_TEXTS[reason];
+}
+
+/** The sentence about the retention period, depending on whether the mandate has ended. */
+export function retentionSentence(m: Mandate, rules: RulesConfig, today: DateKey): string {
+  const due = retentionDueFrom(m.endedOn, rules);
+  if (due === null) {
+    return 'Das Mandat ist nicht beendet. Löschen vor Ablauf der Aufbewahrungsfrist ist rechtlich zu klären.';
+  }
+  const base = `Das Mandat endete am ${formatDate(m.endedOn)}; die Aufbewahrungsfrist (${rules.retentionYears} Jahre nach Ende des Beendigungsjahres) läuft bis zum ${formatDate(due)} (Löschfälligkeit ab diesem Tag).`;
+  return today >= due
+    ? `${base} Die Frist ist abgelaufen.`
+    : `${base} Die Frist läuft noch: Löschen vorher ist rechtlich zu klären.`;
+}

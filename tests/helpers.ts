@@ -1,4 +1,4 @@
-import type { Mandate } from '../src/logic/index.ts';
+import { DEFAULT_RULES, type Mandate } from '../src/logic/index.ts';
 
 export function mandate(over: Partial<Mandate> = {}): Mandate {
   return {
@@ -16,3 +16,5 @@ export function mandate(over: Partial<Mandate> = {}): Mandate {
     ...over,
   };
 }
+
+export const rules = DEFAULT_RULES;

@@ -1,4 +1,4 @@
-import type { DateKey } from './model.ts';
+import type { DateKey } from './types.ts';
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -16,12 +16,30 @@ export function isDateKey(s: unknown): s is DateKey {
 
 function parts(key: DateKey): [number, number, number] {
   const m = DATE_RE.exec(key);
-  if (!m) throw new Error(`bad date key: ${key}`);
+  // A date that merely looks right ('2026-02-30') must not be silently rolled over by Date.UTC.
+  // Calendar check only: results of date arithmetic may leave the 1900..2200 input range.
+  if (
+    !m ||
+    Number(m[2]) < 1 ||
+    Number(m[2]) > 12 ||
+    Number(m[3]) < 1 ||
+    Number(m[3]) > daysInMonth(Number(m[1]), Number(m[2]))
+  ) {
+    throw new Error(`bad date key: ${key}`);
+  }
   return [Number(m[1]), Number(m[2]), Number(m[3])];
 }
 
 function fmt(y: number, m: number, d: number): DateKey {
   return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+/**
+ * Today's calendar day from the LOCAL fields of `now` (toISOString would give the previous day
+ * between 00:00 and 01:00 CET). Pure: the caller (io/ui) passes `now`.
+ */
+export function todayKey(now: Date): DateKey {
+  return fmt(now.getFullYear(), now.getMonth() + 1, now.getDate());
 }
 
 /** Whole calendar days from `from` to `to` (negative if `to` is earlier). */
