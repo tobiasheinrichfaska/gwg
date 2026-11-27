@@ -35,3 +35,19 @@ export async function readBackupFile(
     return fail('bad-backup');
   }
 }
+
+/** Hands a plain text to the browser as a download (a list for people, not a backup). */
+export function downloadText(text: string, fileName: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function auditFileName(today: DateKey): string {
+  return `gwg-audit-${today}.txt`;
+}

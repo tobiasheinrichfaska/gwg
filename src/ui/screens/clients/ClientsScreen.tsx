@@ -9,10 +9,15 @@ import { DeleteDialog } from './DeleteDialog.tsx';
 type View = { kind: 'list' } | { kind: 'form'; editId: string | null };
 
 export function ClientsScreen() {
-  const { backup, today, replace, saveError } = useApp();
+  const { backup, today, replace, saveError, requestedClientId, requestClient } = useApp();
   const { rules, mandates } = backup;
   const uid = useId();
-  const [view, setView] = useState<View>({ kind: 'list' });
+  // A mandate another screen asked for opens in the edit form (taken once, then cleared).
+  const [view, setView] = useState<View>(() =>
+    requestedClientId !== null && backup.mandates.some((m) => m.id === requestedClientId)
+      ? { kind: 'form', editId: requestedClientId }
+      : { kind: 'list' },
+  );
   const [onlyActive, setOnlyActive] = useState(true);
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -20,6 +25,10 @@ export function ClientsScreen() {
   const [returns, setReturns] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (requestedClientId !== null) requestClient(null);
+  }, [requestedClientId, requestClient]);
 
   // Back from the form or the dialog: focus goes to the heading, never lost with the removed view.
   useEffect(() => {

@@ -14,6 +14,12 @@ export interface AppState {
   saveError: Reason | null;
   /** App-lock card of the vault, when there is a vault. */
   lockSettings: ReactNode;
+  /**
+   * Mandate number another screen asked to open: the wheel cannot be steered from inside a page, so the
+   * request waits here and the "Mandanten" screen takes it (once) when it opens.
+   */
+  requestedClientId: string | null;
+  requestClient(id: string | null): void;
 }
 
 export const AppContext = createContext<AppState | null>(null);

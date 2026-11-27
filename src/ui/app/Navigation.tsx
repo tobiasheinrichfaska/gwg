@@ -1,3 +1,4 @@
+import { useApp } from './context.ts';
 import { WheelNav, areaNode, distributor, type PageTable } from 'rad-navi';
 import { AuditScreen } from '../screens/audit/AuditScreen.tsx';
 import { BackupScreen } from '../screens/backup/BackupScreen.tsx';
@@ -41,7 +42,10 @@ const TEXTS = {
   backButton: (name: string) => `Zurück zu ${name}`,
 };
 
+export const CLIENTS_NODE = 'bereich-mandanten/mandanten';
+
 export function Navigation() {
+  const { requestedClientId } = useApp();
   return (
     <WheelNav
       tree={TREE}
@@ -50,6 +54,7 @@ export function Navigation() {
         const Screen = SCREENS[page];
         return Screen ? <Screen /> : undefined;
       }}
+      jumpTarget={() => (requestedClientId === null ? undefined : CLIENTS_NODE)}
       texts={TEXTS}
     />
   );

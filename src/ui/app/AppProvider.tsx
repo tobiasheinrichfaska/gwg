@@ -37,6 +37,7 @@ export function AppProvider({ store, lockSettings = null, now, children }: Props
   const [today] = useState(() => todayKey(now ? now() : new Date()));
   const [loaded, setLoaded] = useState<Loaded>({ kind: 'loading' });
   const [saveError, setSaveError] = useState<Reason | null>(null);
+  const [requestedClientId, requestClient] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,9 +68,18 @@ export function AppProvider({ store, lockSettings = null, now, children }: Props
   const value = useMemo<AppState | null>(
     () =>
       loaded.kind === 'ready'
-        ? { backup: loaded.backup, store, today, replace, saveError, lockSettings }
+        ? {
+            backup: loaded.backup,
+            store,
+            today,
+            replace,
+            saveError,
+            lockSettings,
+            requestedClientId,
+            requestClient,
+          }
         : null,
-    [loaded, store, today, replace, saveError, lockSettings],
+    [loaded, store, today, replace, saveError, lockSettings, requestedClientId],
   );
 
   if (loaded.kind === 'loading') return <p role="status">Daten werden geladen …</p>;
