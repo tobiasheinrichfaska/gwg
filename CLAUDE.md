@@ -43,6 +43,8 @@ maths; "today" is always a parameter, errors are codes) and a thin UI `src/ui/`.
 | `README.md`                                                             | Short description (German), license section                                                    |
 | `FEATURES_REQUIRED.md`                                                  | Critical user paths the audit validates                                                        |
 | `docs/data-model.html`                                                  | Self-contained data-model reference (`tests/docs.test.ts` ties codes and numbers to it)        |
+| `docs/datev-stammdaten.md`                                              | DATEVconnect master-data fields for the import: what gwg can fetch, what it keeps itself       |
+| `docs/uebergabe-datev.md`                                               | Handover: DATEV import via the worker (fields, draft worker interface v1, fetch order, rules)  |
 | `docs/uebergabe.md`                                                     | Handover for a new chat: state, decisions, open points in order                                |
 | `manual_tests/`                                                         | Human-tester instructions (German)                                                             |
 | `src/logic/model.ts`                                                    | Types (`Mandate`, `RiskGroup`, `LegalForm`, status unions), `Reason` codes, `Result`           |
@@ -87,4 +89,6 @@ session the model changes.
 - **Legal claims in the requirements are unverified** (identification-expiry handling, § 23a reporting
   cases, retention start, goAML dates, AMLR transition 2027, treatment of a plain GbR). Check against the
   BStBK interpretation notes before each rule goes live.
-- The firm's data comes from DATEV by CSV/manual entry; the exact export is not specified yet.
+- The firm's data comes from DATEV; which fields DATEVconnect delivers and which gwg must keep itself is
+  measured in [`docs/datev-stammdaten.md`](docs/datev-stammdaten.md) (2026-11-27). Whether the browser may call
+  DATEVconnect directly (CORS/Negotiate) is not checked; fallback CSV.

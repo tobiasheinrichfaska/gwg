@@ -25,7 +25,9 @@ Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `de
 
 ## Entscheidungen (Tobias, 2026-11-23)
 
-1. **Datenquelle:** CSV-Export aus DATEV; die Spalten werden mit dem echten Spaltenkopf (ohne Daten) festgelegt.
+1. **Datenquelle:** _Seit 2026-11-27 abgelöst: die Daten kommen über den Worker aus DATEVconnect, CSV bleibt
+   Rückfall — siehe [`uebergabe-datev.md`](uebergabe-datev.md) und [`datev-stammdaten.md`](datev-stammdaten.md)._
+   Bisher: CSV-Export aus DATEV; die Spalten werden mit dem echten Spaltenkopf (ohne Daten) festgelegt.
    Vorschlag: Tabelle _Mandanten_ (Mandantennummer, Name/Firma, Rechtsform, aktiv, Identifizierungsstatus, Datum
    letzte Identifizierung, Mandatsende, optional Rundschreibenschlüssel) und Tabelle _Personen_ (Mandantennummer,
    Rolle, Name, Vorname, Geburtsdatum auch teilweise, optional Geburtsort/Staatsangehörigkeit). Risikogruppe und
@@ -51,7 +53,9 @@ Stufe 1: **nur Listen und Fristen**, keine Schreiben/PDF. Rein lokal: **kein `de
    keine Abfragezeichenfolge, Cache mit Mindestabstand 1 Stunde zur EU, Limit je Aufrufer und gesamt,
    Obergrenze der Antwortgröße, CORS nur für die App-Herkunft, kein Protokoll von Anfragen (nur Zähler),
    Kostenobergrenze beim Hoster. Die Zähler des Zeitserver-Relays sind nur global (bekannte Grenze).
-3. **Spaltenkopf des DATEV-Exports** von Tobias holen, dann den Import bauen (strenger Leser, nicht erkannte
+3. **DATEV-Import über den Worker** nach [`uebergabe-datev.md`](uebergabe-datev.md) bauen (Logik + Testdouble mit
+   erfundenen Daten; der Worker selbst entsteht im Projekt `datev-worker`). Rückfall: Spaltenkopf des DATEV-Exports
+   von Tobias holen, dann den CSV-Import bauen (strenger Leser, nicht erkannte
    Zeilen mit Grund anzeigen, nichts still verwerfen).
 4. **Bildschirme** mit `rad-navi`: Mandantenliste, Aufgaben (fällig, mahnen, eskalieren), später
    Jahresaudit-Assistent 1.–30. November mit Stichtags-Export. Tresor (`local-vault`) und Sicherungsdatei.
