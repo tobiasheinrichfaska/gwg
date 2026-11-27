@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useLayoutEffect, useId, useRef } from 'react';
 import type { Mandate } from '../../../logic/index.ts';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 export function CheckDialog({ mandate, onConfirm, onCancel }: Props) {
   const uid = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     cancelRef.current?.focus();
   }, []);
   return (

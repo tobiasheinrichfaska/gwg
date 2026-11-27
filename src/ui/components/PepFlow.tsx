@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react';
 import {
   checkPerson,
   isDateKey,
@@ -76,7 +76,7 @@ export function PepFlow({ person, mandate, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     headingRef.current?.focus();
   }, [step]);
 

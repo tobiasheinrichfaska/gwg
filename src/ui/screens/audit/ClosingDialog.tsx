@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useLayoutEffect, useId, useRef, useState } from 'react';
 import { MAX_CLOSING_BY_LENGTH, MAX_CLOSING_NOTE_LENGTH } from '../../../logic/index.ts';
 
 interface Props {
@@ -13,7 +13,7 @@ export function ClosingDialog({ error, onConfirm, onCancel }: Props) {
   const byRef = useRef<HTMLInputElement>(null);
   const [by, setBy] = useState('');
   const [note, setNote] = useState('');
-  useEffect(() => {
+  useLayoutEffect(() => {
     byRef.current?.focus();
   }, []);
   return (

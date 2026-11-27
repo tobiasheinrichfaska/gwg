@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useLayoutEffect, useId, useRef } from 'react';
 import { type DateKey, type Mandate, type RulesConfig } from '../../../logic/index.ts';
 import { retentionSentence } from '../../messages.ts';
 
@@ -15,7 +15,7 @@ interface Props {
 export function DeleteDialog({ mandate, personCount, rules, today, onConfirm, onCancel }: Props) {
   const uid = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     cancelRef.current?.focus();
   }, []);
   return (

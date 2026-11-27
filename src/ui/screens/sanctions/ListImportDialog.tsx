@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useLayoutEffect, useId, useRef, useState } from 'react';
 import type { EuListFile } from '../../../io/index.ts';
 import { isDateKey, type DateKey, type ListIndex } from '../../../logic/index.ts';
 import { formatDate } from '../../format.ts';
@@ -18,7 +18,7 @@ export function ListImportDialog({ file, currentOn, error, onConfirm, onCancel }
   const uid = useId();
   const [on, setOn] = useState<string>(file.suggestedOn);
   const dateRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     dateRef.current?.focus();
   }, []);
   const valid = isDateKey(on);

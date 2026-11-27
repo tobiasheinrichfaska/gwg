@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useId, useRef, useState, type FormEvent } from 'react';
 import {
   checkPerson,
   emptyPep,
@@ -204,7 +204,7 @@ function PersonForm({
   const errorRef = useRef<HTMLParagraphElement>(null);
   const fid = (n: string) => `${uid}-${n}`;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (error !== null) errorRef.current?.focus();
   }, [error]);
 

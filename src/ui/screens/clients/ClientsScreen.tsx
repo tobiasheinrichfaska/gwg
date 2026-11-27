@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   checkTypeOf,
   effectiveRiskClass,
@@ -37,7 +37,8 @@ export function ClientsScreen() {
   }, [requestedClientId, requestClient]);
 
   // Back from the form or the dialog: focus goes to the heading, never lost with the removed view.
-  useEffect(() => {
+  // Layout effect: focus lands in the same commit that shows the heading (tests and users see no gap).
+  useLayoutEffect(() => {
     if (returns > 0) headingRef.current?.focus();
   }, [returns]);
 

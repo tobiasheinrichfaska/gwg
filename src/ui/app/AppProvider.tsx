@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   createMemoryListStore,
   createMemorySettingsStore,
@@ -135,7 +135,9 @@ export function AppProvider({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   // Latest values for the callbacks below (they must not change identity with every edit).
   const [live] = useState(() => new Latest());
-  useEffect(() => {
+  // Layout effect: the commit that shows a new list/backup also updates `live`, so a click right after
+  // it never reads stale values (a passive effect could still be pending and make the run fail).
+  useLayoutEffect(() => {
     live.sync(settings, list, loaded.kind === 'ready' ? loaded.backup : null);
   }, [live, settings, list, loaded]);
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useLayoutEffect, useId, useRef, useState } from 'react';
 import { BACKUP_WARNING, readBackupFile } from '../../../io/index.ts';
 import { parseBackup, type Backup, type Result } from '../../../logic/index.ts';
 import { describeFailure } from '../../app/messages.ts';
@@ -17,7 +17,7 @@ export function RestoreBackup({ currentCount, onRestore }: Props) {
   const [pending, setPending] = useState<Backup | null>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pending) confirmRef.current?.focus();
   }, [pending]);
 

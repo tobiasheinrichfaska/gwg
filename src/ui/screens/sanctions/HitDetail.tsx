@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   checkDecision,
   currentSnapshot,
@@ -43,7 +43,7 @@ export function HitDetail({ caseKey, onBack }: Props) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [actionNote, setActionNote] = useState<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     headingRef.current?.focus();
   }, []);
 

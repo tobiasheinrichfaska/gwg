@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import {
   checkMandate,
   isPepAffected,
@@ -61,10 +61,10 @@ export function ClientForm({ rules, initial, takenIds, onSave, onCancel }: Props
   const editing = initial !== null;
   const fid = (n: string) => `${uid}-${n}`;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     headingRef.current?.focus();
   }, []);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (error) errorRef.current?.focus();
   }, [error]);
 
