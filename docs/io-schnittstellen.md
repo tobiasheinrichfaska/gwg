@@ -77,3 +77,57 @@ Keine Verschlüsselung, keine Passwortfrage; als Fehlerfall ist nur der stille S
 6. **rad-navi Persistenz:** `rememberKey` schreibt unverschlüsselt in localStorage (nur Knoten-ID, kein
    Mandantenbezug). Ob das genügt, ist zu bestätigen; sonst `rememberStorage` auf Tresor-Slot umbiegen.
 7. **Gerät mit blockiertem IndexedDB** (Privatmodus): nur über `StartResult.error` angedeutet; unklar.
+
+## EU-Liste (T5a, Stand 2026-11-27)
+
+Konsolidierte Liste der EU-Finanzsanktionen, XML „xmlFullSanctionsList“ Version 1.1, von Hand als Datei eingelesen
+(`src/io/eu-list.ts`: `parseEuSanctionsXml`, `readEuListFile`). Kein Netzzugriff.
+
+**Belegtes Schema.** Eine amtliche XSD oder Feldbeschreibung der Version 1.1 war nicht abrufbar (die Hilfeseiten der
+Kommission beschreiben nur die ältere Struktur). Belegt ist die Struktur durch zwei öffentliche Quellen: eine
+Beispieldatei im Repo `perl-Data-Validate-Sanctions` (Muster mit Namensraum, Stand 2020) und den Leser der
+OpenSanctions-Pipeline (`zavod/shed/fsf.py`). Daraus:
+
+- Wurzel `export` (Namensraum `http://eu.europa.ec/fpi/fsd/export`), Attribute `generationDate`
+  (`2020-04-15T15:29:22.497+02:00`) und `globalFileId`; Kinder `sanctionEntity`.
+- `sanctionEntity`: Attribute `logicalId`, `euReferenceNumber`, `designationDate`, `unitedNationId`; Kinder
+  `regulation` (Attribut `programme`), `subjectType` (`code` `person` oder `enterprise`, `classificationCode`),
+  `nameAlias`, `citizenship`, `birthdate`, `address`, `identification`, optional `remark` (Text).
+- `nameAlias`: Attribute `wholeName`, `firstName`, `middleName`, `lastName`, `function`, `strong`, `logicalId`;
+  Kind `remark` möglich. `wholeName` ist teils leer, dann stehen die Teile in den anderen Attributen.
+- `birthdate`: Attribute `birthdate` (`1965-12-12`, nur bei vollem Datum), `year`, `monthOfYear`, `dayOfMonth`,
+  `circa`, `city`, `place`, `countryIso2Code`.
+- Dieselbe `logicalId` kann in der Datei zweimal vorkommen (im Muster belegt).
+
+**Was das Programm daraus macht.** Je `sanctionEntity` ein `ListEntry` (`kind` „sanktion“, Quelle „EU konsolidierte
+Finanzsanktionsliste“): `id` = `logicalId`; Namen = alle `nameAlias` (`wholeName`, sonst Vor-, Zwischen-, Nachname),
+ohne Doppelte; Geburtsdaten = `birthdate`-Attribut, sonst `year`[-`monthOfYear`[-`dayOfMonth`]]; Bemerkung = Text des
+`remark` der Entität, sonst das `programme` der `regulation`, auf 500 Zeichen gekürzt. Stand = `generationDate`
+(Datumsteil), sonst das lokale Änderungsdatum der Datei; beides ist nur ein **Vorschlag** (`suggestedOn`,
+`suggestedFrom`), die Oberfläche lässt ihn bestätigen. Der Dateiname wird nie ausgewertet.
+
+**Nichts wird still verworfen.** `skipped` = Einträge ohne `logicalId` (`no-id`) oder ohne verwertbaren Namen
+(`no-name`), nicht im Index. `adjusted` = Eintrag behalten, aber geändert: unbrauchbarer Name, unbrauchbares
+Geburtsdatum (der Eintrag bleibt, ohne Datum wird strenger, nie lockerer geprüft), zu viele Namen/Daten, gekürzte
+Bemerkung, zusammengeführte doppelte `logicalId`. Kaputtes XML, falsches Wurzelelement (nicht `export`), mehr als
+200 000 Einträge: `bad-list`. Übergröße (Standard 100 MB): `file-too-large`.
+
+**Sicherheit.** `DOMParser` lädt keine externen Entitäten oder DTDs. Zusätzlich wird jedes Dokument mit
+`<!ENTITY` oder einer DOCTYPE-Innenteil-Angabe (`<!DOCTYPE … [`) abgelehnt (`bad-list`); Test: eine einfache
+DOCTYPE mit Fremd-Adresse löst keinen `fetch` aus.
+
+**Speicher.** `AppStore.loadList(kind)` / `saveList(index)`; Tresor-Slot `liste-sanktion` (und `liste-pep`), im
+Vault-Config von `main.tsx` unter `slots` eingetragen (`LIST_SLOTS`). **Abweichung von Frage 1 oben:** die installierte
+`local-vault` 0.1.0 (Tag, `node_modules`) hat **keine Blob-Funktionen** (`putBytes`/`getBytes` fehlen in `dist/`);
+die Angabe weiter oben zu Blobs trifft für diese Version nicht zu. Es bleibt der Slot (Text in localStorage).
+**Größe:** 20 000 synthetische Einträge (je 3 Namen, 2 Geburtsdaten, Bemerkung 100 Zeichen) ergeben 5,08 MB
+Indextext (`serializeIndex`), verschlüsselt im Slot noch mehr. Das liegt an oder über der üblichen localStorage-Grenze
+(rund 5 Millionen Zeichen je Herkunft, gemeinsam mit dem Mandantenbestand). Ob die echte Liste hineinpasst, ist
+offen: mit der echten Datei messen; Ausweg wären Blobs (neuere `local-vault`-Version) oder ein kürzerer Index
+(ohne Bemerkung). Ein volles localStorage meldet `saveList` als `store-failed`.
+
+**Annahmen (nicht belegt):** Namen und Attribute der aktuellen Version 1.1 stimmen mit dem Muster von 2020 überein;
+`month`/`day` als alte Attributnamen werden zusätzlich gelesen; eine Spanne als `year="1970-1975"` oder
+`"1970/1975"` (JJJJ/JJJJ) ist **erfunden**, im Muster nicht belegt, aus der Vorgabe übernommen; ob `generationDate`
+immer vorhanden ist; die Entitätsart (`person`/`enterprise`) wird nicht ausgewertet, beide kommen in den Index;
+`circa` (ungefähr) wird nicht ausgewertet, ein ungefähres Jahr zählt als Jahr.

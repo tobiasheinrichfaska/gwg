@@ -93,6 +93,8 @@ describe('tasks screen', () => {
     const store: AppStore = {
       load: () => Promise.resolve({ ok: true, value: data }),
       save: () => Promise.resolve({ ok: true, value: undefined }),
+      loadList: () => Promise.resolve({ ok: true, value: null }),
+      saveList: () => Promise.resolve({ ok: true, value: undefined }),
     };
     render(
       <AppProvider store={store} now={clock}>

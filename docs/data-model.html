@@ -212,8 +212,17 @@
       <tr><td>bad-list</td><td>Listendatei (Sanktions-/PEP-Index): kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor, ungültiges Datum oder Geburtsdatum/Spanne, Name ohne Buchstaben, mehr als 200 000 Einträge, mehr als 50 Namen oder Geburtsdaten je Eintrag, Art des Eintrags weicht von der der Liste ab</td></tr>
       <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 2, Listendatei eine neuere Version als 1</td></tr>
       <tr><td>duplicate-id</td><td>Mandantennummer, Personen-Id oder Stichtag eines Abschlusses kommt in der Sicherungsdatei doppelt vor; Eintrags-Id in einer Listendatei</td></tr>
-      <tr><td>file-too-large</td><td>Gewählte Sicherungsdatei ist größer als erlaubt (Standard 10 MB); sie wird nicht gelesen (io-Schicht)</td></tr>
+      <tr><td>file-too-large</td><td>Gewählte Sicherungsdatei ist größer als erlaubt (Standard 10 MB; EU-Liste 100 MB); sie wird nicht gelesen (io-Schicht)</td></tr>
       <tr><td>store-failed</td><td>Tresor lässt sich nicht lesen oder schreiben (geschlossen, Slot unlesbar, Speicher voll); nichts wird überschrieben (io-Schicht)</td></tr>
+    </table>
+
+    <h2>4a io-Schicht: Listen</h2>
+    <table>
+      <tr><th>Methode</th><th>Wirkung</th></tr>
+      <tr><td>AppStore.loadList (kind) =&gt; Result&lt;ListIndex | null&gt;</td><td>Liest den Index aus dem Tresor-Slot <code>liste-&lt;kind&gt;</code>; null = noch nichts geladen; beschädigt = <code>bad-list</code>, Tresor zu = <code>store-failed</code></td></tr>
+      <tr><td>AppStore.saveList (index) =&gt; Result&lt;void&gt;</td><td>Schreibt <code>serializeIndex</code> in den Slot; volle Speicher = <code>store-failed</code></td></tr>
+      <tr><td>parseEuSanctionsXml (xml, fetchedOn) =&gt; Result&lt;{index, skipped, adjusted}&gt;</td><td>EU-Liste (XML 1.1) in einen Index; Einträge ohne Namen in <code>skipped</code>, geänderte in <code>adjusted</code>; Entity-Deklarationen, falsche Wurzel, kaputtes XML = <code>bad-list</code></td></tr>
+      <tr><td>readEuListFile (file, maxBytes = 100 MB) =&gt; Result&lt;{index, skipped, adjusted, suggestedOn, suggestedFrom}&gt;</td><td>Liest die Datei; Stand aus <code>generationDate</code>, sonst Änderungsdatum der Datei, nur als Vorschlag; zu groß = <code>file-too-large</code></td></tr>
     </table>
 
     <h2>5 Beziehungen</h2>

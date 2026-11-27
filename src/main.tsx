@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { VaultGate, createVault } from 'local-vault';
-import { VAULT_SLOT, createVaultStore } from './io/index.ts';
+import { LIST_SLOTS, VAULT_SLOT, createVaultStore } from './io/index.ts';
 import { App } from './ui/App.tsx';
 import { VAULT_TEXTS } from './ui/app/texts.ts';
 
@@ -12,7 +12,7 @@ if (!root) throw new Error('missing #root');
 // One slot holds the whole data set.
 const vault = createVault({
   prefix: 'gwg',
-  slots: [VAULT_SLOT],
+  slots: [VAULT_SLOT, ...LIST_SLOTS],
   texts: VAULT_TEXTS,
 });
 const store = createVaultStore(vault);

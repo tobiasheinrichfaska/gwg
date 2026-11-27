@@ -19,6 +19,7 @@
 
 - [x] **Mandantenliste (Bildschirm „Mandanten“):** Liste mit Filter und Suche, Mandant von Hand anlegen, bearbeiten, löschen mit Bestätigung (`tests/ui/clients.test.tsx`, `manual_tests/03_mandanten.md`)
 - [x] **Personen je Mandat (Bildschirm „Mandanten“):** anlegen, bearbeiten, löschen mit Bestätigung, Geburtsdatum JJJJ / JJJJ-MM / JJJJ-MM-TT, Spalte „Personen“, Hinweis bei Typ C ohne Person, Personen werden mit dem Mandat gelöscht (`tests/ui/persons.test.tsx`, `manual_tests/05_personen.md`)
+- [x] **EU-Sanktionsliste von Hand einlesen (io, ohne Bildschirm):** XML 1.1 in einen Index, Einträge ohne Namen gemeldet, Entity-Deklarationen abgelehnt, Stand nur als Vorschlag, Speichern/Laden im Tresor-Slot (`tests/io-eu-list.test.ts`); Bildschirm und Größe der echten Liste offen
 - [ ] **Mandantenliste einlesen** (Export der Kanzleisoftware) und prüfen — offen, nur die Eingabe von Hand ist gebaut
 - [x] **Aufgabenliste (Bildschirm):** wer ist fällig, wer mahnt, wer eskaliert; „Erste Anforderung heute gesendet“, „Prüfung heute abgeschlossen“ mit Bestätigung, nicht prüfbare Mandate gemeldet (`tests/ui/tasks-audit.test.tsx`, `manual_tests/04_aufgaben_audit.md`)
 - [x] **Navigation** mit `rad-navi` (Rahmen und Bereiche; alle fünf Bereiche gebaut)
