@@ -11,8 +11,8 @@ nur, was eine Person sehen muss.
 
 ## Stand
 
-Gebaut sind der Rahmen mit Navigation und der Bildschirm „Sicherung“ (MT-01, MT-02). Übersicht, Mandanten,
-Aufgaben und Audit sind noch Platzhalter; ihre Fälle kommen mit den Bildschirmen.
+Gebaut sind der Rahmen mit Navigation und die Bildschirme „Sicherung“ und „Mandanten“ (MT-01 bis MT-03).
+Übersicht, Aufgaben und Audit sind noch Platzhalter; ihre Fälle kommen mit den Bildschirmen.
 
 ## Dateien
 
@@ -20,3 +20,4 @@ Aufgaben und Audit sind noch Platzhalter; ihre Fälle kommen mit den Bildschirme
 | ----------------- | ------------------------------------------------------- |
 | `01_start.md`     | Start der Anwendung                                     |
 | `02_sicherung.md` | Sicherung speichern, ansehen, einspielen, kaputte Datei |
+| `03_mandanten.md` | Mandanten anlegen, suchen, bearbeiten, löschen          |
