@@ -70,7 +70,9 @@ export type Reason =
   | 'bad-config'
   | 'bad-backup'
   | 'unsupported-version'
-  | 'duplicate-id';
+  | 'duplicate-id'
+  | 'file-too-large'
+  | 'store-failed';
 
 export type Result<T> = CoreResult<T, Reason>;
 

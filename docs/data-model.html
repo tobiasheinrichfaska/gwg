@@ -28,8 +28,10 @@
     <h2>1 Gespeicherte Form (Wurzel)</h2>
     <p>
       Die Sicherungsdatei hat das <strong>Format 1</strong> (reine Logik in <code>src/logic/backup/</code>;
-      Verschlüsselung und Dateizugriff kommen später im io-Teil, deren Schutz/Passwort ist noch offen). Sie ist
-      ein JSON-Objekt mit genau diesen Feldern:
+      Speicher und Dateizugriff in <code>src/io/</code>). Die Datei ist <strong>unverschlüsselt</strong> (Entscheidung
+      Tobias): sie enthält Mandantennamen im Klartext, die Oberfläche zeigt dazu einen Warnhinweis
+      (<code>BACKUP_WARNING</code>). Der Browserspeicher dagegen liegt im local-vault (Gerätemodus, optional mit
+      App-Sperre) als ein Slot mit genau diesem Text. Sie ist ein JSON-Objekt mit genau diesen Feldern:
     </p>
     <table>
       <tr><th>Feld</th><th>Typ</th><th>Inhalt</th></tr>
@@ -144,6 +146,8 @@
       <tr><td>bad-backup</td><td>Sicherungsdatei: kein gültiges JSON, falsche Form oder falscher Typ, unbekannter oder fehlender Schlüssel, __proto__/constructor</td></tr>
       <tr><td>unsupported-version</td><td>Sicherungsdatei hat eine neuere Version als 1</td></tr>
       <tr><td>duplicate-id</td><td>Mandantennummer kommt in der Sicherungsdatei doppelt vor</td></tr>
+      <tr><td>file-too-large</td><td>Gewählte Sicherungsdatei ist größer als erlaubt (Standard 10 MB); sie wird nicht gelesen (io-Schicht)</td></tr>
+      <tr><td>store-failed</td><td>Tresor lässt sich nicht lesen oder schreiben (geschlossen, Slot unlesbar, Speicher voll); nichts wird überschrieben (io-Schicht)</td></tr>
     </table>
 
     <h2>5 Beziehungen</h2>

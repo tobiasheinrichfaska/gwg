@@ -122,6 +122,46 @@ function logicBlocks() {
   ];
 }
 
+// io layer: the only layer with side effects. It reads logic through logic/index.ts only and never
+// the UI; the UI reads io through io/index.ts only. (no-restricted-globals stays logic-only.)
+function ioBlocks() {
+  return [
+    {
+      files: ['src/io/**/*.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/logic/*', '!**/logic/index.*'],
+                message: 'Import from logic/index.ts, not from a module inside logic/.',
+              },
+              { group: ['**/ui/**'], message: 'io must not import from ui/.' },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      files: ['src/ui/**/*.{ts,tsx}', 'src/main.tsx'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/io/*', '!**/io/index.*'],
+                message: 'Import from io/index.ts, not from a file inside io/.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ];
+}
+
 export default defineConfig([
   globalIgnores([
     'dist',
@@ -145,6 +185,7 @@ export default defineConfig([
     extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
   },
   ...logicBlocks(),
+  ...ioBlocks(),
   {
     files: [
       'vite.config.ts',

@@ -115,3 +115,61 @@ describe('ESLint module boundaries: backup', () => {
     expect(root).not.toContain('no-restricted-imports');
   });
 });
+
+describe('ESLint module boundaries: io', () => {
+  it('allows io importing logic through logic/index.ts', async () => {
+    const ids = await ruleIds(
+      'src/io/x.ts',
+      "import { parseBackup } from '../logic/index.ts';\nexport const a = parseBackup;\n",
+    );
+    expect(ids).not.toContain('no-restricted-imports');
+  });
+
+  it('forbids io importing a module inside logic', async () => {
+    const ids = await ruleIds(
+      'src/io/x.ts',
+      "import { parseBackup } from '../logic/backup/index.ts';\nexport const a = parseBackup;\n",
+    );
+    expect(ids).toContain('no-restricted-imports');
+  });
+
+  it('forbids io importing the ui', async () => {
+    const ids = await ruleIds(
+      'src/io/x.ts',
+      "import { App } from '../ui/App.tsx';\nexport const a = App;\n",
+    );
+    expect(ids).toContain('no-restricted-imports');
+  });
+
+  it('forbids logic importing io (any file, also the entry)', async () => {
+    for (const spec of ['../../io/index.ts', '../../io/files.ts']) {
+      const ids = await ruleIds(
+        'src/logic/mandate/x.ts',
+        `import { backupFileName } from '${spec}';\nexport const a = backupFileName;\n`,
+      );
+      expect(ids).toContain('no-restricted-imports');
+    }
+  });
+
+  it('allows the ui importing io/index.ts, forbids a deep import', async () => {
+    const root = await ruleIds(
+      'src/ui/x.tsx',
+      "import { backupFileName } from '../io/index.ts';\nexport const a = backupFileName;\n",
+    );
+    expect(root).not.toContain('no-restricted-imports');
+    const deep = await ruleIds(
+      'src/ui/x.tsx',
+      "import { backupFileName } from '../io/files.ts';\nexport const a = backupFileName;\n",
+    );
+    expect(deep).toContain('no-restricted-imports');
+  });
+
+  it('keeps the browser-globals ban for logic only', async () => {
+    expect(await ruleIds('src/logic/core/x.ts', 'export const a = window;\n')).toContain(
+      'no-restricted-globals',
+    );
+    expect(await ruleIds('src/io/x.ts', 'export const a = window;\n')).not.toContain(
+      'no-restricted-globals',
+    );
+  });
+});
